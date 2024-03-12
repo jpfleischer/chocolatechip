@@ -1,0 +1,39 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "chocolatechip"
+version = "0.1.0"
+description = "maltlab helper"
+authors = ["Jacques Fleischer <jacquespfleischer@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+keywords = ["maltlab", "university of florida"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: Education",
+]
+homepage = "https://github.com/jpfleischer/chocolatechip"
+documentation = "https://github.com/jpfleischer/chocolatechip/blob/main/README.md"
+repository = "https://github.com/jpfleischer/chocolatechip.git"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+cloudmesh-common = "^5.0.60"
+docopt = "^0.6.2"
+setuptools = "^69.1.0"
+wheel = "^0.42.0"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
+chip = "chocolatechip.console:main"
+
+[project.scripts]
+chip = "chocolatechip.console:main"
