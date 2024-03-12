@@ -74,5 +74,3 @@ Fan Speed - NVIDIA TITAN RTX #1
    40.00  ┤╰╯╰╯ ╰╯  ╰╯    ╰╯
 1280x960
 ```
-
-ASCII ART BY Hayley Jane Wakenshaw
