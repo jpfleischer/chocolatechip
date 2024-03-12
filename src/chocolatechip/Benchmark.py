@@ -2,7 +2,7 @@ import subprocess
 import time
 import xml.etree.ElementTree as ET
 from matplotlib.ticker import FuncFormatter
-
+from pprint import pprint
 import curses
 import datetime
 import asciichartpy
@@ -244,13 +244,21 @@ def main():
 
         # how many tracks?
         r = Shell.run("docker logs `docker ps -aqf ancestor=fastmot-image | head -n 1`")
+        r2 = Shell.run("docker logs `docker ps -aqf ancestor=fastmot-image | sed -n '2p'`")
+
         list_of_logs = r.splitlines()
+        list_of_logs2 = r2.splitlines()
         for line in list_of_logs:
             if 'Total number of tracks' in line:
                 print('!!!!!!!')
                 print(line)
                 tracks_with_res[f"{res}-{i}"] = line.split(':')[-1].strip()
-
+        for line in list_of_logs2:
+            if 'Total number of tracks' in line:
+                print('!!!!!!!')
+                print(line)
+                tracks_with_res[f"{res}-{i}-2"] = line.split(':')[-1].strip()
+                
         # to all rows, add a column that says resolution, 
         # with value res
         for i in range(2):
@@ -263,6 +271,7 @@ def main():
     print('Starting gpu plotter')
     gpu_plotter(mega_dfs)
 
+    pprint(tracks_with_res)
     print('Starting bar plotter')
     bar_plotter(tracks_with_res)
 
