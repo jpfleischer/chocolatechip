@@ -3,7 +3,7 @@ from cloudmesh.common.console import Console
 from cloudmesh.common.Shell import Shell
 from cloudmesh.common.util import readfile, writefile, path_expand
 from docopt import docopt
-import subprocess
+from chocolatechip import Benchmark
 
 def main():
     doc = """
@@ -25,7 +25,7 @@ Commands:
     args = docopt(doc, version='1.0')
 
     if args['fastmot']:
-        print('wow, nice!')
+        Benchmark.main()
 
 
 if __name__ == "__main__":

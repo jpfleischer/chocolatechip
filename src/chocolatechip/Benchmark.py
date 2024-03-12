@@ -8,6 +8,7 @@ import datetime
 import asciichartpy
 import os
 from cloudmesh.common.console import Console
+from cloudmesh.common.Shell import Shell
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -112,7 +113,17 @@ def curses_shower(stdscr):
         time.sleep(1)
 
 
-def dataframes_returner() -> list:
+def dataframes_returner(res: str) -> list:
+    """
+    This function returns two DataFrames, one for each GPU. 
+    So the first one in the list is the first gpu
+    and the second one in the list is the second gpu. 
+    It also prints the information to the console.
+
+    res: str
+        The resolution of the video. just for the print statement,
+        not really vital.
+    """
     data_list = [pd.DataFrame(), pd.DataFrame()]  # Initialize empty DataFrames
     start_time = datetime.datetime.now()  # Get the start time
 
@@ -142,13 +153,16 @@ def dataframes_returner() -> list:
 
             print(chr(27) + "[2J")
 
-
             for var in ['memory_usage', 'wattage', 'temperature', 'fan_speed']:
                 # Print ASCII chart to console
                 var_title = var.replace('_', ' ').title()
                 the_best_title = f'{var_title} - {info_dict["name"]} #{i}'
                 print(the_best_title)
-                print(asciichartpy.plot(data_list[i][var].values.tolist()))
+
+                # Get all the data points
+                values = data_list[i][var].values.tolist()
+                print(asciichartpy.plot(values, {'height': 6}))
+            print(res)
 
         time.sleep(1)  # Wait for 1 second
 
@@ -189,7 +203,19 @@ def gpu_plotter(info_list: list):
 
             plt.savefig(f'gpu_{i}_{var}.png', bbox_inches='tight')  # Save the plot to an image file
 
-if __name__ == "__main__":
+def bar_plotter(tracks_with_res: dict):
+    # Create a bar plot
+    plt.bar(tracks_with_res.keys(), tracks_with_res.values())
+
+    # Add title and labels
+    plt.title('Number of Tracks by Resolution')
+    plt.xlabel('Resolution')
+    plt.ylabel('Number of Tracks')
+
+    # Save the plot to an image file
+    plt.savefig('tracks_by_resolution.png', bbox_inches='tight')
+
+def main():
     vid1_list = [
         # "/mnt/hdd/gvideo/21_2023-08-30_19-45-04.000-medium.mp4",
         # "/mnt/hdd/gvideo/21_2023-08-30_19-45-04.000-medium-640.mp4",
@@ -208,13 +234,23 @@ if __name__ == "__main__":
     ]
 
     mega_dfs = [pd.DataFrame(), pd.DataFrame()]
+    tracks_with_res = {}
 
-    for vid, vid2 in zip(vid1_list, vid2_list):
-        
+    for i, (vid, vid2) in enumerate(zip(vid1_list, vid2_list)):
         print('Starting the fastmot launcher')
         res = fastmot_launcher(vid, vid2)
 
-        df_lists = dataframes_returner()
+        df_lists = dataframes_returner(res)
+
+        # how many tracks?
+        r = Shell.run("docker logs `docker ps -aqf ancestor=fastmot-image | head -n 1`")
+        list_of_logs = r.splitlines()
+        for line in list_of_logs:
+            if 'Total number of tracks' in line:
+                print('!!!!!!!')
+                print(line)
+                tracks_with_res[f"{res}-{i}"] = line.split(':')[-1].strip()
+
         # to all rows, add a column that says resolution, 
         # with value res
         for i in range(2):
@@ -226,5 +262,8 @@ if __name__ == "__main__":
 
     print('Starting gpu plotter')
     gpu_plotter(mega_dfs)
+
+    print('Starting bar plotter')
+    bar_plotter(tracks_with_res)
 
     print('Done')
