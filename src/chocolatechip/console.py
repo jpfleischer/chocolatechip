@@ -3,7 +3,7 @@ from cloudmesh.common.console import Console
 from cloudmesh.common.Shell import Shell
 from cloudmesh.common.util import readfile, writefile, path_expand
 from docopt import docopt
-from chocolatechip import Benchmark
+from chocolatechip import Benchmark, Pipeline
 
 def main():
     doc = """
@@ -11,10 +11,13 @@ chocolate chip. yum
 
 Usage:
     chip fastmot
+    chip pipeline
     chip help
+
 
 Commands:
     fastmot   benchmark fastmot
+    pipeline  restart the pipeline
     help      show this help message
     """
 
@@ -26,6 +29,9 @@ Commands:
 
     if args['fastmot']:
         Benchmark.main()
+
+    if args['pipeline']:
+        Pipeline.main()
 
 
 if __name__ == "__main__":
