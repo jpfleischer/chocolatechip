@@ -13,7 +13,7 @@ def main():
 
     pipeline_dir = "/mnt/hdd/pipeline"
     name_fastmot = 'fastmot-image'
-    intersection = '3032'
+    intersection = '3334'
     result = subprocess.run(f"cd {os.path.join(pipeline_dir, "fastmot")} && make run "\
                             f"CUSTOM_NAME={name_fastmot} "\
                             f"NETWORK_NAME={intersection} "\
