@@ -58,13 +58,21 @@ def tracks_processing(bundle_names: list,
         allofthem.append(("tracks_processing", f"tracks_processing-{bundle}-1", bundle))
         allofthem.append(("tracks_processing", f"tracks_processing-{bundle}-2", bundle))
     
+    flip = True
     for software, full, intersection in allofthem:
         Console.info(f"Building {software}")        
+        if flip:
+            queue = "dt_tracks_ready_1"
+        else:
+            queue = "dt_tracks_ready_2"
         result = subprocess.run(f"cd {os.path.join(pipeline_dir, software)} && make CUSTOM_NAME={full} "\
-                                f"NETWORK_NAME={intersection} "
+                                f"NETWORK_NAME={intersection} "\
+                                f"RBBT_IP=rabbitmq-{intersection} "\
+                                f"QUEUE={queue}"
                                 ,
             shell=True)
         print(result)
+        flip = not flip
 
 
 def rtsp(bundle_names: list,
@@ -83,7 +91,7 @@ def rtsp(bundle_names: list,
         result = subprocess.run(f"cd {os.path.join(pipeline_dir, software)} && make CUSTOM_NAME={full} "\
                                 f"NETWORK_NAME={intersection} "\
                                 f"PORT_1={str(8554 + addition)} "\
-                                f"PORT_2={str(1935 + addition)} "\
+                                f"PORT_2={str(1935 + addition)} "
                                 ,
             shell=True)
         print(result)
@@ -143,8 +151,9 @@ def main():
     stop_everything()
 
     bundle_names = [
-        "3032",
-        "3287"
+        "3334",
+        # "3032",
+        # "3287"
     ]
 
     pipeline_dir = "/mnt/hdd/pipeline"

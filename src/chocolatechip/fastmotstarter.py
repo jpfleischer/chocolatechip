@@ -1,7 +1,16 @@
 import subprocess
 import os
+import docker
 
 def main():
+    client = docker.from_env()
+    names = ['fastmot']
+
+    for container in client.containers.list(all=True):
+        if any(name in container.name for name in names):
+            print(container.name)
+            container.remove(force=True)
+
     pipeline_dir = "/mnt/hdd/pipeline"
     name_fastmot = 'fastmot-image'
     intersection = '3032'
