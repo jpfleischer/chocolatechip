@@ -164,10 +164,6 @@ def main():
         network_checker(bundle)
 
 
-    uniques = [
-        "fastmot"
-    ]
-
     # rabbit setup
     rabbit(bundle_names, pipeline_dir=pipeline_dir)
     # nifi setup
@@ -187,7 +183,6 @@ def main():
                  "vid_ttc"
                  ]
     lookup_name = []
-
 
 
     for bundle in bundle_names:
