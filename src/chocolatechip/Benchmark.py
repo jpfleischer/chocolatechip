@@ -12,6 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from chocolatechip import MySQLConnector
 import yaspin
+import json
 from datetime import datetime
 
 def docker_checker():
@@ -28,12 +29,20 @@ def docker_checker():
         return False
         
 
-def fastmot_launcher(vid, vid2) -> str:
+def fastmot_launcher(vid, 
+                     vid2, 
+                     rtsp: bool=True) -> str:
     """
     This function launches fastmot with the given video files.
     It returns the resolution of the videos.
     """
-    path_to_fastmot = '/mnt/hdd/pipeline/fastmot'
+
+    # uncomment this for rtsp dual
+    if rtsp:
+        path_to_fastmot = '/mnt/hdd/pipeline/fastmot'
+    else:
+        path_to_fastmot = '/home/jpf/fastmot'
+
 
     resolution_command = 'ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 '
 
@@ -50,7 +59,12 @@ def fastmot_launcher(vid, vid2) -> str:
         
     # start fastmot
     # cd /mnt/hdd/pipeline/fastmot ; make VID="/mnt/hdd/gvideo/24_2024-03-04_18-50-00.000.mp4"
-    fastmot_command = 'cd ' + path_to_fastmot + ' ; make dual-test VID=' + vid + ' VID2=' + vid2 + ' CAM_ID=' + vid.split('/')[-1].split('_')[0] + ' CAM_ID2=' + vid2.split('/')[-1].split('_')[0]
+
+    if rtsp:
+        fastmot_command = 'cd ' + path_to_fastmot + ' ; make dual-test VID=' + vid + ' VID2=' + vid2 + ' CAM_ID=' + vid.split('/')[-1].split('_')[0] + ' CAM_ID2=' + vid2.split('/')[-1].split('_')[0]
+    else:
+        fastmot_command = 'cd ' + path_to_fastmot + '; make run'
+                
     print(fastmot_command)
     # time.sleep(3)
     subprocess.run(fastmot_command, shell=True, 
@@ -130,6 +144,23 @@ def curses_shower(stdscr):
         # Wait for 1 second
         time.sleep(1)
 
+def docker_stats_grabber() -> list:
+    """
+    list of two dataframes, one for each gpu
+    """
+    return_list = []
+    for i in range(2):
+        if i == 0:
+            docker_stats_cmd = 'docker stats --no-stream $(docker ps -aqf ancestor=fastmot-image | head -n 1) --format "{{ json . }}"'
+        elif i == 1:
+            docker_stats_cmd = 'docker stats --no-stream $(docker ps -aqf ancestor=fastmot-image | sed -n \'2p\') --format "{{ json . }}"'
+        
+        result = subprocess.run(docker_stats_cmd, capture_output=True, text=True, shell=True)
+        print(result.stdout)
+        return_list.append(json.loads(result.stdout))
+    return return_list
+    
+
 
 def dataframes_returner(res: str) -> list:
     """
@@ -137,6 +168,7 @@ def dataframes_returner(res: str) -> list:
     So the first one in the list is the first gpu
     and the second one in the list is the second gpu. 
     It also prints the information to the console.
+    this loops until docker is down
 
     res: str
         The resolution of the video. just for the print statement,
@@ -151,6 +183,7 @@ def dataframes_returner(res: str) -> list:
 
         # Call the nvidia_scraper function
         info_list = nvidia_scraper()
+        docker_stats = docker_stats_grabber()
 
         # Get the current time and calculate elapsed seconds
         timestamp = datetime.now()
@@ -163,6 +196,29 @@ def dataframes_returner(res: str) -> list:
             new_row['wattage'] = new_row['wattage'].str.replace(' W', '').astype(float)  # Convert wattage to float
             new_row['temperature'] = new_row['temperature'].str.replace('C', '').astype(int)  # Convert temperature to int
             new_row['fan_speed'] = new_row['fan_speed'].str.replace(' %', '').astype(int)  # Convert fan_speed to int
+
+            # sample output
+            # {"BlockIO":"45.3MB / 1.3MB","CPUPerc":"0.00%","Container":"vid_se","ID":"c86129664929","MemPerc":"0.02%","MemUsage":"87.6MiB / 376.5GiB","Name":"vid_se","NetIO":"2.83MB / 1.19MB","PIDs":"1"}
+            new_row['CPUPerc'] = docker_stats[i]['CPUPerc']
+            new_row['MemPerc'] = docker_stats[i]['MemPerc']
+            new_row['MemUsage'] = docker_stats[i]['MemUsage']
+            new_row['BlockIO'] = docker_stats[i]['BlockIO']
+
+            # Convert 'CPUPerc' and 'MemPerc' to float by removing the '%' sign
+            new_row['CPUPerc'] = new_row['CPUPerc'].str.replace('%', '').astype(float)
+            new_row['MemPerc'] = new_row['MemPerc'].str.replace('%', '').astype(float)
+
+            def scale(s):
+                factors = {'B': 1, 'KB': 1e3, 'MB': 1e6, 'GB': 1e9, 'TB': 1e12, 'Mi': 1<<20, 'Gi': 1<<30, 'Ti': 1<<40, 'k': 1e3, 'M': 1e6, 'G': 1e9, 'T': 1e12}
+                for unit in factors:
+                    s = s.replace(unit, '')
+                return float(s)
+
+            # Convert 'MemUsage' to bytes
+            new_row['MemUsage'] = new_row['MemUsage'].str.split(' / ', expand=True)[0].apply(scale)
+
+            # Convert 'BlockIO' to bytes
+            new_row['BlockIO'] = new_row['BlockIO'].str.split(' / ', expand=True)[0].apply(scale)
 
             # Add the elapsed seconds to the new row
             new_row['elapsed_seconds'] = elapsed_seconds
@@ -183,24 +239,36 @@ def dataframes_returner(res: str) -> list:
                 print(asciichartpy.plot(values, {'height': 6}))
             print(res)
 
-        time.sleep(1)  # Wait for 1 second
+        time.sleep(0.3)  # Wait for 1 second
 
     return data_list
 
 def gpu_plotter(info_list: list):
-    for var in ['memory_usage', 'wattage', 'temperature', 'fan_speed']:
+    """
+    This function takes a list of DataFrames and plots the information
+    for each GPU. It saves the plots to image files.
+    it is not live, its just one time with data already existing
+    """
+    for var in ['memory_usage', 'wattage', 'temperature', 'fan_speed', 'CPUPerc', 'MemPerc', 'MemUsage', 'BlockIO']:
         for i, df in enumerate(info_list):
             fig, ax = plt.subplots()
 
             # Group by resolution and plot each group
-            for resolution, group_df in df.groupby('resolution'):
-                group_df.set_index('elapsed_seconds')[var].plot(ax=ax, label=f'Resolution {resolution}')
+            lines = []
+            labels = []
+            for resolution in ['1280x960', '640x480', '320x240']:
+                group_df = df[df['resolution'] == resolution]
+                if not group_df.empty:
+                    group_df.set_index('elapsed_seconds')[var].plot(ax=ax)
+                    line = ax.lines[-1]
+                    lines.append(line)
+                    labels.append(f'Resolution {resolution}')
 
             var_title = var.replace('_', ' ').title()
-            ax.set_title(f'{var_title} - GPU #{i}')
+            ax.set_title(f'{var_title} - GPU #{i+1}')
 
             # Add units to y-ticks
-            if var == 'memory_usage':
+            if var in ['memory_usage', 'MemUsage']:
                 ax.set_ylabel('Memory Usage (MiB)')
                 ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f'{int(y)} MiB'))
             elif var == 'wattage':
@@ -212,15 +280,27 @@ def gpu_plotter(info_list: list):
             elif var == 'fan_speed':
                 ax.set_ylabel('Fan Speed (%)')
                 ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f'{int(y)} %'))
+            elif var == 'CPUPerc':
+                ax.set_ylabel('CPU Usage (%)')
+                ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f'{y:.3f} %'))
+                ax.set_title(f"CPU Percentage (N cores times 100) - FastMOT Container #{i+1}")
+            elif var == 'MemPerc':
+                ax.set_ylabel('Memory Usage (%)')
+                ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f'{y:.3f} %'))
+                # ax.set_ylim(0, 0.01)
+                ax.set_title(f"Memory Percentage Use - FastMOT Container #{i+1}")
+            elif var == 'BlockIO':
+                ax.set_ylabel('Block IO (MB)')
+                ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f'{int(y)} MB'))
 
             # Add 's' to x-ticks
             ax.set_xlabel('Elapsed Time (s)')
             ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{int(x)} s'))
 
             ax.grid(True)  # Add grid
-            ax.legend()  # Add legend
+            ax.legend(lines, labels)  # Add legend
 
-            plt.savefig(f'gpu_{i}_{var}.png', bbox_inches='tight')  # Save the plot to an image file
+            plt.savefig(f'gpu_{i+1}_{var}.png', bbox_inches='tight')  # Save the plot to an image file
 
 def bar_plotter(tracks_with_res: dict,
                 name: str = 'tracks_by_resolution.png'):
@@ -246,22 +326,39 @@ def bar_plotter(tracks_with_res: dict,
 
 
 def main():
-    vid1_list = [
-        # "/mnt/hdd/gvideo/21_2023-08-30_19-45-04.000-medium.mp4",
-        # "/mnt/hdd/gvideo/21_2023-08-30_19-45-04.000-medium-640.mp4",
-        # "/mnt/hdd/gvideo/21_2023-08-30_19-45-04.000-medium-320.mp4"
-        "/mnt/hdd/gvideo/25_2023-08-30_07-45-02.000-med-conflict.mp4",
-        "/mnt/hdd/gvideo/25_2023-08-30_07-45-02.000-med-conflict-640.mp4",
-        "/mnt/hdd/gvideo/25_2023-08-30_07-45-02.000-med-conflict-320.mp4"
-    ]
-    vid2_list = [
-        # "/mnt/hdd/gvideo/22_2023-08-30_19-45-04.000-medium.mp4",
-        # "/mnt/hdd/gvideo/22_2023-08-30_19-45-04.000-medium-640.mp4",
-        # "/mnt/hdd/gvideo/22_2023-08-30_19-45-04.000-medium-320.mp4"
-        "/mnt/hdd/gvideo/26_2023-08-30_07-45-02.000-med-conflict.mp4",
-        "/mnt/hdd/gvideo/26_2023-08-30_07-45-02.000-med-conflict-640.mp4",
-        "/mnt/hdd/gvideo/26_2023-08-30_07-45-02.000-med-conflict-320.mp4"
-    ]
+
+    #
+    #
+    #
+    rtsp = True
+
+
+    if rtsp:
+        vid1_list = [
+            # "/mnt/hdd/gvideo/21_2023-08-30_19-45-04.000-medium.mp4",
+            # "/mnt/hdd/gvideo/21_2023-08-30_19-45-04.000-medium-640.mp4",
+            # "/mnt/hdd/gvideo/21_2023-08-30_19-45-04.000-medium-320.mp4"
+            "/mnt/hdd/gvideo/25_2023-08-30_07-45-02.000-med-conflict.mp4",
+            "/mnt/hdd/gvideo/25_2023-08-30_07-45-02.000-med-conflict-640.mp4",
+            "/mnt/hdd/gvideo/25_2023-08-30_07-45-02.000-med-conflict-320.mp4"
+        ]
+        vid2_list = [
+            # "/mnt/hdd/gvideo/22_2023-08-30_19-45-04.000-medium.mp4",
+            # "/mnt/hdd/gvideo/22_2023-08-30_19-45-04.000-medium-640.mp4",
+            # "/mnt/hdd/gvideo/22_2023-08-30_19-45-04.000-medium-320.mp4"
+            "/mnt/hdd/gvideo/26_2023-08-30_07-45-02.000-med-conflict.mp4",
+            "/mnt/hdd/gvideo/26_2023-08-30_07-45-02.000-med-conflict-640.mp4",
+            "/mnt/hdd/gvideo/26_2023-08-30_07-45-02.000-med-conflict-320.mp4"
+        ]
+    else:
+        #phony
+        vid1_list = [
+            "/mnt/hdd/gvideo/25_2023-08-30_07-45-02.000-med-conflict.mp4",
+        ]
+        vid2_list = [
+            "/mnt/hdd/gvideo/26_2023-08-30_07-45-02.000-med-conflict.mp4",
+        ]
+
     # Define the parameters
     params = {
         'start_date': datetime.now(),  # Current time
@@ -283,7 +380,7 @@ def main():
         params['start_date'] = datetime.now()
 
         print('Starting the fastmot launcher')
-        res = fastmot_launcher(vid, vid2)
+        res = fastmot_launcher(vid, vid2, rtsp)
 
         df_lists = dataframes_returner(res)
 
@@ -320,7 +417,15 @@ def main():
 
         params['end_date'] = datetime.now()
         trackdf = sql.handleRequest(params, 'track')
+
+        # temporary
+        params['cam_id'] = 26
+
         conflictdf = sql.handleRequest(params, 'conflict')
+
+        # temporary
+        params['cam_id'] = 27
+
         tracks_df[f"{res}-{i}-vid1"] = trackdf
         conflict_df[f"{res}-{i}-vid1"] = conflictdf
         
@@ -350,4 +455,8 @@ def main():
     for key, df in tracks_df.items():
         print(f"{key}:\n{df.to_string()}\n")
     pprint(conflict_df)
+    print('-'*20)
+    print('-'*20)
+    print('-'*20)
+    pprint(mega_dfs[0].to_string())
     print('Done')

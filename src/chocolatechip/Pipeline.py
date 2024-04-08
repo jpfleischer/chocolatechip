@@ -148,17 +148,20 @@ def main():
     """
     this restarts the pipeline
     """
+    Console.info("Stopping containers...")
     stop_everything()
 
     bundle_names = [
         "3334",
-        # "3032",
-        # "3287"
+        "3032",
+        "3248",
+        "3252",
     ]
 
     pipeline_dir = "/mnt/hdd/pipeline"
 
 
+    Console.info("Building networks...")
     # build network
     for bundle in bundle_names:
         network_checker(bundle)
