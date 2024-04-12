@@ -50,13 +50,15 @@ def main():
         'cam_id2': '26',
     }
 
+    # something about the 34 35 resolution doesnt work yet
+    # gotta make one for 28 29
     set_4 = {
-        'intersection': '3252',
-        'video_1': '/mnt/hdd/gvideo/34_2023-08-23_14-00-14.015-med-conflict.mp4',
-        'video_2': '/mnt/hdd/gvideo/35_2023-08-23_14-00-14.015-med-conflict.mp4',
+        'intersection': '3265',
+        'video_1': '/mnt/huge/BrowardVideos/28_2023-08-23_19-45-03.000-med-conflict.mp4',
+        'video_2': '/mnt/huge/BrowardVideos/29_2023-08-23_19-45-03.000-med-conflict.mp4',
 
-        'cam_id1': '34',
-        'cam_id2': '35',
+        'cam_id1': '28',
+        'cam_id2': '29',
     }
 
     megaset = {
@@ -69,6 +71,8 @@ def main():
     # list_of_dictionaries.append(set_1)
     # list_of_dictionaries.append(set_2)
     mega_df = pd.DataFrame()
+
+    container_name = 'fastmot-image'
 
     for key, value in megaset.items():
         
@@ -110,13 +114,16 @@ def main():
                 
         # 2 just signifies number of fastmot containers
         # for each intersection.
-        df = Stream.dataframes_returner(key)
+        df = Stream.dataframes_returner(key,
+                                        container_name)
         df['total-streams'] = key
         mega_df = pd.concat([mega_df, df])
 
         with yaspin.yaspin() as sp:
-            sp.text = "Waiting for 5 seconds"
-            time.sleep(5)
+            sp.text = "Waiting for 10 seconds"
+            time.sleep(10)
         fastmot_cleaner()
+
+    mega_df.to_csv(f'./figures/{container_name}.csv')
 
     Stream.gpu_plotter(mega_df, False)

@@ -155,7 +155,7 @@ def main():
         "3334",
         "3032",
         "3248",
-        "3252",
+        "3265",
     ]
 
     pipeline_dir = "/mnt/hdd/pipeline"
