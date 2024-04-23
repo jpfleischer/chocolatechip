@@ -1,3 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from pprint import pprint
 import time
 import subprocess
 import os
@@ -16,13 +19,12 @@ def fastmot_cleaner():
             container.remove(force=True)
 
 
-def main():
+def main(pairs: int=None):
     fastmot_cleaner()
     
     pipeline_dir = "/mnt/hdd/pipeline"
     name_fastmot = 'fastmot-image'
 
-    list_of_dictionaries = []
 
     set_1 = {
         'intersection': '3334',
@@ -67,13 +69,29 @@ def main():
         6: [set_1, set_2, set_3],
         8: [set_1, set_2, set_3, set_4],
                }
-    
-    # list_of_dictionaries.append(set_1)
-    # list_of_dictionaries.append(set_2)
+        
+    if pairs:
+        ###### works with pairs parameter
+        megaset = {pairs*2: megaset[pairs*2]}
+
+    print("!"*80)
+    pprint(megaset)
+    print("!"*80)
+
+    container_names = [
+        'fastmot-image',
+        'vid_ttc',
+        'vid_online_clustering',
+        'tracks_processing',
+        'nifi',
+        'vid_dual',
+        'vid_statistics',
+        'vid_se',
+        'rabbitmq'
+        ]
+
+
     mega_df = pd.DataFrame()
-
-    container_name = 'fastmot-image'
-
     for key, value in megaset.items():
         
         index_1 = 1
@@ -114,16 +132,23 @@ def main():
                 
         # 2 just signifies number of fastmot containers
         # for each intersection.
-        df = Stream.dataframes_returner(key,
-                                        container_name)
-        df['total-streams'] = key
-        mega_df = pd.concat([mega_df, df])
+        with ThreadPoolExecutor(max_workers=len(container_names)) as executor:
+            future_to_container = {executor.submit(Stream.dataframes_returner, 
+                                                   key,
+                                                   info): info for info in container_names}
+            for future in as_completed(future_to_container):
+                df = future.result()
+                df['total-streams'] = key
+                mega_df = pd.concat([mega_df, df])
 
         with yaspin.yaspin() as sp:
             sp.text = "Waiting for 10 seconds"
             time.sleep(10)
-        fastmot_cleaner()
+        if not pairs:
+            # this is a hack because
+            # i still havent figured out this fastmot thing
+            fastmot_cleaner()
 
-    mega_df.to_csv(f'./figures/{container_name}.csv')
+    mega_df.to_csv(f'./figures/all_containers_fastmot_starter.csv')
 
     Stream.gpu_plotter(mega_df, False)
