@@ -3,7 +3,7 @@ from cloudmesh.common.console import Console
 from cloudmesh.common.Shell import Shell
 from cloudmesh.common.util import readfile, writefile, path_expand
 from docopt import docopt
-from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter
+from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, darknet
 
 
 def main():
@@ -18,6 +18,7 @@ Usage:
     chip stop
     chip down
     chip parallel
+    chip darknet
 
 Commands:
     fastmot   benchmark fastmot
@@ -27,6 +28,7 @@ Commands:
     stop      stop all docker containers
     down      stop all docker containers
     parallel  start the parallel pipeline by starting fastmot
+    darknet   enables darknet
     """
 
     if len(sys.argv) < 2 or sys.argv[1] in ['help', 'hello', 'hi']:
@@ -49,6 +51,9 @@ Commands:
 
     if args['parallel']:
         fastmotstarter.main()
+
+    if args['darknet']:
+        darknet.main()
 
 
 if __name__ == "__main__":
