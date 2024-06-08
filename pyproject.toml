@@ -24,11 +24,15 @@ documentation = "https://github.com/jpfleischer/chocolatechip/blob/main/README.m
 repository = "https://github.com/jpfleischer/chocolatechip.git"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.12"
 cloudmesh-common = "^5.0.60"
 docopt = "^0.6.2"
 setuptools = "^69.1.0"
 wheel = "^0.42.0"
+asciichartpy = "^1.5.25"
+pymysql = "^1.1.1"
+yaspin = "^3.0.2"
+docker = "^7.1.0"
 
 [tool.poetry.dev-dependencies]
 
