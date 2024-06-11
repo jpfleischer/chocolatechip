@@ -74,3 +74,7 @@ Fan Speed - NVIDIA TITAN RTX #1
    40.00  ┤╰╯╰╯ ╰╯  ╰╯    ╰╯
 1280x960
 ```
+
+
+stream.py does mem usage over time for num streams, not resolution related.
+jsut change the parameter to gpu plotter.
