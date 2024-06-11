@@ -6,7 +6,7 @@ import subprocess
 command = "darknet detector -map -dont_show -verbose -nocolor train /home/beto/nn/LegoGears_v2/LegoGears.data /home/beto/nn/LegoGears_v2/LegoGears.cfg 2>&1"
 
 # Regular expression to match the relevant lines
-line_pattern = re.compile(r'(\d+): loss=([\d.]+), avg loss=([\d.]+), rate=([\d.]+), ([\d.]+) seconds, (\d+) images, time remaining=\d+')
+line_pattern = re.compile(r'(\d+): loss=([\d.]+), avg loss=([\d.]+), rate=([\d.]+), ([\d.]+) milliseconds, (\d+) images, time remaining=\d+')
 
 # Lists to store extracted data
 batches = []
@@ -31,14 +31,14 @@ def run_command_and_capture_output(command):
                 losses.append(float(match.group(2)))
                 avg_losses.append(float(match.group(3)))
                 rates.append(float(match.group(4)))
-                seconds.append(float(match.group(5)))
+                seconds.append(float(match.group(5)) / 1000)  # convert milliseconds to seconds
                 images.append(int(match.group(6)))
     rc = process.poll()
     return rc
 
 return_code = run_command_and_capture_output(command)
 print(f"Command exited with return code {return_code}")
-
+print(batches)
 # Create a DataFrame
 df = pd.DataFrame({
     'batch': batches,
@@ -48,7 +48,7 @@ df = pd.DataFrame({
     'seconds': seconds,
     'images': images
 })
-
+print(df.to_string())
 # Plotting
 plt.figure(figsize=(10, 5))
 plt.plot(df['batch'], df['loss'], label='Loss')
