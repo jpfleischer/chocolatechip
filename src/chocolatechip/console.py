@@ -3,7 +3,7 @@ from cloudmesh.common.console import Console
 from cloudmesh.common.Shell import Shell
 from cloudmesh.common.util import readfile, writefile, path_expand
 from docopt import docopt
-from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, ultralytics #, unflag, latency
+from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, ultra #, unflag, latency
 
 
 def main():
@@ -22,7 +22,6 @@ Usage:
     chip plain
     chip latency
     chip unflag
-    chip ultralytics
 
 Commands:
     benchmark  benchmark fastmot
@@ -36,7 +35,7 @@ Commands:
     plain      normal pipeline without parallel
     latency    benchmark latency
     unflag     unflag conflicts that are invalid
-    ultralytics        runs ultralytics YOLOv10
+    ultra        runs ultralytics YOLOv10
     """
 
     if len(sys.argv) < 2 or sys.argv[1] in ['help', 'hello', 'hi']:
@@ -68,9 +67,6 @@ Commands:
 
     if args['unflag']:
         unflag.main()
-
-    if args['ultralytics']:
-        ultralytics.main()
 
 
 if __name__ == "__main__":
