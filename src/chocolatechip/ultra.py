@@ -7,7 +7,7 @@ def main():
     epochs = 100
     imSz = 640
 
-    # ALTERNATIVELY, run python command to train
+    # run python command to train
     model = YOLOv10('yolov10s.pt')
     model.train(data=data, epochs=epochs, imgsz=imSz)
 
@@ -18,7 +18,7 @@ def main():
 
     # plot results of loss / epochs
     plt.figure(10,6)
-    plt.plot(results['epoch'], results['train/cls_om'])
+    plt.plot(results['epoch'], results['train/cls_om'])     # currently analyzes loss for clasification of the model
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.title('Epochs vs Loss')
