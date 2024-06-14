@@ -3,6 +3,7 @@ import requests
 from cloudmesh.common.console import Console
 from cloudmesh.common.systeminfo import os_is_windows
 from cloudmesh.common.Shell import Shell
+from cloudmesh.common.util import path_expand
 from moviepy.config import change_settings
 from chocolatechip import MySQLConnector
 from moviepy.editor import VideoFileClip, CompositeVideoClip, ImageClip, TextClip
@@ -22,8 +23,13 @@ def process_video(mp4_file, conflict_coords, char_placement, thumbnail_size):
     video_height = video.h  # Get the video height
     video_width = video.w  # Get the video width
 
+    if char_placement in ['28', '29']:
+        picture = '30_Map.png'
+    elif char_placement in ['21', '22']:
+        picture = '21_Map.png'
+
     # Load the map image
-    map_img = Image.open('30_Map.png')
+    map_img = Image.open(picture)
     draw = ImageDraw.Draw(map_img)
 
     # Define the size of the rectangle (width, height)
@@ -63,15 +69,25 @@ def process_video(mp4_file, conflict_coords, char_placement, thumbnail_size):
         w_clip = TextClip("W", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
         e_clip = TextClip("E", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
         text_clips.extend([w_clip, e_clip])
+    elif char_placement == "21":
+        w_clip = TextClip("W", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        e_clip = TextClip("E", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([w_clip, e_clip])
+    elif char_placement == "22":   
+        w_clip = TextClip("N", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        e_clip = TextClip("S", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([w_clip, e_clip]) 
 
     # Composite the map image, rectangles, and text onto the video
     # final_video = CompositeVideoClip([video, map_img_clip, *rect_clips, *text_clips])
     final_video = CompositeVideoClip([video, map_img_clip, *text_clips])
 # 
-
     # Write the result to a file
     output_file = f"output_{mp4_file}"
-    final_video.write_videofile(output_file, codec='libx264')
+    full = path_expand(f"~/sprinkle_output/{output_file}")
+
+    
+    final_video.write_videofile(full, codec='libx264')
 
 def main():
     if os_is_windows():
@@ -105,12 +121,18 @@ def main():
         Console.error('i dont see any conflict videos')
         quit(1)
 
-    if not os.path.isfile('30_Map.png'):
-        Console.info('Downloading photo')
-        url = 'http://maltlab.cise.ufl.edu:30101/api/image/30_Map.png'
-        response = requests.get(url)
-        with open('30_Map.png', 'wb') as file:
-            file.write(response.content)
+    for picture in ['30_Map.png', '21_Map.png']:
+        if not os.path.isfile(picture):
+            Console.info('Downloading photo')
+            url = f'http://maltlab.cise.ufl.edu:30101/api/image/{picture}'
+            response = requests.get(url)
+            with open(picture, 'wb') as file:
+                file.write(response.content)
+
+
+    home_dir_sprinkle = path_expand("~/sprinkle_output")
+    if not os.path.isdir(home_dir_sprinkle):
+        Shell.mkdir(home_dir_sprinkle)
 
     mp4_files = [file for file in os.listdir('.') if file.endswith('.mp4')]
 
