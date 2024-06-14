@@ -4,6 +4,7 @@ from cloudmesh.common.Shell import Shell
 from cloudmesh.common.util import readfile, writefile, path_expand
 from docopt import docopt
 from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency, unflag
+from chocolatechip.sprinkles import main as sprinkles
 
 
 def main():
@@ -22,6 +23,7 @@ Usage:
     chip plain
     chip latency
     chip unflag
+    chip sprinkles
 
 Commands:
     benchmark  benchmark fastmot
@@ -35,6 +37,7 @@ Commands:
     plain      normal pipeline without parallel
     latency    benchmark latency
     unflag     unflag conflicts that are invalid
+    sprinkles  initiate unflagging gui
     """
 
     if len(sys.argv) < 2 or sys.argv[1] in ['help', 'hello', 'hi']:
@@ -66,6 +69,11 @@ Commands:
 
     if args['unflag']:
         unflag.main()
+
+    if args['sprinkles']:
+        
+        sprinkles.main()
+        # print(sprinkles)
 
 
 if __name__ == "__main__":

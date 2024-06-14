@@ -1,13 +1,17 @@
 import os
+import requests
 from cloudmesh.common.console import Console
+from cloudmesh.common.systeminfo import os_is_windows
+from cloudmesh.common.Shell import Shell
+from moviepy.config import change_settings
 from chocolatechip import MySQLConnector
-from moviepy.editor import VideoFileClip, CompositeVideoClip, ImageClip
-from PIL import Image
+from moviepy.editor import VideoFileClip, CompositeVideoClip, ImageClip, TextClip
+from PIL import Image, ImageDraw
 import numpy as np
 from yaspin import yaspin
 from yaspin.spinners import Spinners
 
-def process_video(mp4_file, conflict_coords):
+def process_video(mp4_file, conflict_coords, char_placement, thumbnail_size):
     # Load the video file
     try:
         video = VideoFileClip(mp4_file)
@@ -15,39 +19,85 @@ def process_video(mp4_file, conflict_coords):
         Console.error(f"Error: Could not load video file {mp4_file}")
         return
 
-    video_height = video.h  # Get the video height to invert Y coordinates
+    video_height = video.h  # Get the video height
     video_width = video.w  # Get the video width
 
-    # Create a red rectangle with transparency
-    def make_rectangle(size, color=(255, 0, 0, 50)):  # RGBA where A is the alpha channel for transparency
-        img = Image.new('RGBA', size, color)
-        return np.array(img)
+    # Load the map image
+    map_img = Image.open('30_Map.png')
+    draw = ImageDraw.Draw(map_img)
 
     # Define the size of the rectangle (width, height)
     rect_size = (100, 100)  # Change as needed
 
-    # Create the rectangle image
-    rect_img = make_rectangle(rect_size)
-
-    print('listed as', conflict_coords)
+    # Draw the rectangles on the map image
     for x, y in conflict_coords:
-        print(video_height - y, x)
-        
-    # Position the rectangles based on the new formula
-    rect_clips = [
-        ImageClip(rect_img, transparent=True).set_duration(video.duration)
-        .set_position((y - rect_size[0] // 2, x - rect_size[1] // 2))
-        for x, y in conflict_coords
-    ]
+        realx = x - rect_size[0] // 2
+        realy = y - rect_size[1] // 2
+        draw.rectangle([realx, realy, realx + rect_size[0], realy + rect_size[1]], fill=(255, 0, 0, 128), outline=(255, 0, 0, 128), width=3)
 
-    # Composite the rectangles onto the video
-    final_video = CompositeVideoClip([video, *rect_clips])
+    # Convert the map image with rectangles to an image clip
+    map_img_clip = ImageClip(np.array(map_img)).set_duration(video.duration).set_position((0, 0)).resize(thumbnail_size)
+
+    # Create a red rectangle with transparency for conflict points on the video
+    # def make_rectangle(size, color=(255, 0, 0, 50)):  # RGBA where A is the alpha channel for transparency
+    #     img = Image.new('RGBA', size, color)
+    #     return np.array(img)
+
+    # # Create the rectangle image
+    # rect_img = make_rectangle(rect_size)
+
+    # # Position the rectangles on the video
+    # rect_clips = [
+    #     ImageClip(rect_img, transparent=True).set_duration(video.duration)
+    #     .set_position((x - rect_size[0] // 2, video_height - y - rect_size[1] // 2))
+    #     for x, y in conflict_coords
+    # ]
+
+    # Add character "W" and "E" based on char_placement
+    text_clips = []
+    if char_placement == "28":
+        w_clip = TextClip("W", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        e_clip = TextClip("E", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        text_clips.extend([w_clip, e_clip])
+    elif char_placement == "29":
+        w_clip = TextClip("W", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        e_clip = TextClip("E", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([w_clip, e_clip])
+
+    # Composite the map image, rectangles, and text onto the video
+    # final_video = CompositeVideoClip([video, map_img_clip, *rect_clips, *text_clips])
+    final_video = CompositeVideoClip([video, map_img_clip, *text_clips])
+# 
 
     # Write the result to a file
     output_file = f"output_{mp4_file}"
     final_video.write_videofile(output_file, codec='libx264')
 
 def main():
+    if os_is_windows():
+        program_files = Shell.map_filename(r'C:\Program Files').path
+
+        program_files_dirs = None
+        for path, dirnames, filenames in os.walk(program_files):
+            program_files_dirs = dirnames
+            break
+
+        imagemagick_dir = None
+        if program_files_dirs:
+            for dirname in program_files_dirs:
+                if 'ImageMagick' in dirname:
+                    imagemagick_dir = dirname
+                    break
+
+        if imagemagick_dir is None:
+            raise FileNotFoundError('imagemagick not installed! install it from https://imagemagick.org/script/download.php#windows')
+        else:
+            installation = fr'C:\\Program Files\\{imagemagick_dir}\\magick.exe'
+            print(installation)
+            # IMAGEMAGICK_BINARY = os.getenv('IMAGEMAGICK_BINARY', installation)
+
+            change_settings({"IMAGEMAGICK_BINARY": installation})
+
     # Check if there's at least one .mp4 file in the current directory
     if any(file.endswith('.mp4') for file in os.listdir('.')):
         print('ok')
@@ -55,7 +105,16 @@ def main():
         Console.error('i dont see any conflict videos')
         quit(1)
 
+    if not os.path.isfile('30_Map.png'):
+        Console.info('Downloading photo')
+        url = 'http://maltlab.cise.ufl.edu:30101/api/image/30_Map.png'
+        response = requests.get(url)
+        with open('30_Map.png', 'wb') as file:
+            file.write(response.content)
+
     mp4_files = [file for file in os.listdir('.') if file.endswith('.mp4')]
+
+    thumbnail_size = (200, 150)  # Specify the size of the thumbnail (width, height)
 
     with yaspin(Spinners.arc, text="Processing videos") as spinner:
         for index, mp4_file in enumerate(mp4_files):
@@ -63,6 +122,8 @@ def main():
             id1 = scratch.split('_')[4]
             id2 = scratch.split('_')[5]
             print(id1, id2)
+
+            char_placement = scratch.split('_')[1]
 
             sql = MySQLConnector.MySQLConnector()
             # id_tuples is a list of tuples. Each tuple contains two IDs.
@@ -74,8 +135,8 @@ def main():
             conflict_coords = list(zip(df['conflict_x'], df['conflict_y']))
             print(conflict_coords)
 
-            # Process the video with rectangles at all conflict points
-            process_video(mp4_file, conflict_coords)
+            # Process the video with rectangles at all conflict points and add characters
+            process_video(mp4_file, conflict_coords, char_placement, thumbnail_size)
 
             # Update spinner text with remaining files count
             remaining = len(mp4_files) - (index + 1)
