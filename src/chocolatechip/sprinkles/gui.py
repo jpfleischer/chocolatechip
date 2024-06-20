@@ -37,7 +37,7 @@ class VideoPlayer:
         self.progress = ttk.Progressbar(root, orient="horizontal", length=640, mode="determinate")
         self.progress.pack()
 
-        self.instructions_label = tk.Label(root, text="N means dangerous, M means harmless, Z for previous, X for next", font=("Helvetica", 10))
+        self.instructions_label = tk.Label(root, text="B means dangerous, M means harmless, Z for previous, X for next", font=("Helvetica", 10))
         self.instructions_label.pack()
 
         self.status_label = tk.Label(root, text="", font=("Helvetica", 10))
@@ -48,7 +48,7 @@ class VideoPlayer:
 
         self.root.bind("<Left>", self.skip_backward)
         self.root.bind("<Right>", self.skip_forward)
-        self.root.bind("<n>", self.mark_dangerous)
+        self.root.bind("<b>", self.mark_dangerous)
         self.root.bind("<m>", self.mark_harmless)
         self.root.bind("<z>", self.previous_video)
         self.root.bind("<x>", self.next_video_without_change)
@@ -202,7 +202,7 @@ def create_yaml_file(video_files):
     for video in video_files:
         video_number = int(video.split('_')[1].split('.')[0])
         if start_range <= video_number <= end_range:
-            valid_videos[video] = "dangerous"
+            valid_videos[video] = "undetermined"
 
     with open('sprinkles.yaml', 'w') as f:
         yaml.dump(valid_videos, f)
@@ -216,7 +216,7 @@ def load_yaml_file():
 
 def main():
     root = tk.Tk()
-    root.title("Video Player")
+    root.title("SPRINKLES")
     video_files = get_video_files()
 
     if not video_files:
@@ -229,6 +229,8 @@ def main():
             return
     else:
         video_files = load_yaml_file()
+
+    video_files = sorted(video_files, key=lambda video: int(video.split('_')[1].split('.')[0]))
 
     VideoPlayer(root, video_files)
     root.mainloop()

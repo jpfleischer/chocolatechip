@@ -6,6 +6,7 @@ from docopt import docopt
 from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency
 from chocolatechip.unflag import main as unflag
 from chocolatechip.sprinkles import main as sprinkles
+from chocolatechip.sprinkles import gui as sprinkles_gui
 
 
 def main():
@@ -25,6 +26,7 @@ Usage:
     chip latency
     chip unflag
     chip sprinkles
+    chip sprinklesgui
 
 Commands:
     benchmark  benchmark fastmot
@@ -38,7 +40,8 @@ Commands:
     plain      normal pipeline without parallel
     latency    benchmark latency
     unflag     unflag conflicts that are invalid
-    sprinkles  initiate unflagging gui
+    sprinkles  initiate automated moviepy
+    sprinklesgui    initiate gui
     """
 
     if len(sys.argv) < 2 or sys.argv[1] in ['help', 'hello', 'hi']:
@@ -75,6 +78,9 @@ Commands:
         
         sprinkles.main()
         # print(sprinkles)
+
+    if args['sprinklesgui']:
+        sprinkles_gui.main()
 
 
 if __name__ == "__main__":
