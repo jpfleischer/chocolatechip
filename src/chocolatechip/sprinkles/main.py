@@ -27,6 +27,8 @@ def process_video(mp4_file, conflict_coords, char_placement, thumbnail_size):
         picture = '30_Map.png'
     elif char_placement in ['21', '22']:
         picture = '21_Map.png'
+    elif char_placement in ['31', '32']:
+        picture = '33_Map.png'
 
     # Load the map image
     map_img = Image.open(picture)
@@ -77,6 +79,15 @@ def process_video(mp4_file, conflict_coords, char_placement, thumbnail_size):
         w_clip = TextClip("N", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
         e_clip = TextClip("S", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
         text_clips.extend([w_clip, e_clip]) 
+    elif char_placement == "31":
+        w_clip = TextClip("S", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        e_clip = TextClip("N", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([w_clip, e_clip]) 
+    elif char_placement == "32":
+        w_clip = TextClip("N", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        e_clip = TextClip("S", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([w_clip, e_clip]) 
+    
 
     # Composite the map image, rectangles, and text onto the video
     # final_video = CompositeVideoClip([video, map_img_clip, *rect_clips, *text_clips])
@@ -121,7 +132,7 @@ def main():
         Console.error('i dont see any conflict videos')
         quit(1)
 
-    for picture in ['30_Map.png', '21_Map.png']:
+    for picture in ['30_Map.png', '21_Map.png', '33_Map.png']:
         if not os.path.isfile(picture):
             Console.info('Downloading photo')
             url = f'http://maltlab.cise.ufl.edu:30101/api/image/{picture}'

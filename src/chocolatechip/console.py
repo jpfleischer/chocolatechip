@@ -3,7 +3,8 @@ from cloudmesh.common.console import Console
 from cloudmesh.common.Shell import Shell
 from cloudmesh.common.util import readfile, writefile, path_expand
 from docopt import docopt
-from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency, unflag
+from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency
+from chocolatechip.unflag import main as unflag
 from chocolatechip.sprinkles import main as sprinkles
 
 
