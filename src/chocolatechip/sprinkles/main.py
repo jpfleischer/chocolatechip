@@ -98,7 +98,9 @@ def process_video(mp4_file, conflict_coords, char_placement, thumbnail_size):
     full = path_expand(f"~/sprinkle_output/{output_file}")
 
     
-    final_video.write_videofile(full, codec='libx264')
+    final_video.write_videofile(full, 
+                                codec='libx264',
+                                threads=8,)
 
 def main():
     if os_is_windows():
