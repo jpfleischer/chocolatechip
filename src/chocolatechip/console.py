@@ -1,10 +1,14 @@
+import os
 import sys
 from cloudmesh.common.console import Console
 from cloudmesh.common.Shell import Shell
 from cloudmesh.common.util import readfile, writefile, path_expand
 from docopt import docopt
-from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency, unflag
+from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency
+from chocolatechip.unflag import main as unflag
 from chocolatechip.sprinkles import main as sprinkles
+from chocolatechip.sprinkles import gui as sprinkles_gui
+from chocolatechip.unflag import eat
 
 
 def main():
@@ -24,6 +28,8 @@ Usage:
     chip latency
     chip unflag
     chip sprinkles
+    chip sprinklesgui
+    chip eat <filename>
 
 Commands:
     benchmark  benchmark fastmot
@@ -37,7 +43,9 @@ Commands:
     plain      normal pipeline without parallel
     latency    benchmark latency
     unflag     unflag conflicts that are invalid
-    sprinkles  initiate unflagging gui
+    sprinkles  initiate automated moviepy
+    sprinklesgui    initiate gui
+    eat    eat sprinklesgui yamls 
     """
 
     if len(sys.argv) < 2 or sys.argv[1] in ['help', 'hello', 'hi']:
@@ -74,6 +82,19 @@ Commands:
         
         sprinkles.main()
         # print(sprinkles)
+
+    if args['sprinklesgui']:
+        sprinkles_gui.main()
+
+    if args['eat']:
+        if len(sys.argv) > 2 and sys.argv[2]:
+            filename = sys.argv[2]
+            if not os.path.isabs(filename):
+                filename = os.path.abspath(filename)
+            eat.main(filename)
+        else:
+            Console.error("Please provide a filename")
+            return
 
 
 if __name__ == "__main__":
