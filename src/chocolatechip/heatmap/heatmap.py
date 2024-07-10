@@ -42,7 +42,7 @@ def fetch_and_process_data(times: list, params: dict, df_type: str):
 
 def filter_data(df_type: str, omega: pd.DataFrame, p2v: bool, conflict_type: str):
     if df_type == 'track':
-        omega = omega[omega['class'] == 'pedestrian']
+        omega = omega[omega['class'] == 'pedestrian']           # possible issue source for problem 1 and 2
     else:
         if p2v:
             conflict_type_filter = {
