@@ -229,7 +229,7 @@ def heatmap_generator(df_type: str,
 
     if df_type == 'track':
         # Drop rows where 'class' is 'pedestrian'
-        omega = omega[omega['class'] == 'pedestrian']
+        omega = omega[omega['class'] == 'pedestrian'] ##WOOWEE
     else:
         if p2v:
             if conflict_type == 'left turning':
@@ -369,7 +369,7 @@ def heatmap_generator(df_type: str,
 
     if df_type == "track":
         print('number of pedestrians:', len(omega[omega['class'] == 'pedestrian']))
-        title = f'Heatmap of average pedestrian counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}' 
+        title = f'Heatmap of average pedestrian counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}' ##WOOWEE
 
     else:
         if p2v:
@@ -404,32 +404,32 @@ def heatmap_generator(df_type: str,
 
 
 ##################### main prg #######################
-##
-## first, p2v
-##
+
+'''
+3334	Stirling Road and Carriage Hills Drive/SW 61st Avenue	31,32,33
+3265	Stirling Road and University Drive	28,29,30
+3248	Stirling Road and N 66th Avenue	25,26,27
+3287	Stirling Road and N 68th Avenue	24
+3032	Stirling Road and SR-7	21,22,23
+'''
+# intersection ids
+inter = [3334, 3265, 3248, 3287, 3032]
+
+# p2v or v2v
+p2v = [True, False]
+
+# conflict types
+conflict_types = ['left turning', 'right turning', 'thru', 'all']
+
 # conflict or track
-# df_type = "track"
-df_type = "conflict"
+df_types = ["track", "conflict"]
 
 # mean or sum?
-mean = True
+mean = [True, False]
 
-p2v = True
-
-inter = 3248
-
-conflict_types = ['left turning', 'right turning', 'thru', 'all']
-for conflict_type in conflict_types:
-    heatmap_generator(df_type, mean, inter, p2v, conflict_type)
-
-##
-## v2v
-##
-
-p2v = False
-
-heatmap_generator(df_type, mean, inter, p2v)
-
-
-df_type = "track"
-heatmap_generator(df_type, mean, inter, p2v)
+for vehicle_type in p2v:
+    for intersec_id in inter:
+        for conflict_type in conflict_types:
+            for df_type in df_types:
+                for stat in mean:
+                    heatmap_generator(df_type, stat, intersec_id, vehicle_type, conflict_type)
