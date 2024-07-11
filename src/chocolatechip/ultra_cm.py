@@ -12,6 +12,10 @@ def main():
     epochs = 100
     imSz = 640
     
+    data = config.data
+    epochs = int(config.epochs)
+    imSz = int(config.imSz)
+    
     # run python command to train
     model = YOLOv10('yolov10s.pt')
     model.train(data=data, epochs=epochs, imgsz=imSz)
