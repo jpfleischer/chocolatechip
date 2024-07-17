@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
+from scipy.stats import pearsonr
 
 def get_times(iid: int):
     if iid == 3287:
@@ -142,8 +143,13 @@ def get_times(iid: int):
 
     return times
 
-def fetch_or_cache_data(my, iid, start_time, end_time):
-    cache_filename = f"cache_{iid}_{start_time.replace(':', '').replace('-', '').replace(' ', '_')}_{end_time.replace(':', '').replace('-', '').replace(' ', '_')}.csv"
+def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
+    cache_filename = f"cache_{iid}"
+    if df_type == 'track':
+        cache_filename += "_track"
+    else:
+        cache_filename += "_conflict"
+    cache_filename += f"_{start_time.replace(':', '').replace('-', '').replace(' ', '_')}_{end_time.replace(':', '').replace('-', '').replace(' ', '_')}.csv"
     cache_filename = os.path.join('cache', cache_filename)
 
     if not os.path.isdir('cache'):
@@ -151,29 +157,43 @@ def fetch_or_cache_data(my, iid, start_time, end_time):
 
     if os.path.exists(cache_filename):
         # print(f"Loading data from cache file: {cache_filename}")
-        df = pd.read_csv(cache_filename, parse_dates=['start_timestamp', 'end_timestamp'])
+        if df_type == 'track':
+            df = pd.read_csv(cache_filename, parse_dates=['start_timestamp', 'end_timestamp'])
+        else :
+            df = pd.read_csv(cache_filename)
     else:
-        # print(f"Fetching data from MySQL for {start_time} to {end_time}")
-        df = my.query_tracksreal(iid, start_time, end_time)
+        if df_type == 'track':
+            # print(f"Fetching data from MySQL for {start_time} to {end_time}")
+            df = my.query_tracksreal(iid, start_time, end_time)
+        else :
+            params = {
+                'intersec_id': iid,
+                'start_date': start_time,
+                'end_date': end_time
+            }
+            # print(f"Fetching data from MySQL for {start_time} to {end_time}")
+            df = my.handleRequest(params, 'speedcorr')
         df.to_csv(cache_filename, index=False)
         print(f"Data cached to file: {cache_filename}")
     
     return df
 
 
+
 def speed_plot(iid: int):
     my = MySQLConnector()
     mega_df = pd.DataFrame()
     times = get_times(iid)
+    ttc_df = pd.DataFrame()
     for i in range(0, len(times), 2):
         start_time = times[i]
         end_time = times[i+1]
         # print(f"start: {start_time}, end: {end_time}")
         with yaspin(Spinners.earth, text=f"Fetching data from MySQL starting at {start_time}") as sp:
             df = fetch_or_cache_data(my, iid, start_time, end_time)
+            ttc_df = pd.concat([ttc_df, fetch_or_cache_data(my, iid, start_time, end_time, 'conflict')])
             mega_df = pd.concat([mega_df, df])
 
-    print(mega_df['Approach'].unique())
 
     # First, ensure 'start_timestamp' is a datetime type (if not already converted)
     mega_df['start_timestamp'] = pd.to_datetime(mega_df['start_timestamp'])
@@ -234,20 +254,34 @@ def speed_plot(iid: int):
 
     }
 
-    # go through df by track_id, query TTc table to determine if conflict occurred, add conflict bool column to df
-    ttc = MySQLConnector()
-    for track_id in mega_df['track_id'].unique():
-        params = {
-            'intersec_id': iid,
-            'track_id': track_id,
-            'start_date': mega_df[mega_df['track_id'] == track_id]['start_timestamp'],
-            'end_date': mega_df[mega_df['track_id'] == track_id]['end_timestamp']
-        }
-        print(track_id)
-        df = ttc.handleRequest(params, 'speedcorr')
-        print(df['conflict_type'])
-        mega_df.loc[mega_df['track_id'] == track_id, 'conflict'] = df['conflict_type'].any()
-    
+    ttc_df['unique_ID1'] =  ttc_df['unique_ID1'].astype(str)
+    ttc_df['unique_ID2'] =  ttc_df['unique_ID2'].astype(str)
+    mega_df['track_id'] = mega_df['track_id'].astype(str)
+    mega_df['conflict'] = 0
+
+    # go through ttc_df by unique_id, since all rows in ttc_id are conflicts, can find the corresponding track_id in mega_df and mark that column as conflict
+    for _, row in ttc_df.iterrows():
+        id1, id2 = row['unique_ID1'], row['unique_ID2']
+        adj_id1, adj_id2 = "1" + id1, "1" + id2
+        mega_df.loc[(mega_df['track_id'] == adj_id1) | (mega_df['track_id'] == adj_id2), 'conflict'] = 1
+
+
+    print(f"INTERSECTION {iid} ANALYSIS")
+
+    print("Average Speed:")
+    pearson_r, p_val = pearsonr(mega_df['average_speed'], mega_df['conflict'])
+    print(f"P-Val for intersection {iid}: {p_val:.4f}")
+    print(f"Pearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n\n")
+
+    print("Max Speed:")
+    pearson_r, p_val = pearsonr(mega_df['Max_speed'], mega_df['conflict'])
+    print(f"P-Val for intersection {iid}: {p_val:.4f}")
+    print(f"Pearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n\n")
+
+    print("Min Speed:")
+    pearson_r, p_val = pearsonr(mega_df['Min_speed'], mega_df['conflict'])
+    print(f"P-Val for intersection {iid}: {p_val:.4f}")
+    print(f"Pearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n\n")
 
 #for intersec in [3032, 3265, 3334]:
-speed_plot(3032)
+speed_plot(3265)
