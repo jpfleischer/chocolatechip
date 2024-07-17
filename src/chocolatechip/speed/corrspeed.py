@@ -243,9 +243,9 @@ def speed_plot(iid: int):
             'start_date': mega_df[mega_df['track_id'] == track_id]['start_timestamp'],
             'end_date': mega_df[mega_df['track_id'] == track_id]['end_timestamp']
         }
-        print(track_id)
+        #print(track_id)
         df = ttc.handleRequest(params, 'speedcorr')
-        print(df['conflict_type'])
+        #print(df['conflict_type'])
         mega_df.loc[mega_df['track_id'] == track_id, 'conflict'] = df['conflict_type'].any()
     
 
