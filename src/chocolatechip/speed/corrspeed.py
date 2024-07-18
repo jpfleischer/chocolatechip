@@ -52,8 +52,7 @@ def get_times(iid: int):
         
     elif iid == 3032:
         times = [
-        '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000']
-        ''',
+        '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000',
         '2024-04-04 07:00:00.000', '2024-04-04 19:00:00.000',
         '2024-04-05 07:00:00.000', '2024-04-05 19:00:00.000',
         '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
@@ -71,7 +70,7 @@ def get_times(iid: int):
         '2024-04-21 07:00:00.000', '2024-04-21 19:00:00.000',
         '2024-04-22 07:00:00.000', '2024-04-22 19:00:00.000',
         '2024-04-23 07:00:00.000', '2024-04-23 19:00:00.000',
-            ]'''
+        ]
         
     elif iid == 3265:
         times = [  #3265 University
@@ -147,6 +146,8 @@ def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
     cache_filename = f"cache_{iid}"
     if df_type == 'track':
         cache_filename += "_track"
+    elif df_type == 'trackthru':
+        cache_filename += "_trackthru"
     else:
         cache_filename += "_conflict"
     cache_filename += f"_{start_time.replace(':', '').replace('-', '').replace(' ', '_')}_{end_time.replace(':', '').replace('-', '').replace(' ', '_')}.csv"
@@ -157,7 +158,7 @@ def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
 
     if os.path.exists(cache_filename):
         # print(f"Loading data from cache file: {cache_filename}")
-        if df_type == 'track':
+        if df_type == 'track' or df_type == 'trackthru':
             df = pd.read_csv(cache_filename, parse_dates=['start_timestamp', 'end_timestamp'])
         else :
             df = pd.read_csv(cache_filename)
@@ -165,7 +166,9 @@ def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
         if df_type == 'track':
             # print(f"Fetching data from MySQL for {start_time} to {end_time}")
             df = my.query_tracksreal(iid, start_time, end_time)
-        else :
+        elif df_type == 'trackthru':
+            df = my.query_tracksreal(iid, start_time, end_time, True)
+        elif df_type == 'conflict':
             params = {
                 'intersec_id': iid,
                 'start_date': start_time,
@@ -174,13 +177,13 @@ def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
             # print(f"Fetching data from MySQL for {start_time} to {end_time}")
             df = my.handleRequest(params, 'speedcorr')
         df.to_csv(cache_filename, index=False)
-        print(f"Data cached to file: {cache_filename}")
+        print(f"\n\tData cached to file: {cache_filename}")
     
     return df
 
 
 
-def speed_plot(iid: int):
+def speed_plot(iid: int, filename: str, df_type = 'track'):
     my = MySQLConnector()
     mega_df = pd.DataFrame()
     times = get_times(iid)
@@ -190,7 +193,7 @@ def speed_plot(iid: int):
         end_time = times[i+1]
         # print(f"start: {start_time}, end: {end_time}")
         with yaspin(Spinners.earth, text=f"Fetching data from MySQL starting at {start_time}") as sp:
-            df = fetch_or_cache_data(my, iid, start_time, end_time)
+            df = fetch_or_cache_data(my, iid, start_time, end_time, df_type)
             ttc_df = pd.concat([ttc_df, fetch_or_cache_data(my, iid, start_time, end_time, 'conflict')])
             mega_df = pd.concat([mega_df, df])
 
@@ -259,6 +262,19 @@ def speed_plot(iid: int):
     mega_df['track_id'] = mega_df['track_id'].astype(str)
     mega_df['conflict'] = 0
 
+    mega_df = mega_df[mega_df['Approach'] != '0'] # filter out bad data
+    approach_mapping = {'NBT': 1, 'NBL': 2, 'NBR': 3, 'NBU': 4 , 
+                        'SBT': 1, 'SBL': 2, 'SBR': 3, 'SBU': 4, 
+                        'EBT': 1, 'EBL': 2, 'EBR': 3, 'EBU': 4, 
+                        'WBT': 1, 'WBL': 2, 'WBR': 3, 'WBU': 4
+                        }
+    mega_df['approach_numeric'] = mega_df['Approach'].map(approach_mapping)   
+
+    output_data = "approach_mapping = {\n"
+    for key, value in approach_mapping.items():
+        output_data += f"    '{key}': {value},\n"
+    output_data += "}\n"
+
     # go through ttc_df by unique_id, since all rows in ttc_id are conflicts, can find the corresponding track_id in mega_df and mark that column as conflict
     for _, row in ttc_df.iterrows():
         id1, id2 = row['unique_ID1'], row['unique_ID2']
@@ -267,21 +283,23 @@ def speed_plot(iid: int):
 
 
     print(f"INTERSECTION {iid} ANALYSIS")
+    output_data += f"INTERSECTION {iid} ANALYSIS\n"
 
-    print("Average Speed:")
-    pearson_r, p_val = pearsonr(mega_df['average_speed'], mega_df['conflict'])
-    print(f"P-Val for intersection {iid}: {p_val:.4f}")
-    print(f"Pearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n\n")
+    pearson_r, p_val = pearsonr(mega_df['approach_numeric'], mega_df['conflict'])
+    print(f"\tP-Val for intersection {iid}: {p_val:.4f}")
+    output_data += f"\tP-Val for intersection {iid}: {p_val:.4f}\n"
+    print(f"\tPearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n")
+    output_data += f"\tPearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n"
+    with open(filename, 'w') as file:
+        file.write(output_data)
 
-    print("Max Speed:")
-    pearson_r, p_val = pearsonr(mega_df['Max_speed'], mega_df['conflict'])
-    print(f"P-Val for intersection {iid}: {p_val:.4f}")
-    print(f"Pearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n\n")
-
-    print("Min Speed:")
-    pearson_r, p_val = pearsonr(mega_df['Min_speed'], mega_df['conflict'])
-    print(f"P-Val for intersection {iid}: {p_val:.4f}")
-    print(f"Pearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n\n")
-
+# set up text file to record experiments
+print("Experiment Name: ")
+exp_name = input()
+exp_filename = exp_name + "_results.txt"
+if not os.path.isdir('exp_results'):
+        os.mkdir('exp_results')
+    
+exp_filename = os.path.join('exp_results', exp_filename)
 #for intersec in [3032, 3265, 3334]:
-speed_plot(3265)
+speed_plot(3032, exp_filename)
