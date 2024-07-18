@@ -42,16 +42,14 @@ class MySQLConnector:
                     cursor.execute(query, (params['intersec_id'], params['p2v'], params['start_date'], params['end_date']))
                 elif df_type == "speedcorr":
                     query = "SELECT * FROM TTCTable WHERE " \
-                        "intersection_id = %s AND include_flag=1 AND timestamp BETWEEN %s AND %s;" # AND (unique_ID1 = %s OR unique_ID2 = %s);
-                        #"AND include_flag=1 AND timestamp BETWEEN %s AND %s;"
-                    cursor.execute(query, (params['intersec_id'], params['start_date'], params['end_date']))#params['track_id'], params['track_id']))
-                
+                        "intersection_id = %s AND include_flag=1 AND timestamp BETWEEN %s AND %s;"
+                    cursor.execute(query, (params['intersec_id'], params['start_date'], params['end_date']))
+
                 elif df_type == "track":
                     query = "SELECT * FROM RealTrackProperties WHERE " \
                         "timestamp BETWEEN %s AND %s AND intersection_id = %s "\
-                        "AND camera_id = %s AND isAnomalous = 0"
+                        "AND camera_id = %s AND isAnomalous = 0;"
                     cursor.execute(query, (params['start_date'], params['end_date'], params['intersec_id'], params['cam_id']))
-
                 
                 result = cursor.fetchall()
 
@@ -192,7 +190,7 @@ class MySQLConnector:
 
         return df
     
-    def query_tracksreal(self, intersection_id: int, start_timestamp: str, end_timestamp: str):
+    def query_tracksreal(self, intersection_id: int, start_timestamp: str, end_timestamp: str, thru: bool = False):
         """
         Query the TracksReal table for data between specific timestamps for a given intersection.
 
@@ -211,13 +209,23 @@ class MySQLConnector:
         try:
             with mydb.cursor() as cursor:
                 # Define the SQL query to select data within the timestamp range for a specific intersection
-                query = """
-                SELECT *
-                FROM TracksReal
-                WHERE intersection_id = %s AND
-                    start_timestamp BETWEEN %s AND %s
-                ORDER BY start_timestamp;
-                """
+                if thru: # used to filter for only thru traffic, when analyzing correlations between conflicts and speed
+                    query = """
+                    SELECT *
+                    FROM TracksReal
+                    WHERE intersection_id = %s AND
+                        start_timestamp BETWEEN %s AND %s AND
+                        (approach = 'NBT' OR approach = 'SBT' OR approach = 'EBT' OR approach = 'WBT')
+                    ORDER BY start_timestamp;
+                    """
+                else:
+                    query = """
+                    SELECT *
+                    FROM TracksReal
+                    WHERE intersection_id = %s AND
+                        start_timestamp BETWEEN %s AND %s
+                    ORDER BY start_timestamp;
+                    """
                 # Execute the query with parameters
                 cursor.execute(query, (intersection_id, start_timestamp, end_timestamp))
 
@@ -237,3 +245,4 @@ class MySQLConnector:
             mydb.close()
 
         return df
+    
