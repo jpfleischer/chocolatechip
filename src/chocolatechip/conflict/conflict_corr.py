@@ -4,11 +4,7 @@ from yaspin.spinners import Spinners
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-import seaborn as sns
-from scipy.stats import pearsonr, chi2_contingency
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.metrics import r2_score
+from scipy.stats import chi2_contingency
 
 def get_times(iid: int):
     if iid == 3287:
@@ -25,126 +21,135 @@ def get_times(iid: int):
             '2024-03-14 07:00:00.000', '2024-03-14 19:00:00.000',
             '2024-03-15 07:00:00.000', '2024-03-15 19:00:00.000',
             '2024-03-16 07:00:00.000', '2024-03-16 19:00:00.000'
-            ]
+        ]
     
     elif iid == 3248:
         times = [
-         '2024-02-26 07:00:00.000', '2024-02-26 19:00:00.000',
-         '2024-02-27 07:00:00.000', '2024-02-27 19:00:00.000',
-         '2024-02-28 07:00:00.000', '2024-02-28 19:00:00.000',
-         '2024-03-06 07:00:00.000', '2024-03-06 19:00:00.000',
-         '2024-03-07 07:00:00.000', '2024-03-07 19:00:00.000',
-         '2024-03-08 07:00:00.000', '2024-03-08 19:00:00.000',
-         '2024-03-09 07:00:00.000', '2024-03-09 19:00:00.000',
-         '2024-03-10 07:00:00.000', '2024-03-10 19:00:00.000',
-         '2024-03-12 07:00:00.000', '2024-03-12 19:00:00.000',
-         '2024-03-13 07:00:00.000', '2024-03-13 19:00:00.000',
-         '2024-03-14 07:00:00.000', '2024-03-14 19:00:00.000',
-         '2024-03-16 07:00:00.000', '2024-03-16 19:00:00.000',
-         '2024-03-20 07:00:00.000', '2024-03-20 19:00:00.000',
-         '2024-03-21 07:00:00.000', '2024-03-21 19:00:00.000',
-         '2024-03-22 07:00:00.000', '2024-03-22 19:00:00.000',
-         '2024-03-23 07:00:00.000', '2024-03-23 19:00:00.000',
-         '2024-03-24 07:00:00.000', '2024-03-24 19:00:00.000',
-         '2024-03-25 07:00:00.000', '2024-03-25 19:00:00.000',
-         '2024-03-26 07:00:00.000', '2024-03-26 19:00:00.000',
-         '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
-         '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
-         '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000'
-         ]
+            '2024-02-26 07:00:00.000', '2024-02-26 19:00:00.000',
+            '2024-02-27 07:00:00.000', '2024-02-27 19:00:00.000',
+            '2024-02-28 07:00:00.000', '2024-02-28 19:00:00.000',
+            '2024-03-06 07:00:00.000', '2024-03-06 19:00:00.000',
+            '2024-03-07 07:00:00.000', '2024-03-07 19:00:00.000',
+            '2024-03-08 07:00:00.000', '2024-03-08 19:00:00.000',
+            '2024-03-09 07:00:00.000', '2024-03-09 19:00:00.000',
+            '2024-03-10 07:00:00.000', '2024-03-10 19:00:00.000',
+            '2024-03-12 07:00:00.000', '2024-03-12 19:00:00.000',
+            '2024-03-13 07:00:00.000', '2024-03-13 19:00:00.000',
+            '2024-03-14 07:00:00.000', '2024-03-14 19:00:00.000',
+            '2024-03-16 07:00:00.000', '2024-03-16 19:00:00.000',
+            '2024-03-20 07:00:00.000', '2024-03-20 19:00:00.000',
+            '2024-03-21 07:00:00.000', '2024-03-21 19:00:00.000',
+            '2024-03-22 07:00:00.000', '2024-03-22 19:00:00.000',
+            '2024-03-23 07:00:00.000', '2024-03-23 19:00:00.000',
+            '2024-03-24 07:00:00.000', '2024-03-24 19:00:00.000',
+            '2024-03-25 07:00:00.000', '2024-03-25 19:00:00.000',
+            '2024-03-26 07:00:00.000', '2024-03-26 19:00:00.000',
+            '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
+            '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
+            '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000'
+        ]
         
     elif iid == 3032:
         times = [
-        '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000',
-        '2024-04-04 07:00:00.000', '2024-04-04 19:00:00.000',
-        '2024-04-05 07:00:00.000', '2024-04-05 19:00:00.000',
-        '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
-        '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
-        '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000',
-        '2024-04-10 07:00:00.000', '2024-04-10 19:00:00.000',
-        '2024-04-11 07:00:00.000', '2024-04-11 19:00:00.000',
-        '2024-04-13 07:00:00.000', '2024-04-13 19:00:00.000',
-        '2024-04-14 07:00:00.000', '2024-04-14 19:00:00.000',
-        '2024-04-15 07:00:00.000', '2024-04-15 19:00:00.000',
-        '2024-04-16 07:00:00.000', '2024-04-16 19:00:00.000',
-        '2024-04-17 07:00:00.000', '2024-04-17 19:00:00.000',
-        '2024-04-19 07:00:00.000', '2024-04-19 19:00:00.000',
-        '2024-04-20 07:00:00.000', '2024-04-20 19:00:00.000',
-        '2024-04-21 07:00:00.000', '2024-04-21 19:00:00.000',
-        '2024-04-22 07:00:00.000', '2024-04-22 19:00:00.000',
-        '2024-04-23 07:00:00.000', '2024-04-23 19:00:00.000',
+            '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000',
+            '2024-04-04 07:00:00.000', '2024-04-04 19:00:00.000',
+            '2024-04-05 07:00:00.000', '2024-04-05 19:00:00.000',
+            '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
+            '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
+            '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000',
+            '2024-04-10 07:00:00.000', '2024-04-10 19:00:00.000',
+            '2024-04-11 07:00:00.000', '2024-04-11 19:00:00.000',
+            '2024-04-13 07:00:00.000', '2024-04-13 19:00:00.000',
+            '2024-04-14 07:00:00.000', '2024-04-14 19:00:00.000',
+            '2024-04-15 07:00:00.000', '2024-04-15 19:00:00.000',
+            '2024-04-16 07:00:00.000', '2024-04-16 19:00:00.000',
+            '2024-04-17 07:00:00.000', '2024-04-17 19:00:00.000',
+            '2024-04-19 07:00:00.000', '2024-04-19 19:00:00.000',
+            '2024-04-20 07:00:00.000', '2024-04-20 19:00:00.000',
+            '2024-04-21 07:00:00.000', '2024-04-21 19:00:00.000',
+            '2024-04-22 07:00:00.000', '2024-04-22 19:00:00.000',
+            '2024-04-23 07:00:00.000', '2024-04-23 19:00:00.000',
         ]
         
     elif iid == 3265:
-        times = [  #3265 University
-         '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000',
-         '2024-04-04 07:00:00.000', '2024-04-04 19:00:00.000',
-         '2024-04-05 07:00:00.000', '2024-04-05 19:00:00.000',
-         '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
-         '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
-         '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000',
-         '2024-04-09 07:00:00.000', '2024-04-09 19:00:00.000',
-         '2024-04-10 07:00:00.000', '2024-04-10 19:00:00.000',
-         '2024-04-11 07:00:00.000', '2024-04-11 19:00:00.000',
-         '2024-04-12 07:00:00.000', '2024-04-12 19:00:00.000',
-         '2024-04-13 07:00:00.000', '2024-04-13 19:00:00.000',
-         '2024-04-14 07:00:00.000', '2024-04-14 19:00:00.000',
-         '2024-04-15 07:00:00.000', '2024-04-15 19:00:00.000',
-         '2024-04-16 07:00:00.000', '2024-04-16 19:00:00.000',
-         '2024-04-17 07:00:00.000', '2024-04-17 19:00:00.000',
-         '2024-04-20 07:00:00.000', '2024-04-20 19:00:00.000',
-         '2024-04-21 07:00:00.000', '2024-04-21 19:00:00.000',
-         '2024-04-22 07:00:00.000', '2024-04-22 19:00:00.000',
-         '2024-04-23 07:00:00.000', '2024-04-23 19:00:00.000'
-         ]
+        times = [
+            '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000',
+            '2024-04-04 07:00:00.000', '2024-04-04 19:00:00.000',
+            '2024-04-05 07:00:00.000', '2024-04-05 19:00:00.000',
+            '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
+            '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
+            '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000',
+            '2024-04-09 07:00:00.000', '2024-04-09 19:00:00.000',
+            '2024-04-10 07:00:00.000', '2024-04-10 19:00:00.000',
+            '2024-04-11 07:00:00.000', '2024-04-11 19:00:00.000',
+            '2024-04-12 07:00:00.000', '2024-04-12 19:00:00.000',
+            '2024-04-13 07:00:00.000', '2024-04-13 19:00:00.000',
+            '2024-04-14 07:00:00.000', '2024-04-14 19:00:00.000',
+            '2024-04-15 07:00:00.000', '2024-04-15 19:00:00.000',
+            '2024-04-16 07:00:00.000', '2024-04-16 19:00:00.000',
+            '2024-04-17 07:00:00.000', '2024-04-17 19:00:00.000',
+            '2024-04-20 07:00:00.000', '2024-04-20 19:00:00.000',
+            '2024-04-21 07:00:00.000', '2024-04-21 19:00:00.000',
+            '2024-04-22 07:00:00.000', '2024-04-22 19:00:00.000',
+            '2024-04-23 07:00:00.000', '2024-04-23 19:00:00.000'
+        ]
         
     elif iid == 3334:
-        times = [  #3334 61st
-         '2024-03-05 07:00:00.000', '2024-03-05 19:00:00.000',
-         '2024-03-06 07:00:00.000', '2024-03-06 19:00:00.000',
-         '2024-03-08 07:00:00.000', '2024-03-08 19:00:00.000',
-         '2024-03-09 07:00:00.000', '2024-03-09 19:00:00.000',
-         '2024-03-12 07:00:00.000', '2024-03-12 19:00:00.000',
-         '2024-04-02 07:00:00.000', '2024-04-02 19:00:00.000',
-         '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000',
-         '2024-04-04 07:00:00.000', '2024-04-04 19:00:00.000',
-         '2024-04-05 07:00:00.000', '2024-04-05 19:00:00.000',
-         '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
-         '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
-         '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000',
-         '2024-04-09 07:00:00.000', '2024-04-09 19:00:00.000',
-         '2024-04-10 07:00:00.000', '2024-04-10 19:00:00.000',
-         '2024-04-11 07:00:00.000', '2024-04-11 19:00:00.000',
-         '2024-04-12 07:00:00.000', '2024-04-12 19:00:00.000',
-         '2024-04-13 07:00:00.000', '2024-04-13 19:00:00.000',
-         '2024-04-14 07:00:00.000', '2024-04-14 19:00:00.000',
-         '2024-04-15 07:00:00.000', '2024-04-15 19:00:00.000',
-         '2024-04-16 07:00:00.000', '2024-04-16 19:00:00.000',
-         '2024-04-17 07:00:00.000', '2024-04-17 19:00:00.000',
-         '2024-04-18 07:00:00.000', '2024-04-18 19:00:00.000',
-         '2024-04-19 07:00:00.000', '2024-04-19 19:00:00.000',
-         '2024-04-20 07:00:00.000', '2024-04-20 19:00:00.000',
-         '2024-04-21 07:00:00.000', '2024-04-21 19:00:00.000',
-         '2024-04-22 07:00:00.000', '2024-04-22 19:00:00.000',
-         '2024-04-26 07:00:00.000', '2024-04-26 19:00:00.000',
-         '2024-04-27 07:00:00.000', '2024-04-27 19:00:00.000',
-         '2024-04-28 07:00:00.000', '2024-04-28 19:00:00.000',
-         '2024-04-29 07:00:00.000', '2024-04-29 19:00:00.000',
-         '2024-04-30 07:00:00.000', '2024-04-30 19:00:00.000',
-         '2024-05-01 07:00:00.000', '2024-05-01 19:00:00.000',
-         '2024-05-02 07:00:00.000', '2024-05-02 19:00:00.000',
-         '2024-05-08 07:00:00.000', '2024-05-08 19:00:00.000',
-         '2024-05-09 07:00:00.000', '2024-05-09 19:00:00.000',
-         '2024-05-10 07:00:00.000', '2024-05-10 19:00:00.000',
-         '2024-05-11 07:00:00.000', '2024-05-11 19:00:00.000',
-         '2024-05-12 07:00:00.000', '2024-05-12 19:00:00.000',
-         '2024-05-13 07:00:00.000', '2024-05-13 19:00:00.000'
-         ]
+        times = [
+            '2024-03-05 07:00:00.000', '2024-03-05 19:00:00.000',
+            '2024-03-06 07:00:00.000', '2024-03-06 19:00:00.000',
+            '2024-03-08 07:00:00.000', '2024-03-08 19:00:00.000',
+            '2024-03-09 07:00:00.000', '2024-03-09 19:00:00.000',
+            '2024-03-12 07:00:00.000', '2024-03-12 19:00:00.000',
+            '2024-04-02 07:00:00.000', '2024-04-02 19:00:00.000',
+            '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000',
+            '2024-04-04 07:00:00.000', '2024-04-04 19:00:00.000',
+            '2024-04-05 07:00:00.000', '2024-04-05 19:00:00.000',
+            '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
+            '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
+            '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000',
+            '2024-04-09 07:00:00.000', '2024-04-09 19:00:00.000',
+            '2024-04-10 07:00:00.000', '2024-04-10 19:00:00.000',
+            '2024-04-11 07:00:00.000', '2024-04-11 19:00:00.000',
+            '2024-04-12 07:00:00.000', '2024-04-12 19:00:00.000',
+            '2024-04-13 07:00:00.000', '2024-04-13 19:00:00.000',
+            '2024-04-14 07:00:00.000', '2024-04-14 19:00:00.000',
+            '2024-04-15 07:00:00.000', '2024-04-15 19:00:00.000',
+            '2024-04-16 07:00:00.000', '2024-04-16 19:00:00.000',
+            '2024-04-17 07:00:00.000', '2024-04-17 19:00:00.000',
+            '2024-04-18 07:00:00.000', '2024-04-18 19:00:00.000',
+            '2024-04-19 07:00:00.000', '2024-04-19 19:00:00.000',
+            '2024-04-20 07:00:00.000', '2024-04-20 19:00:00.000',
+            '2024-04-21 07:00:00.000', '2024-04-21 19:00:00.000',
+            '2024-04-22 07:00:00.000', '2024-04-22 19:00:00.000',
+            '2024-04-26 07:00:00.000', '2024-04-26 19:00:00.000',
+            '2024-04-27 07:00:00.000', '2024-04-27 19:00:00.000',
+            '2024-04-28 07:00:00.000', '2024-04-28 19:00:00.000',
+            '2024-04-29 07:00:00.000', '2024-04-29 19:00:00.000',
+            '2024-04-30 07:00:00.000', '2024-04-30 19:00:00.000',
+            '2024-05-01 07:00:00.000', '2024-05-01 19:00:00.000',
+            '2024-05-02 07:00:00.000', '2024-05-02 19:00:00.000',
+            '2024-05-08 07:00:00.000', '2024-05-08 19:00:00.000',
+            '2024-05-09 07:00:00.000', '2024-05-09 19:00:00.000',
+            '2024-05-10 07:00:00.000', '2024-05-10 19:00:00.000',
+            '2024-05-11 07:00:00.000', '2024-05-11 19:00:00.000',
+            '2024-05-12 07:00:00.000', '2024-05-12 19:00:00.000',
+            '2024-05-13 07:00:00.000', '2024-05-13 19:00:00.000'
+        ]
     else:
         raise ValueError('Invalid intersection ID')
 
     return times
 
+
+def extract_direction(cluster):
+    return cluster.split('_')[0]
+
+def count_conflicts_by_direction(df):
+    df['direction1'] = df['cluster1'].apply(extract_direction)
+    df['direction2'] = df['cluster2'].apply(extract_direction)
+    direction_counts = df['direction1'].value_counts() + df['direction2'].value_counts()
+    return direction_counts
 
 def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
     cache_filename = f"cache_{iid}"
@@ -177,14 +182,14 @@ def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
                 'end_date': end_time
             }
             df = my.handleRequest(params, 'speedcorr')
+            
         df.to_csv(cache_filename, index=False)
         print(f"\n\tData cached to file: {cache_filename}")
     
     return df
 
-def get_intersection_data(iid, df_type='track'):
+def get_intersection_data(iid):
     my = MySQLConnector()
-    mega_df = pd.DataFrame()
     ttc_df = pd.DataFrame()
 
     times = get_times(iid)
@@ -193,134 +198,115 @@ def get_intersection_data(iid, df_type='track'):
         start_time = times[i]
         end_time = times[i+1]
         with yaspin(Spinners.earth, text=f"Fetching data from MySQL starting at {start_time}") as sp:
-            df = fetch_or_cache_data(my, iid, start_time, end_time, df_type)
             ttc_df = pd.concat([ttc_df, fetch_or_cache_data(my, iid, start_time, end_time, 'conflict')])
-            mega_df = pd.concat([mega_df, df])
 
-    mega_df['start_timestamp'] = pd.to_datetime(mega_df['start_timestamp'])
-    mega_df['hour_of_day'] = mega_df['start_timestamp'].dt.hour
-    mega_df['day_of_week'] = mega_df['start_timestamp'].dt.day_name()
-    mega_df['track_id'] = mega_df['track_id'].astype(str)
-    mega_df['conflict'] = 0
+    ttc_df['unique_ID1'] = ttc_df['unique_ID1'].astype(str)
+    ttc_df['unique_ID2'] = ttc_df['unique_ID2'].astype(str)
 
-    ttc_df['unique_ID1'] =  ttc_df['unique_ID1'].astype(str)
-    ttc_df['unique_ID2'] =  ttc_df['unique_ID2'].astype(str)
+    return ttc_df
 
-    approach_mapping = {'NBT': 1, 'NBL': 2, 'NBR': 3, 'NBU': 4 , 
-                        'SBT': 1, 'SBL': 2, 'SBR': 3, 'SBU': 4, 
-                        'EBT': 1, 'EBL': 2, 'EBR': 3, 'EBU': 4, 
-                        'WBT': 1, 'WBL': 2, 'WBR': 3, 'WBU': 4
-                        }
-    
-    print('11111111')
-
-    mega_df = mega_df[mega_df['Approach'] != '0']  # filter out bad data
-    mega_df['approach_numeric'] = mega_df['Approach'].map(approach_mapping)   
-
-    print('22222222')
-
-    for _, row in ttc_df.iterrows():
-        id1, id2 = row['unique_ID1'], row['unique_ID2']
-        if iid != 3287:
-            adj_id1, adj_id2 = "1" + id1, "1" + id2
-        else:
-            adj_id1, adj_id2 = id1, id2
-        mega_df.loc[(mega_df['track_id'] == adj_id1) | (mega_df['track_id'] == adj_id2), 'conflict'] = 1
-
-
-    print('3333333')
-
-    return mega_df
-
-def analyze_multiple_intersections(intersection_ids):
-    all_data = pd.DataFrame()
-
-    for iid in intersection_ids:
-        intersection_data = get_intersection_data(iid)
-        intersection_data['intersection_id'] = iid
-        all_data = pd.concat([all_data, intersection_data])
-
-    print('AAAAA')
-
-    # Calculate conflict rates for each approach and intersection
-    conflict_counts = all_data.groupby(['intersection_id', 'Approach'])['conflict'].sum()
-    total_counts = all_data.groupby(['intersection_id', 'Approach']).size()
-    conflict_rates = (conflict_counts / total_counts).fillna(0).unstack()
-
-    print('BBBBB')
-
-    print("Conflict Rates by Approach Across All Intersections:")
-    print(conflict_rates)
-
-    # Chi-Square Test for Independence
-    contingency_table = pd.crosstab(all_data['Approach'], all_data['conflict'])
-    chi2, p, _, _ = chi2_contingency(contingency_table)
-    print(f"Chi-Square Test: chi2 = {chi2}, p-value = {p:.50e}")
-    print('other p ', p)
-
-
-    print('CCCCC')
-
-    # Polynomial Regression Analysis
-    if 'average_speed' in all_data.columns and 'Max_speed' in all_data.columns and 'Min_speed' in all_data.columns:
-        X = all_data[['average_speed', 'Max_speed', 'Min_speed']].values
-        y = all_data['conflict'].values
-
-        poly = PolynomialFeatures(degree=2)
-        X_poly = poly.fit_transform(X)
-
-        model = LinearRegression()
-        model.fit(X_poly, y)
-        y_pred = model.predict(X_poly)
-
-        r2 = r2_score(y, y_pred)
-        print(f'R^2 Score for polynomial regression: {r2}')
-    else:
-        print("Necessary columns for polynomial regression are missing.")
-
-
-    print('DDDDD')
-
-    return all_data, conflict_rates, chi2, p
-
+# Visualization: Stacked Bar Chart for p2v == 0
+intersection_lookup = {
+    3287: "Stirling Rd. & N 68th Ave.",
+    3248: "Stirling Rd. & N 66th Ave.",
+    3032: "Stirling Rd. & SR-7",
+    3265: "Stirling Rd. & University Dr.",
+    3334: "Stirling Rd. & Carriage Hills Drive/SW 61st Ave.",
+}
 
 # List of intersection IDs to analyze
 intersection_ids = [3032, 3248, 3287, 3265, 3334]
 
-# Analyze all intersections
-all_data, conflict_rates, chi2, p = analyze_multiple_intersections(intersection_ids)
+# Colors for each intersection using tab10 colormap
+colors = plt.get_cmap('tab10').colors
+intersection_colors = dict(zip(intersection_ids, colors))
 
-# Visualization: Stacked Bar Chart
-intersection_lookup = {
-    3287: "Stirling Road and N 68th Avenue",
-    3248: "Stirling Road and N 66th Avenue",
-    3032: "Stirling Road and SR-7",
-    3265: "Stirling Road and University Drive",
-    3334: "Stirling Road and Carriage Hills Drive/SW 61st Avenue",
-}
+# DataFrame to hold all data
+total_data_v2v = pd.DataFrame()
+total_data_p2v = pd.DataFrame()
 
-# Transpose the conflict_rates DataFrame to switch x-axis and legend
-conflict_rates = conflict_rates.T
+for iid in intersection_ids:
+    ttc_df = get_intersection_data(iid)
+    
+    # Filter data for V2V (p2v == 0) and P2V (p2v == 1)
+    ttc_df_v2v = ttc_df[ttc_df['p2v'] == 0]
+    ttc_df_p2v = ttc_df[ttc_df['p2v'] == 1]
+    
+    # Count conflicts by direction for V2V and P2V
+    direction_counts_v2v = count_conflicts_by_direction(ttc_df_v2v)
+    direction_counts_p2v = count_conflicts_by_direction(ttc_df_p2v)
+    
+    # Add intersection ID column for coloring
+    direction_counts_v2v.name = intersection_lookup[iid]
+    direction_counts_p2v.name = intersection_lookup[iid]
+    
+    total_data_v2v = pd.concat([total_data_v2v, direction_counts_v2v], axis=1, sort=False)
+    total_data_p2v = pd.concat([total_data_p2v, direction_counts_p2v], axis=1, sort=False)
 
-# Apply intersection lookup to index
-# Ensure the columns (originally intersections) are correctly named
-conflict_rates.columns = conflict_rates.columns.map(intersection_lookup)
+# Remove rows with 'ped' from total_data_p2v
+total_data_p2v = total_data_p2v[~total_data_p2v.index.str.contains('ped')]
 
-# Fill NaN values with 0.0
-conflict_rates = conflict_rates.fillna(0.0)
+# Sort the data by total number of conflicts
+total_data_v2v['total'] = total_data_v2v.sum(axis=1)
+total_data_v2v = total_data_v2v.sort_values(by='total').drop(columns='total')
 
-# Sort the DataFrame based on the sum of conflict rates for each intersection
-conflict_rates = conflict_rates.loc[conflict_rates.sum(axis=1).sort_values().index]
+total_data_p2v['total'] = total_data_p2v.sum(axis=1)
+total_data_p2v = total_data_p2v.sort_values(by='total').drop(columns='total')
 
-# Plotting the data
-conflict_rates.plot(kind='bar', stacked=True, figsize=(8, 6))
-plt.title('Conflict Rates by Approach and Intersection')
-plt.xlabel('Approach')
-plt.ylabel('Conflict Rate')
-plt.xticks(rotation=45, ha='right')
-plt.legend(title='Intersections')
+# Adjust these font sizes as needed
+title_fontsize = 16
+label_fontsize = 14
+tick_labelsize = 14
+legend_fontsize = 10
+
+# Plot the stacked bar chart for V2V
+fig_v2v, ax_v2v = plt.subplots(figsize=(6, 5))
+total_data_v2v.plot(kind='bar', stacked=True, color=colors, ax=ax_v2v)
+ax_v2v.set_title('Number of V2V Conflicts by Directionality\nAcross All Intersections', fontsize=title_fontsize)
+ax_v2v.set_xlabel('Direction', fontsize=label_fontsize)
+ax_v2v.set_ylabel('Number of Conflicts', fontsize=label_fontsize)
+ax_v2v.tick_params(axis='x', labelsize=tick_labelsize)
+ax_v2v.tick_params(axis='y', labelsize=tick_labelsize)
+ax_v2v.set_xticklabels([label.get_text()[:-1] if label.get_text().endswith('1') else label.get_text() for label in ax_v2v.get_xticklabels()], fontsize=tick_labelsize)
+
+legend = ax_v2v.legend(title='Intersection', labels=[intersection_lookup[iid] for iid in intersection_ids])
+plt.setp(legend.get_texts(), fontsize=legend_fontsize)
+plt.setp(legend.get_title(), fontsize=legend_fontsize)
+plt.ylim(0, 1200)
+plt.xticks(rotation=45)
 plt.tight_layout()
-if not os.path.isdir('exp_results'):
-    os.mkdir('exp_results')
-plt.savefig(f'exp_results/speed_correlation_conflict_rates_stacked_bar.png', bbox_inches='tight')
-# plt.show()
+plt.grid(alpha=0.3)
+plt.savefig('v2v_approach_all_intersections.pdf', dpi=300, bbox_inches='tight')
+
+# Plot the stacked bar chart for P2V
+fig_p2v, ax_p2v = plt.subplots(figsize=(6, 5))
+total_data_p2v.plot(kind='bar', stacked=True, color=colors, ax=ax_p2v)
+ax_p2v.set_title('Number of P2V Conflicts by Directionality\nAcross All Intersections', fontsize=title_fontsize)
+ax_p2v.set_xlabel('Direction', fontsize=label_fontsize)
+ax_p2v.set_ylabel('Number of Conflicts', fontsize=label_fontsize)
+ax_p2v.tick_params(axis='x', labelsize=tick_labelsize)
+ax_p2v.tick_params(axis='y', labelsize=tick_labelsize)
+ax_p2v.set_xticklabels([label.get_text()[:-1] if label.get_text().endswith('1') else label.get_text() for label in ax_p2v.get_xticklabels()], fontsize=tick_labelsize)
+
+legend = ax_p2v.legend(title='Intersection', labels=[intersection_lookup[iid] for iid in intersection_ids])
+plt.setp(legend.get_texts(), fontsize=legend_fontsize)
+plt.setp(legend.get_title(), fontsize=legend_fontsize)
+plt.ylim(0, 1200)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.grid(alpha=0.3)
+plt.savefig('p2v_approach_all_intersections.pdf', dpi=300, bbox_inches='tight')
+
+
+# Combine V2V and P2V data into a single DataFrame for chi-square test
+combined_data = pd.concat([total_data_v2v.sum(axis=1), total_data_p2v.sum(axis=1)], axis=1)
+combined_data.columns = ['V2V', 'P2V']
+
+# Perform the chi-square test
+chi2, p, dof, expected = chi2_contingency(combined_data.T)
+
+print(f"Chi-square statistic: {chi2}")
+print(f"P-value: {p}")
+print(f"Degrees of freedom: {dof}")
+print("Expected frequencies:")
+print(expected)
