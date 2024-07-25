@@ -210,14 +210,14 @@ def speed_plot(iid: int):
     }
 
     mph = {
-        # 3287: {
-        #     'NS': 45,
-        #     'EW': 45,
-        # },
-        # 3248: {
-        #     'NS': 45,
-        #     'EW': 45,
-        # },
+        3287: {
+            'NS': 30,
+            'EW': 45,
+        },
+        3248: {
+            'NS': 30,
+            'EW': 45,
+        },
         3032: {
             'NS': 45,
             'EW': 45,
@@ -263,19 +263,23 @@ def speed_plot(iid: int):
         # Drop columns with all NaN values
         pivot_table = pivot_table.dropna(axis=1, how='all')
 
-        # Plot the heatmap
-        plt.figure(figsize=(9, 5))
-        sns.heatmap(pivot_table, annot=True, cmap='coolwarm', fmt='.1f', cbar_kws={'label': 'Percentage of Speeding Vehicles (%)'}, vmin=0, vmax=9)
+        # Fill missing values with zeros
+        pivot_table = pivot_table.fillna(0)
 
 
-        plt.title(f'Percentage of Speeding Vehicles ({approach})\n{intersec_lookup[iid]} (Speed Limit: {speed_limit} mph)')
-        plt.xlabel('Hour of Day')
-        plt.ylabel('Day of Week')
-        plt.xticks(rotation=45)
-        plt.yticks(rotation=0)
-        # plt.show()
+        plt.figure(figsize=(7, 4))
+        sns.heatmap(pivot_table, annot=True, cmap='coolwarm', fmt='.1f', 
+                    cbar_kws={'label': 'Percentage of Speeding Vehicles (%)'}, vmin=0, vmax=15,
+                    annot_kws={"size": 10})  # Change the annotation size
 
+        # plt.title(f'Percentage of Speeding Vehicles ({approach})\n{intersec_lookup[iid]} (Speed Limit: {speed_limit} mph)', fontsize=14)
+        plt.xlabel('Hour of Day', fontsize=12)
+        plt.ylabel('Day of Week', fontsize=12)
+        plt.xticks(rotation=45, fontsize=10)
+        plt.yticks(rotation=0, fontsize=10)
+        
         plt.savefig(f'{iid}_average_speed_by_hour_{approach}.png', bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(f'{iid}_average_speed_by_hour_{approach}.pdf', bbox_inches='tight', pad_inches=0.1)
 
-for intersec in [3032, 3265, 3334]:
+for intersec in [3032, 3265, 3334, 3248, 3287]:
     speed_plot(intersec)
