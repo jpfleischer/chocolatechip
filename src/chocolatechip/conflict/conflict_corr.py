@@ -151,7 +151,7 @@ def count_conflicts_by_direction(df):
     direction_counts = df['direction1'].value_counts() + df['direction2'].value_counts()
     return direction_counts
 
-def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
+def fetch_or_cache_data(my, iid, start_time, end_time, p2v, df_type='track'):
     cache_filename = f"cache_{iid}"
     if df_type == 'track':
         cache_filename += "_track"
@@ -179,16 +179,19 @@ def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
             params = {
                 'intersec_id': iid,
                 'start_date': start_time,
-                'end_date': end_time
+                'end_date': end_time,
+                'p2v': p2v,
             }
-            df = my.handleRequest(params, 'speedcorr')
+            df = my.handleRequest(params, 'conflict')
             
         df.to_csv(cache_filename, index=False)
         print(f"\n\tData cached to file: {cache_filename}")
     
     return df
 
-def get_intersection_data(iid):
+def get_intersection_data(iid,
+                          p2v,
+                          ):
     my = MySQLConnector()
     ttc_df = pd.DataFrame()
 
@@ -198,7 +201,7 @@ def get_intersection_data(iid):
         start_time = times[i]
         end_time = times[i+1]
         with yaspin(Spinners.earth, text=f"Fetching data from MySQL starting at {start_time}") as sp:
-            ttc_df = pd.concat([ttc_df, fetch_or_cache_data(my, iid, start_time, end_time, 'conflict')])
+            ttc_df = pd.concat([ttc_df, fetch_or_cache_data(my, iid, start_time, end_time, p2v, 'conflict')])
 
     ttc_df['unique_ID1'] = ttc_df['unique_ID1'].astype(str)
     ttc_df['unique_ID2'] = ttc_df['unique_ID2'].astype(str)
@@ -226,11 +229,12 @@ total_data_v2v = pd.DataFrame()
 total_data_p2v = pd.DataFrame()
 
 for iid in intersection_ids:
-    ttc_df = get_intersection_data(iid)
+    ttc_df_v2v = get_intersection_data(iid, '0')
+    ttc_df_p2v = get_intersection_data(iid, '1')
     
     # Filter data for V2V (p2v == 0) and P2V (p2v == 1)
-    ttc_df_v2v = ttc_df[ttc_df['p2v'] == 0]
-    ttc_df_p2v = ttc_df[ttc_df['p2v'] == 1]
+    ttc_df_v2v = ttc_df_v2v[ttc_df_v2v['p2v'] == 0]
+    ttc_df_p2v = ttc_df_p2v[ttc_df_p2v['p2v'] == 1]
     
     # Count conflicts by direction for V2V and P2V
     direction_counts_v2v = count_conflicts_by_direction(ttc_df_v2v)
