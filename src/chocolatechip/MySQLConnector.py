@@ -43,9 +43,8 @@ class MySQLConnector:
                 elif df_type == "track":
                     query = "SELECT * FROM RealTrackProperties WHERE " \
                         "timestamp BETWEEN %s AND %s AND intersection_id = %s "\
-                        "AND camera_id = %s AND isAnomalous = 0"
+                        "AND camera_id = %s AND isAnomalous = 0;"
                     cursor.execute(query, (params['start_date'], params['end_date'], params['intersec_id'], params['cam_id']))
-
                 
                 result = cursor.fetchall()
 
@@ -185,3 +184,60 @@ class MySQLConnector:
             mydb.close()
 
         return df
+    
+    def query_tracksreal(self, intersection_id: int, start_timestamp: str, end_timestamp: str, thru: bool = False):
+        """
+        Query the TracksReal table for data between specific timestamps for a given intersection.
+
+        Args:
+        intersection_id (int): The ID of the intersection.
+        start_timestamp (str): The start timestamp in the format "YYYY-MM-DD HH:MM:SS.fff".
+        end_timestamp (str): The end timestamp in the format "YYYY-MM-DD HH:MM:SS.fff".
+
+        Returns:
+        pd.DataFrame: A DataFrame containing the query results.
+        """
+        mydb = pymysql.connect(host=self.config['host'],
+                            user=self.config['user'], passwd=self.config['passwd'],
+                            db=self.config['testdb'], port=int(self.config['port']))
+
+        try:
+            with mydb.cursor() as cursor:
+                # Define the SQL query to select data within the timestamp range for a specific intersection
+                if thru: # used to filter for only thru traffic, when analyzing correlations between conflicts and speed
+                    query = """
+                    SELECT *
+                    FROM TracksReal
+                    WHERE intersection_id = %s AND
+                        start_timestamp BETWEEN %s AND %s AND
+                        (approach = 'NBT' OR approach = 'SBT' OR approach = 'EBT' OR approach = 'WBT')
+                    ORDER BY start_timestamp;
+                    """
+                else:
+                    query = """
+                    SELECT *
+                    FROM TracksReal
+                    WHERE intersection_id = %s AND
+                        start_timestamp BETWEEN %s AND %s
+                    ORDER BY start_timestamp;
+                    """
+                # Execute the query with parameters
+                cursor.execute(query, (intersection_id, start_timestamp, end_timestamp))
+
+                # Fetch all results
+                result = cursor.fetchall()
+
+                # Extract column headers
+                column_headers = [desc[0] for desc in cursor.description]
+
+                # Convert results to a DataFrame
+                df = pd.DataFrame(result, columns=column_headers)
+                df['start_timestamp'] = pd.to_datetime(df['start_timestamp'])
+                if 'end_timestamp' in df.columns:
+                    df['end_timestamp'] = pd.to_datetime(df['end_timestamp'])
+
+        finally:
+            mydb.close()
+
+        return df
+    
