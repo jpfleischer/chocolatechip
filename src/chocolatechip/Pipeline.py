@@ -4,7 +4,8 @@ from cloudmesh.common.console import Console
 from pprint import pprint
 import subprocess
 import docker
-
+import time
+import yaspin
 
 def stop_everything():
     names = ["rabbitmq", 
@@ -24,6 +25,12 @@ def stop_everything():
             print(container.name)
             container.remove(force=True)
 
+def stop_something(container_name: str):
+    client = docker.from_env()
+    for container in client.containers.list(all=True):
+        if container_name in container.name:
+            print(container.name)
+            container.remove(force=True)
 
 
 def rabbit(bundle_names: list,
@@ -143,6 +150,72 @@ def network_checker(name_of_network: str) -> bool:
     except RuntimeError:
         return False
     
+def plain():
+    """
+    original no parallel
+    """
+    Console.info("We assume that you have already built rabbitmq and nifi, in that order.")
+    Console.info("Proceeding in 5 seconds...")
+    with yaspin.yaspin() as sp:
+        for i in range(5, 0, -1):
+            sp.text = f"Countdown: {i}"
+            time.sleep(1)
+    pipeline_dir = "/mnt/hdd/pipeline"
+    softwares = [
+                # "tracks_processing",
+                 "vid_dual",
+                 "vid_online_clustering",
+                 "vid_se",
+                 "vid_statistics",
+                 "vid_ttc"
+                 ]
+    with yaspin.yaspin() as sp:
+        for software in softwares:
+            sp.text = f"Building {software}"
+            # Console.info(f"Building {software}")        
+            result = Shell.run(f"cd {os.path.join(pipeline_dir, software)} && make")
+            print(result)
+        
+    
+    Console.info(f"Building tracks_processing")
+    result = Shell.run(f"cd {os.path.join(pipeline_dir, 'tracks_processing')} && make CUSTOM_NAME=tracks_processing_1 QUEUE=dt_tracks_ready_1")
+    print(result)
+    result = Shell.run(f"cd {os.path.join(pipeline_dir, 'tracks_processing')} && make CUSTOM_NAME=tracks_processing_2 QUEUE=dt_tracks_ready_2")
+    print(result)
+
+
+def offline():
+    """
+    This starts the pipeline with offline video files.
+    """
+    Console.info("We assume that you have already built rabbitmq and nifi, in that order.")
+    Console.info("Proceeding in 5 seconds...")
+    with yaspin.yaspin() as sp:
+        for i in range(5, 0, -1):
+            sp.text = f"Countdown: {i}"
+            time.sleep(1)
+    pipeline_dir = "/mnt/hdd/pipeline"
+    softwares = [
+                # "tracks_processing",
+                 "vid_dual",
+                 "vid_online_clustering",
+                 "vid_se",
+                 "vid_statistics",
+                 "vid_ttc"
+                 ]
+    with yaspin.yaspin() as sp:
+        for software in softwares:
+            sp.text = f"Building {software}"
+            # Console.info(f"Building {software}")        
+            result = Shell.run(f"cd {os.path.join(pipeline_dir, software)} && make")
+            print(result)
+        
+    
+    Console.info(f"Building tracks_processing")
+    result = Shell.run(f"cd {os.path.join(pipeline_dir, 'tracks_processing')} && make CUSTOM_NAME=tracks_processing QUEUE=dt_tracks_ready")
+    print(result)
+     
+
 
 def main():
     """
