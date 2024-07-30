@@ -167,7 +167,7 @@ def plain():
                 # "tracks_processing",
                  "vid_dual",
                  "vid_online_clustering",
-                 "vid_se",
+                #  "vid_se",
                  "vid_statistics",
                  "vid_ttc"
                  ]
@@ -201,7 +201,7 @@ def offline():
                 # "tracks_processing",
                  "vid_dual",
                  "vid_online_clustering",
-                 "vid_se",
+                #  "vid_se",
                  "vid_statistics",
                  "vid_ttc"
                  ]
