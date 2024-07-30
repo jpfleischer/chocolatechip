@@ -14,11 +14,12 @@ def stop_everything():
              "fastmot", 
              "vid_dual", 
              "vid_online_clustering", 
-             "vid_se", 
+            #  "vid_se", 
              "vid_statistics", 
              "vid_ttc",
              "rtsp_stream",
-             "tracks_processing"]
+             "tracks_processing"
+             ]
     client = docker.from_env()
 
     for container in client.containers.list(all=True):
