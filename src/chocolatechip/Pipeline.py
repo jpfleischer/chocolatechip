@@ -8,8 +8,9 @@ import time
 import yaspin
 
 def stop_everything():
-    names = ["rabbitmq", 
-             "nifi", 
+    names = [
+            # "rabbitmq", 
+            #  "nifi", 
              "fastmot", 
              "vid_dual", 
              "vid_online_clustering", 
@@ -212,7 +213,7 @@ def offline():
         
     
     Console.info(f"Building tracks_processing")
-    result = Shell.run(f"cd {os.path.join(pipeline_dir, 'tracks_processing')} && make CUSTOM_NAME=tracks_processing QUEUE=dt_tracks_ready")
+    result = Shell.run(f"cd {os.path.join(pipeline_dir, 'tracks_processing')} && make CUSTOM_NAME=tracks_processing_1 QUEUE=dt_tracks_ready_1 ; make CUSTOM_NAME=tracks_processing_2 QUEUE=dt_tracks_ready_2")
     print(result)
      
 
