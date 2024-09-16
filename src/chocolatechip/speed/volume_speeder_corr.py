@@ -52,8 +52,7 @@ def get_times(iid: int):
         
     elif iid == 3032:
         times = [
-        '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000']
-        ''',
+        '2024-04-03 07:00:00.000', '2024-04-03 19:00:00.000',
         '2024-04-04 07:00:00.000', '2024-04-04 19:00:00.000',
         '2024-04-05 07:00:00.000', '2024-04-05 19:00:00.000',
         '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
@@ -71,7 +70,7 @@ def get_times(iid: int):
         '2024-04-21 07:00:00.000', '2024-04-21 19:00:00.000',
         '2024-04-22 07:00:00.000', '2024-04-22 19:00:00.000',
         '2024-04-23 07:00:00.000', '2024-04-23 19:00:00.000',
-            ]'''
+        ]
         
     elif iid == 3265:
         times = [  #3265 University
@@ -171,7 +170,7 @@ def fetch_or_cache_data(my, iid, start_time, end_time, df_type='track'):
             }
             df = my.handleRequest(params, 'speedcorr')
         df.to_csv(cache_filename, index=False)
-        print(f"Data cached to file: {cache_filename}")
+        print(f"\n\tData cached to file: {cache_filename}")
     
     return df
 
@@ -269,17 +268,38 @@ def speed_plot(iid: int):
     # Plot the data
     fig, ax1 = plt.subplots()
 
-    sns.lineplot(data=grouped, x='hour_of_day', y='vehicle_count', ax=ax1, label='Vehicle Count', color='b')
+    sns.lineplot(data=grouped, x='hour_of_day', y='vehicle_count', ax=ax1, label='Vehicle Count', color='b', legend=False)
     ax2 = ax1.twinx()
-    sns.lineplot(data=grouped, x='hour_of_day', y='speeder_count', ax=ax2, label='Speeder Count', color='r')
+    sns.lineplot(data=grouped, x='hour_of_day', y='speeder_count', ax=ax2, label='Speeder Count', color='r', legend=False)
 
     ax1.set_xlabel('Hour of Day')
     ax1.set_ylabel('Vehicle Count', color='b')
     ax2.set_ylabel('Speeder Count', color='r')
+    
+    # Create a combined legend with handles and labels from both plots
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+
+    # Combine handles and labels
+    handles = handles1 + handles2
+    labels = labels1 + labels2
+
+    # Add the combined legend to ax1
+    ax1.legend(handles, labels, loc='upper right')
 
     plt.title(f'Vehicle Count and Speeder Count by Hour of Day\nIntersection: {intersec_lookup[iid]}')
-    plt.show()
+    #plt.show()
+    if not os.path.isdir('exp_results'):
+        os.mkdir('exp_results')
+    exp_filename = os.path.join('exp_results', f"{iid}_speed_vs_time_plot.pdf")
+    plt.savefig(exp_filename, bbox_inches='tight')
+
+    output_data = f"INTERSECTION {iid} ANALYSIS\n"
+    output_data += f"\tPearson correlation coefficient: {pearson_r:.4f}\n"
+    output_data += f"\tP-Value: {p_val:.4f}\n\n"
+    with open('exp_results/stats.txt', 'a') as file:
+        file.write(output_data)
 
 
-for intersec in [3032, 3265, 3334]:
+for intersec in [3032, 3265, 3334, 3248, 3287]:
     speed_plot(intersec)

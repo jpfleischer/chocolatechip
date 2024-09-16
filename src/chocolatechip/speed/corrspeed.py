@@ -290,7 +290,7 @@ def speed_plot(iid: int, filename: str, df_type = 'track'):
     output_data += f"\tP-Val for intersection {iid}: {p_val:.4f}\n"
     print(f"\tPearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n")
     output_data += f"\tPearson correlation coefficient for intersection {iid}: {pearson_r:.4f}\n"
-    with open(filename, 'w') as file:
+    with open(filename, 'a') as file:
         file.write(output_data)
 
 # set up text file to record experiments

@@ -224,6 +224,7 @@ class MySQLConnector:
                     FROM TracksReal
                     WHERE intersection_id = %s AND
                         start_timestamp BETWEEN %s AND %s
+                        AND Class != 'pedestrian'
                     ORDER BY start_timestamp;
                     """
                 # Execute the query with parameters
