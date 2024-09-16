@@ -427,9 +427,9 @@ for conflict_type in conflict_types:
 ##
 
 p2v = False
+df_type = "track"
 
 heatmap_generator(df_type, mean, inter, p2v)
 
-
-df_type = "track"
+p2v = True
 heatmap_generator(df_type, mean, inter, p2v)
