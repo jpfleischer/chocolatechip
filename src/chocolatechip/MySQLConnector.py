@@ -50,6 +50,10 @@ class MySQLConnector:
                         "timestamp BETWEEN %s AND %s AND intersection_id = %s "\
                         "AND camera_id = %s AND isAnomalous = 0;"
                     cursor.execute(query, (params['start_date'], params['end_date'], params['intersec_id'], params['cam_id']))
+
+                elif df_type == "calendar":
+                    query = "SELECT date, timestamp from VideoProperties WHERE intersection_id = %s;"
+                    cursor.execute(query, (params['intersection_id']))
                 
                 result = cursor.fetchall()
 
