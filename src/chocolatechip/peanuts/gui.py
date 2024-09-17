@@ -15,7 +15,7 @@ class CalGUI:
         self.root.resizable(False, False)
 
         # Calendar widget
-        self.cal = Calendar(self.root, selectmode="day", year=2024, month=9, day=1)
+        self.cal = Calendar(self.root, selectmode="day")
         self.cal.pack(pady=20)
 
         # Button to fetch the details for the selected day
@@ -101,7 +101,6 @@ def preprocess_data(df):
     return df
 
 if __name__ == "__main__":
-    # Sample DataFrame for testing
     intersection_ids = [3287, 3248, 3032, 3265, 3334]
 
     df_list = []
