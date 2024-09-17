@@ -56,6 +56,7 @@ class CalGUI:
             end_time = day_data['timestamp'].max().strftime('%H:%M')
 
             # Show info in a message box
+            # May want to change to show biggest time gap hours instead of size of biggest gap
             messagebox.showinfo(f"Details for {selected_date}",
                                 f"Missing: {percentage_missing}%\n"
                                 f"Biggest Gap: {biggest_gap} minutes\n"
@@ -81,6 +82,7 @@ class CalGUI:
         return gaps.max() if not gaps.empty else 0
 
 def get_data(intID):
+    # Current issue connecting to the database
     params = { 'intersection_id':  intID }
     df_type = 'calendar'
     my = MySQLConnector()
