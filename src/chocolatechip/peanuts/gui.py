@@ -15,11 +15,11 @@ class CalGUI:
         self.root.resizable(False, False)
 
         # Calendar widget
-        self.cal = Calendar(self.root, selectmode="day", year=2024, month=9, day=1)
+        self.cal = Calendar(self.root, selectmode="day")
         self.cal.pack(pady=20)
 
         # Button to fetch the details for the selected day
-        self.button = ttk.Button(self.root, text="Get Date Info", command=self.show_day_info)
+        self.button = ttk.Button(self.root, text="See Insights", command=self.show_day_info)
         self.button.pack(pady=20)
 
         # Apply colors to the calendar based on missing percentage
@@ -90,6 +90,7 @@ def get_data(intID):
     with yaspin(Spinners.pong, text=f"Fetching data from MySQL for intersection {intID}") as sp:
         df = my.handleRequest(params, df_type)
 
+    print(df)
     return df
 
 def preprocess_data(df):
@@ -114,8 +115,6 @@ if __name__ == "__main__":
     # Concatenate all DataFrames into one
     df = pd.concat(df_list, ignore_index=True)
     
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-
     # Preprocess the data
     df = preprocess_data(df)
 

@@ -52,11 +52,10 @@ class MySQLConnector:
                     cursor.execute(query, (params['start_date'], params['end_date'], params['intersec_id'], params['cam_id']))
 
                 elif df_type == "calendar":
-                    query = "SELECT date, timestamp from VideoProperties WHERE intersection_id = %s;"
-                    cursor.execute(query, (params['intersection_id']))
+                    query = "SELECT timestamp from RealTrackProperties WHERE intersection_id = %s;"
+                    cursor.execute(query, params['intersection_id'])
                 
                 result = cursor.fetchall()
-
                 column_headers = [desc[0] for desc in cursor.description]
                 # cursor.execute(path_query, (camid,))
                 # path_result = cursor.fetchall()
