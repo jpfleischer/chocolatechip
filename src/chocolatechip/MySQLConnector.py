@@ -50,10 +50,6 @@ class MySQLConnector:
                         "timestamp BETWEEN %s AND %s AND intersection_id = %s "\
                         "AND camera_id = %s AND isAnomalous = 0;"
                     cursor.execute(query, (params['start_date'], params['end_date'], params['intersec_id'], params['cam_id']))
-
-                elif df_type == "calendar":
-                    query = "SELECT timestamp from RealTrackProperties WHERE intersection_id = %s;"
-                    cursor.execute(query, params['intersection_id'])
                 
                 result = cursor.fetchall()
                 column_headers = [desc[0] for desc in cursor.description]
@@ -250,3 +246,22 @@ class MySQLConnector:
 
         return df
     
+    def query_videoproperties(self, params, df_type: str):
+        mydb = pymysql.connect(host=self.config['host'], \
+                user=self.config['user'], passwd=self.config['passwd'], \
+                db=self.config['testdb'], port=int(self.config['port']))
+        
+        try:
+            with mydb.cursor() as cursor:
+                if(df_type == "calendar"):
+                    query = "SELECT start, end FROM VideoProperties WHERE intersection_id = %s;"
+                    cursor.execute(query, (params['intersection_id']))
+
+                result = cursor.fetchall()
+                column_headers = [desc[0] for desc in cursor.description]
+
+        finally:
+            mydb.close()
+
+        df = pd.DataFrame(result, columns=column_headers)
+        return df
