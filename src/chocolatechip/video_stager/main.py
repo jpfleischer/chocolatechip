@@ -4,7 +4,6 @@ import os, sys
 #Sample gridsmart files: 2023-08-04_09-27-01-rtsp_Stirling-61Av_0.mp4
 #Sample miovision files: 2977eb33-a029-4a21-87dd-ab86816e8a61-Jul_07_2023_09_45_10_00.mp4
 def get_new_filename(ofile):
-    #ofile = sys.argv[1]
     intersec_dict = {'SR7_0.': 21, 'SR7_1.': 22, '68Av_0': 24, '66Av_0': 25, '66Av_1': 26, 'Univ_0': 28,  'Univ_1': 29, '61Av_0': 31, '61Av_1': 32}
     if (ofile[4]=='-'):     # gridsmart file format
         date_time = ofile[0:19]
@@ -39,11 +38,11 @@ def get_new_filename(ofile):
         month_str = str(month_dict[month])
         mfile = camera_id + '_' + year + '-' + month_str.zfill(2) + '-' + date + '_' + hours + '-' + mins + '-' + secs + '.' + millisecs.zfill(3) + '.mp4'
         return (mfile)
-    
-ofile = sys.argv[1]
-# source = ? # needs to be path to original file- figure out if ofile passed 
-f = get_new_filename(ofile)
-destination='/mnt/hdd/data/video_pipeline/' + f
-cmd = 'sudo cp {} {}'.format(source, destination)
-print (cmd)
-os.system(cmd)
+
+
+def main(ofile: str):
+    f = get_new_filename(ofile)
+    destination='/mnt/hdd/data/video_pipeline/' + f
+    cmd = 'sudo cp {} {}'.format(ofile, destination)
+    print (cmd)
+    os.system(cmd)

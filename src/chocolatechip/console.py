@@ -7,6 +7,7 @@ from docopt import docopt
 from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency
 from chocolatechip.unflag import main as unflag
 from chocolatechip.sprinkles import main as sprinkles
+from chocolatechip.video_stager import main as video_stager
 
 
 def main():
@@ -31,21 +32,22 @@ Usage:
     chip eat <filename>
 
 Commands:
-    benchmark  benchmark fastmot
-    stream     benchmark max streams
-    pipeline   restart the pipeline
-    up         restart the pipeline
-    help       show this help message
-    stop       stop all docker containers
-    down       stop all docker containers
-    parallel   start the parallel pipeline by starting fastmot
-    plain      normal pipeline without parallel
-    offline    start the pipeline in offline mode with stored mp4 files
-    latency    benchmark latency
-    unflag     unflag conflicts that are invalid
-    sprinkles  initiate automated moviepy
+    benchmark       benchmark fastmot
+    stream          benchmark max streams
+    pipeline        restart the pipeline
+    up              restart the pipeline
+    help            show this help message
+    stop            stop all docker containers
+    down            stop all docker containers
+    parallel        start the parallel pipeline by starting fastmot
+    plain           normal pipeline without parallel
+    offline         start the pipeline in offline mode with stored mp4 files
+    latency         benchmark latency
+    unflag          unflag conflicts that are invalid
+    sprinkles       initiate automated moviepy
     sprinklesgui    initiate gui
-    eat    eat sprinklesgui yamls 
+    eat             eat sprinklesgui yamls 
+    video-stager    convert gridsmart/miovsision file names to pipeline compatible names
     """
 
     if len(sys.argv) < 2 or sys.argv[1] in ['help', 'hello', 'hi']:
@@ -100,7 +102,15 @@ Commands:
         else:
             Console.error("Please provide a filename")
             return
-
+    if args['video-stager']:
+        if len(sys.argv) > 2 and sys.argv[2]:
+            filename = sys.argv[2]
+            if not os.path.isabs(filename):
+                filename = os.path.abspath(filename)
+            video_stager.main(filename)
+        else:
+            Console.error("Please provide a filename")
+            return
 
 if __name__ == "__main__":
     main()
