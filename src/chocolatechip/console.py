@@ -7,8 +7,6 @@ from docopt import docopt
 from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency
 from chocolatechip.unflag import main as unflag
 from chocolatechip.sprinkles import main as sprinkles
-from chocolatechip.sprinkles import gui as sprinkles_gui
-from chocolatechip.unflag import eat
 
 
 def main():
@@ -25,6 +23,7 @@ Usage:
     chip parallel
     chip up
     chip plain
+    chip offline
     chip latency
     chip unflag
     chip sprinkles
@@ -41,6 +40,7 @@ Commands:
     down       stop all docker containers
     parallel   start the parallel pipeline by starting fastmot
     plain      normal pipeline without parallel
+    offline    start the pipeline in offline mode with stored mp4 files
     latency    benchmark latency
     unflag     unflag conflicts that are invalid
     sprinkles  initiate automated moviepy
@@ -73,6 +73,9 @@ Commands:
     if args['plain']:
         Pipeline.plain()
 
+    if args['offline']:
+        Pipeline.offline()
+
     if args['latency']:
         latency.main()
 
@@ -85,9 +88,11 @@ Commands:
         # print(sprinkles)
 
     if args['sprinklesgui']:
+        from chocolatechip.sprinkles import gui as sprinkles_gui
         sprinkles_gui.main()
 
     if args['eat']:
+        from chocolatechip.unflag import eat
         if len(sys.argv) > 2 and sys.argv[2]:
             filename = sys.argv[2]
             if not os.path.isabs(filename):

@@ -40,11 +40,6 @@ class MySQLConnector:
                         "intersection_id = %s AND p2v = %s " \
                         "AND include_flag=1 AND timestamp BETWEEN %s AND %s;"
                     cursor.execute(query, (params['intersec_id'], params['p2v'], params['start_date'], params['end_date']))
-                elif df_type == "speedcorr":
-                    query = "SELECT * FROM TTCTable WHERE " \
-                        "intersection_id = %s AND include_flag=1 AND timestamp BETWEEN %s AND %s;"
-                    cursor.execute(query, (params['intersec_id'], params['start_date'], params['end_date']))
-
                 elif df_type == "track":
                     query = "SELECT * FROM RealTrackProperties WHERE " \
                         "timestamp BETWEEN %s AND %s AND intersection_id = %s "\
