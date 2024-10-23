@@ -13,6 +13,7 @@ def heatmap_generator(df_type: str,
                       intersec_id: int,
                       p2v: bool = None,
                       conflict_type: str = None,
+                      pedestrian_counting: bool = False,
                       ):
 
     if df_type not in ['track', 'conflict']:
@@ -228,8 +229,10 @@ def heatmap_generator(df_type: str,
     # time.sleep(1000)
 
     if df_type == 'track':
-        # Drop rows where 'class' is 'pedestrian'
-        omega = omega[omega['class'] == 'pedestrian']
+        if pedestrian_counting:
+            omega = omega[omega['class'] == 'pedestrian']
+        else:
+            omega = omega[omega['class'] != 'pedestrian']
     else:
         if p2v:
             if conflict_type == 'left turning':
@@ -289,8 +292,8 @@ def heatmap_generator(df_type: str,
         else:
             name = f'heatmap_{params['intersec_id']}_{df_type}_{"mean" if mean else "sum"}_{conflict_type.replace(" ", "_") if conflict_type else "all"}'
 
-        plt.savefig(f'pedped_{name}.pdf', bbox_inches='tight')
-        plt.savefig(f'pedped_{name}.png', bbox_inches='tight')
+        plt.savefig(f'{name}.pdf', bbox_inches='tight')
+        plt.savefig(f'{name}.png', bbox_inches='tight')
         # Create a line plot
         plt.figure(figsize=(10, 6))
         for day in pivot_table.index:
@@ -306,8 +309,8 @@ def heatmap_generator(df_type: str,
         # Set y-ticks to integer format
         plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: int(x)))
         plt.ylim(0, vmax)
-        plt.savefig(f'pedped_{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
-        plt.savefig(f'pedped_{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight')
+        plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
+        plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight')
 
         return
 
@@ -352,14 +355,16 @@ def heatmap_generator(df_type: str,
 
     print(pivot_table)
 
-    if not p2v:
-        vmax = 60 if df_type == 'conflict' else 150
+    vmax = 60 if df_type == 'conflict' else 150
+
+    if not p2v:        
         cmap = 'YlGnBu'
     else:
-        vmax = 60 if df_type == 'conflict' else 150
         cmap = 'inferno'
 
     if df_type == 'track':
+        if not pedestrian_counting:
+            vmax = 7000
         cmap = 'YlGnBu'
 
     # Create a heatmap
@@ -368,8 +373,11 @@ def heatmap_generator(df_type: str,
             cbar_kws={'format': plt.FuncFormatter(lambda x, pos: f'{int(x)}')})
 
     if df_type == "track":
-        print('number of pedestrians:', len(omega[omega['class'] == 'pedestrian']))
-        title = f'Heatmap of average pedestrian counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}' 
+        if pedestrian_counting:
+            print('number of pedestrians:', len(omega[omega['class'] == 'pedestrian']))
+            title = f'Heatmap of average pedestrian counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}' 
+        else:
+            title = f'Heatmap of average vehicle counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}'
 
     else:
         if p2v:
@@ -379,7 +387,7 @@ def heatmap_generator(df_type: str,
     plt.title(title, fontsize=14)
     plt.xlabel('Hour of Day')
     plt.ylabel('Day of Week')
-    name = f'heatmap_{params['intersec_id']}_{df_type}_{"mean" if mean else "sum"}_{"p2v" if p2v else "v2v"}_{conflict_type.replace(" ", "_") if conflict_type else "all"}'
+    name = f'heatmap_{params['intersec_id']}_{"peds" if pedestrian_counting else "vehs"}_{df_type}_{"mean" if mean else "sum"}_{"p2v" if p2v else "v2v"}_{conflict_type.replace(" ", "_") if conflict_type else "all"}'
     plt.savefig(f'{name}.pdf', bbox_inches='tight')
     plt.savefig(f'{name}.png', bbox_inches='tight')
     # Create a line plot with hours on the x-axis, average track count on the y-axis, and different colors for each day of the week
@@ -408,28 +416,29 @@ def heatmap_generator(df_type: str,
 ## first, p2v
 ##
 # conflict or track
-# df_type = "track"
-df_type = "conflict"
+df_type = "track"
+# df_type = "conflict"
 
 # mean or sum?
 mean = True
 
 p2v = True
 
-inter = 3248
+inter = 3334
 
-conflict_types = ['left turning', 'right turning', 'thru', 'all']
-for conflict_type in conflict_types:
-    heatmap_generator(df_type, mean, inter, p2v, conflict_type)
+# conflict_types = ['left turning', 'right turning', 'thru', 'all']
+# for conflict_type in conflict_types:
+    # heatmap_generator(df_type, mean, inter, p2v, conflict_type)
 
 ##
 ## v2v
 ##
 
-p2v = False
+# p2v = False
+
+# heatmap_generator(df_type, mean, inter, p2v)
+
+
 df_type = "track"
-
-heatmap_generator(df_type, mean, inter, p2v)
-
-p2v = True
-heatmap_generator(df_type, mean, inter, p2v)
+heatmap_generator(df_type, mean, inter, p2v, pedestrian_counting=True)
+heatmap_generator(df_type, mean, inter, p2v, pedestrian_counting=False)
