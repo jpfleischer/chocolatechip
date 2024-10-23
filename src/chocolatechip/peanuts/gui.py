@@ -204,7 +204,7 @@ def preprocess_data(df):
 
     return df
 
-if __name__ == "__main__":
+def main():
     intersection_ids = [3287, 3248, 3032, 3265, 3334]
 
     df_list = []

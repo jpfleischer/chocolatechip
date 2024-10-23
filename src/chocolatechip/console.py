@@ -46,6 +46,7 @@ Commands:
     sprinkles  initiate automated moviepy
     sprinklesgui    initiate gui
     eat    eat sprinklesgui yamls 
+    peanuts   calendar gui to visualize data gathered by day
     """
 
     if len(sys.argv) < 2 or sys.argv[1] in ['help', 'hello', 'hi']:
@@ -95,6 +96,9 @@ Commands:
         else:
             Console.error("Please provide a filename")
             return
+    if args['peanuts']:
+        from chocolatechip.peanuts.gui import main as peanuts
+        peanuts()
 
 
 if __name__ == "__main__":
