@@ -104,7 +104,12 @@ Commands:
     if args['peanuts']:
         from chocolatechip.peanuts.gui import main as peanuts
         peanuts()
-
+    if args['clip']:
+        if sys.argc < 4:
+            print("Usage: clip <input_veh.csv> <input_ped.csv>")
+            return
+        from chocolatechip.clip import main as clip
+        clip(sys.argv[2], sys.argv[3])
 
 if __name__ == "__main__":
     main()
