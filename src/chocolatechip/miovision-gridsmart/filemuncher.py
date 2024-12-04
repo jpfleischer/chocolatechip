@@ -90,6 +90,7 @@ def process_file(source_path, destination_dir, dryrun):
                 # time.sleep(2)
                 shutil.copy2(source_path, destination_path)
                 # Update the modification time to the current time
+                # this is crucial or else nifi wont see it.
                 os.utime(destination_path, None)
             except Exception as e:
                 print(f"Failed to copy '{source_path}' to '{destination_path}': {e}")
@@ -120,6 +121,7 @@ def main():
     # Check if source is a directory
     elif os.path.isdir(source):
         # Process each file in the source directory
+        # only one dir deep which is great
         for filename in os.listdir(source):
             source_path = os.path.join(source, filename)
             if os.path.isfile(source_path):
