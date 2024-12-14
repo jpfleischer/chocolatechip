@@ -47,3 +47,38 @@ rclone copy onedrive:/BrowardVideos .
  5814  rclone check onedrive:/BrowardVideos . --include "*11-02*"
  5815  rclone delete onedrive:/BrowardVideos --include "*11-02*"
 ```
+
+In the scenario that processing was stopped prematurely and messages purged
+
+```bash
+ sudo /home/jpf/ENV3/bin/python /home/jpf/chocolatechip/src/chocolatechip/miovision-gridsmart/filemuncher.py /mnt/huge/DavieStirling/hpg_resized /mnt/hdd/data/video_pipeline/tracking --check_whats_missing
+```
+
+
+Davie Road only.
+
+```bash
+# im on hipergator
+python -m venv ~/ENV3
+source ~/ENV3/bin/activate
+pip install yaspin
+# the slurm gpu thing did not work but doesnt matter
+#srun --pty --qos=ranka --partition=gpu --gres=gpu:a100:1 --mem=32G --time=0:30:00 bash
+module load ffmpeg
+cd /blue/ranka/j.fleischer/DavieStirling
+python padder.py --source original/ --destination resized/
+
+
+#test
+# singularity run --nv ffmpeg.sif \
+#     -hwaccel cuda \
+#     -i ../original/long-miovision-hex-string-Aug_05_2024_15_00_15_15.mp4 \
+#     -vf "scale_cuda=960:960, pad=1280:960:160:0:black" \
+#     -c:v h264_nvenc \
+#     -preset fast \
+#     output.mp4
+```
+
+```bash
+ sudo /home/jpf/ENV3/bin/python /home/jpf/chocolatechip/ephemeral.py
+```
