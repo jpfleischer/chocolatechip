@@ -4,6 +4,7 @@ import sys
 import shutil
 from datetime import datetime
 
+
 def get_new_filename(ofile):
     # Mapping of intersection identifiers to camera IDs
     intersec_dict = {
@@ -97,6 +98,55 @@ def process_file(source_path, destination_dir, dryrun):
     else:
         print(f"Warning: Unable to process file '{filename}'. Skipping.")
 
+def check_what_is_missing(source, destination_dir):
+    # Iterate over source files
+    if os.path.isfile(source):
+        files_to_check = [source]
+    elif os.path.isdir(source):
+        files_to_check = [os.path.join(source, f) for f in os.listdir(source) if os.path.isfile(os.path.join(source, f))]
+    else:
+        print(f"Error: Source '{source}' does not exist.")
+        sys.exit(1)
+
+    # Hardcoded pipeline dir
+    video_pipeline_dir = "/mnt/hdd/data/video_pipeline"
+
+    total_vids_copied = 0
+    for src_file in files_to_check:
+        if not src_file.lower().endswith('.mp4'):
+            continue
+
+        new_filename = get_new_filename(src_file)
+        if new_filename is None:
+            # If we cannot determine the new filename, it's effectively missing as we can't match it
+            print(f"Cannot determine new filename for '{os.path.basename(src_file)}'.")
+            continue
+
+        dest_file_path = os.path.join(destination_dir, new_filename)
+        if not os.path.exists(dest_file_path):
+            # The new file does not exist in the destination, print original filename
+            print(os.path.basename(src_file))
+
+            # Now check in the hardcoded video_pipeline_dir
+            video_pipeline_path = os.path.join(video_pipeline_dir, new_filename)
+            # if os.path.exists(video_pipeline_path):
+            #     # If it already exists in video_pipeline, just utime it
+            #     print(f"Found in video_pipeline, updating timestamp: {video_pipeline_path}")
+            #     os.utime(video_pipeline_path, None)
+            # else:
+            # If it does not exist, copy it there and then utime
+            try:
+                print(f"Copying to video_pipeline: {video_pipeline_path}")
+                shutil.copy2(src_file, video_pipeline_path)
+                os.utime(video_pipeline_path, None)
+                total_vids_copied += 1
+            except Exception as e:
+                print(f"Failed to copy '{src_file}' to '{video_pipeline_path}': {e}")
+
+
+    print('\ndone')
+    print(f"Total videos copied: {total_vids_copied}")
+
 def main():
     import argparse
 
@@ -104,31 +154,34 @@ def main():
     parser.add_argument('source', help='Source file or directory containing video files.')
     parser.add_argument('destination_dir', help='Destination directory for processed files.')
     parser.add_argument('--dryrun', action='store_true', help="Print the file operations without performing them.")
+    parser.add_argument('--check_whats_missing', action='store_true', help="Check which converted filenames are missing in the destination.")
     args = parser.parse_args()
 
     source = args.source
     destination_dir = args.destination_dir
     dryrun = args.dryrun
+    check_missing = args.check_whats_missing
 
     # Validate destination directory
-    if not dryrun and not os.path.isdir(destination_dir):
+    if not os.path.isdir(destination_dir):
         print(f"Error: Destination directory '{destination_dir}' does not exist.")
         sys.exit(1)
 
-    # Check if source is a file
-    if os.path.isfile(source):
-        process_file(source, destination_dir, dryrun)
-    # Check if source is a directory
-    elif os.path.isdir(source):
-        # Process each file in the source directory
-        # only one dir deep which is great
-        for filename in os.listdir(source):
-            source_path = os.path.join(source, filename)
-            if os.path.isfile(source_path):
-                process_file(source_path, destination_dir, dryrun)
+    if check_missing:
+        # Just check what's missing and handle copying/utiming as specified
+        check_what_is_missing(source, destination_dir)
     else:
-        print(f"Error: Source '{source}' does not exist.")
-        sys.exit(1)
+        # Normal mode: process files (copy/rename)
+        if os.path.isfile(source):
+            process_file(source, destination_dir, dryrun)
+        elif os.path.isdir(source):
+            for filename in os.listdir(source):
+                source_path = os.path.join(source, filename)
+                if os.path.isfile(source_path):
+                    process_file(source_path, destination_dir, dryrun)
+        else:
+            print(f"Error: Source '{source}' does not exist.")
+            sys.exit(1)
 
 if __name__ == '__main__':
     main()
