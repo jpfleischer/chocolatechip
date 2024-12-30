@@ -28,6 +28,10 @@ sudo /home/jpf/ENV3/bin/python filemuncher.py /mnt/huge/66After /mnt/hdd/data/vi
 
 
 ```bash
+# set up
+rclone config
+# choose onedrive personal or business
+
 # bring over
 rclone copy onedrive:/BrowardVideos .
 
