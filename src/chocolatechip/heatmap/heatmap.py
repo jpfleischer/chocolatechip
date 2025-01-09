@@ -28,9 +28,6 @@ def heatmap_generator(df_type: str,
     if p2v is False and conflict_type in ['left turning', 'right turning', 'thru']:
         raise ValueError('try commenting the three lines and uncommenting the one, or make p2v true')
 
-    place_to_be = path_expand("~/choc_chip_figures")
-    print(place_to_be)
-
     #5&6 is for through
     #3&4 is for left turn
     #1&2 are for right turn
@@ -79,28 +76,42 @@ def heatmap_generator(df_type: str,
     
     elif params['intersec_id'] == 3248:
         times = [
-         '2024-02-26 07:00:00.000', '2024-02-26 19:00:00.000',
-         '2024-02-27 07:00:00.000', '2024-02-27 19:00:00.000',
-         '2024-02-28 07:00:00.000', '2024-02-28 19:00:00.000',
-         '2024-03-06 07:00:00.000', '2024-03-06 19:00:00.000',
-         '2024-03-07 07:00:00.000', '2024-03-07 19:00:00.000',
-         '2024-03-08 07:00:00.000', '2024-03-08 19:00:00.000',
-         '2024-03-09 07:00:00.000', '2024-03-09 19:00:00.000',
-         '2024-03-10 07:00:00.000', '2024-03-10 19:00:00.000',
-         '2024-03-12 07:00:00.000', '2024-03-12 19:00:00.000',
-         '2024-03-13 07:00:00.000', '2024-03-13 19:00:00.000',
-         '2024-03-14 07:00:00.000', '2024-03-14 19:00:00.000',
-         '2024-03-16 07:00:00.000', '2024-03-16 19:00:00.000',
-         '2024-03-20 07:00:00.000', '2024-03-20 19:00:00.000',
-         '2024-03-21 07:00:00.000', '2024-03-21 19:00:00.000',
-         '2024-03-22 07:00:00.000', '2024-03-22 19:00:00.000',
-         '2024-03-23 07:00:00.000', '2024-03-23 19:00:00.000',
-         '2024-03-24 07:00:00.000', '2024-03-24 19:00:00.000',
-         '2024-03-25 07:00:00.000', '2024-03-25 19:00:00.000',
-         '2024-03-26 07:00:00.000', '2024-03-26 19:00:00.000',
-         '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
-         '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
-         '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000'
+        #  '2024-02-26 07:00:00.000', '2024-02-26 19:00:00.000',
+        #  '2024-02-27 07:00:00.000', '2024-02-27 19:00:00.000',
+        #  '2024-02-28 07:00:00.000', '2024-02-28 19:00:00.000',
+        #  '2024-03-06 07:00:00.000', '2024-03-06 19:00:00.000',
+        #  '2024-03-07 07:00:00.000', '2024-03-07 19:00:00.000',
+        #  '2024-03-08 07:00:00.000', '2024-03-08 19:00:00.000',
+        #  '2024-03-09 07:00:00.000', '2024-03-09 19:00:00.000',
+        #  '2024-03-10 07:00:00.000', '2024-03-10 19:00:00.000',
+        #  '2024-03-12 07:00:00.000', '2024-03-12 19:00:00.000',
+        #  '2024-03-13 07:00:00.000', '2024-03-13 19:00:00.000',
+        #  '2024-03-14 07:00:00.000', '2024-03-14 19:00:00.000',
+        #  '2024-03-16 07:00:00.000', '2024-03-16 19:00:00.000',
+        #  '2024-03-20 07:00:00.000', '2024-03-20 19:00:00.000',
+        #  '2024-03-21 07:00:00.000', '2024-03-21 19:00:00.000',
+        #  '2024-03-22 07:00:00.000', '2024-03-22 19:00:00.000',
+        #  '2024-03-23 07:00:00.000', '2024-03-23 19:00:00.000',
+        #  '2024-03-24 07:00:00.000', '2024-03-24 19:00:00.000',
+        #  '2024-03-25 07:00:00.000', '2024-03-25 19:00:00.000',
+        #  '2024-03-26 07:00:00.000', '2024-03-26 19:00:00.000',
+        #  '2024-04-06 07:00:00.000', '2024-04-06 19:00:00.000',
+        #  '2024-04-07 07:00:00.000', '2024-04-07 19:00:00.000',
+        #  '2024-04-08 07:00:00.000', '2024-04-08 19:00:00.000'
+        ####
+        '2024-10-29 07:00:00.000', '2024-10-29 19:00:00.000', 
+        '2024-10-30 07:00:00.000', '2024-10-30 19:00:00.000', 
+        '2024-10-31 07:00:00.000', '2024-10-31 19:00:00.000', 
+        '2024-11-01 07:00:00.000', '2024-11-01 19:00:00.000', 
+        '2024-11-02 07:00:00.000', '2024-11-02 19:00:00.000', 
+        '2024-11-03 07:00:00.000', '2024-11-03 19:00:00.000', 
+        '2024-11-06 07:00:00.000', '2024-11-06 19:00:00.000',
+        '2024-11-07 07:00:00.000', '2024-11-07 19:00:00.000', 
+        '2024-11-08 07:00:00.000', '2024-11-08 19:00:00.000', 
+        '2024-11-09 07:00:00.000', '2024-11-09 19:00:00.000', 
+        '2024-11-10 07:00:00.000', '2024-11-10 19:00:00.000', 
+        '2024-11-11 07:00:00.000', '2024-11-11 19:00:00.000', 
+        '2024-11-12 07:00:00.000', '2024-11-12 19:00:00.000',
          ]
         
     elif params['intersec_id'] == 3032:
@@ -355,7 +366,7 @@ def heatmap_generator(df_type: str,
 
     print(pivot_table)
 
-    vmax = 60 if df_type == 'conflict' else 150
+    vmax = 35 if df_type == 'conflict' else 150
 
     if not p2v:        
         cmap = 'YlGnBu'
@@ -368,7 +379,7 @@ def heatmap_generator(df_type: str,
         cmap = 'YlGnBu'
 
     # Create a heatmap
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(8, 5))
     sns.heatmap(pivot_table, cmap=cmap, annot=True, fmt='.0f', vmin=0, vmax=vmax, annot_kws={"size": 10},
             cbar_kws={'format': plt.FuncFormatter(lambda x, pos: f'{int(x)}')})
 
@@ -377,6 +388,7 @@ def heatmap_generator(df_type: str,
             print('number of pedestrians:', len(omega[omega['class'] == 'pedestrian']))
             title = f'Heatmap of average pedestrian counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}' 
         else:
+            print('number of vehicles:', len(omega[omega['class'] != 'pedestrian']))
             title = f'Heatmap of average vehicle counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}'
 
     else:
@@ -384,30 +396,45 @@ def heatmap_generator(df_type: str,
             title = f'Heatmap of average pedestrian-vehicle conflicts by day of week and hour\n{intersec_lookup[params["intersec_id"]]} - {conflict_type.title()} Vehicles' 
         else:
             title = f'Heatmap of average vehicle-vehicle conflicts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}' 
-    plt.title(title, fontsize=14)
-    plt.xlabel('Hour of Day')
-    plt.ylabel('Day of Week')
+    # plt.title(title, fontsize=14)
+    plt.xlabel('Hour of Day', fontsize=12)
+    plt.ylabel('Day of Week', fontsize=12)
     name = f'heatmap_{params['intersec_id']}_{"peds" if pedestrian_counting else "vehs"}_{df_type}_{"mean" if mean else "sum"}_{"p2v" if p2v else "v2v"}_{conflict_type.replace(" ", "_") if conflict_type else "all"}'
     plt.savefig(f'{name}.pdf', bbox_inches='tight')
-    plt.savefig(f'{name}.png', bbox_inches='tight')
+    plt.savefig(f'{name}.png', bbox_inches='tight', dpi=600)
     # Create a line plot with hours on the x-axis, average track count on the y-axis, and different colors for each day of the week
-    plt.figure(figsize=(9, 6))
+    plt.figure(figsize=(6, 5))
     for day in pivot_table.index:
         plt.plot(pivot_table.columns, pivot_table.loc[day], label=f'{day}')
+
+    if df_type == 'conflict':
+        vmax = 40
+    else:
+        if pedestrian_counting:
+            vmax = 120
+        else:
+            vmax = 7000
+    # vmax = 25 if df_type == 'conflict' else 150
+    
         
-    plt.title(title.replace('Heatmap', 'Lineplot'))
-    plt.xlabel('Hour of Day')
-    plt.ylabel('Average Track Count')
+    # plt.title(title.replace('Heatmap', 'Lineplot'), fontsize=14)
+    plt.xlabel('Hour of Day', fontsize=12)
+    if df_type == 'track':
+        plt.ylabel('Average Track Count', fontsize=12)
+    else:
+        plt.ylabel('Average Conflict Count', fontsize=12)
+    # plt.ylabel('Average Track Count', fontsize=12)
     plt.legend(title='Day of Week', loc='upper left', bbox_to_anchor=(1, 1))
     # Set x-ticks to all hours
-    plt.xticks(pivot_table.columns)
+    plt.xticks(pivot_table.columns, fontsize=10)
+    plt.yticks(fontsize=10)
     # Set y-ticks to integer format
     plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: int(x)))
 
     plt.ylim(0, vmax)
     plt.grid(True)
     plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
-    plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight')
+    plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight', dpi=600)
     
 
 
@@ -416,15 +443,14 @@ def heatmap_generator(df_type: str,
 ## first, p2v
 ##
 # conflict or track
-df_type = "track"
-# df_type = "conflict"
+# df_type = "track"
+df_type = "conflict"
 
 # mean or sum?
 mean = True
 
-p2v = True
+p2v = False
 
-inter = 3334
 
 # conflict_types = ['left turning', 'right turning', 'thru', 'all']
 # for conflict_type in conflict_types:
@@ -439,6 +465,9 @@ inter = 3334
 # heatmap_generator(df_type, mean, inter, p2v)
 
 
-df_type = "track"
-heatmap_generator(df_type, mean, inter, p2v, pedestrian_counting=True)
-heatmap_generator(df_type, mean, inter, p2v, pedestrian_counting=False)
+# df_type = "track"
+
+# for inter in [3032, 3265, 3334, 3248, 3287]:
+for inter in [3287, ]:
+    heatmap_generator(df_type, mean, inter, True, 'all', pedestrian_counting=True)
+    heatmap_generator(df_type, mean, inter, False, 'all', pedestrian_counting=False)
