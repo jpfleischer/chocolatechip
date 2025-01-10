@@ -47,4 +47,6 @@ def main(filename: str):
 
     pyperclip.copy(str(legitimates).replace('[', '').replace(']', ''))
                 
+    print('Now run unflag after cding to original made videos, not sprinkles')
+                
     
