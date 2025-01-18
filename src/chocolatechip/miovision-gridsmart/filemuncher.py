@@ -3,6 +3,7 @@ import os
 import sys
 import shutil
 from datetime import datetime
+import re
 
 
 def get_new_filename(ofile):
@@ -23,6 +24,9 @@ def get_new_filename(ofile):
     }
 
     filename = os.path.basename(ofile)
+    if re.match(r"^\d+_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d{3}\.mp4$", filename):
+        return filename  # Filename is already correct
+
     filename_no_ext, ext = os.path.splitext(filename)
     parts = filename_no_ext.split('_')
 
