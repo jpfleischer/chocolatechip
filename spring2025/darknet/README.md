@@ -59,3 +59,20 @@ CMake Error in src-lib/CMakeLists.txt:
 
 This user seems to have the same issue but was not able to resolve it:
 https://github.com/hank-ai/darknet/issues/71
+
+
+
+
+# 2/4
+
+once darknet successfully compiles itself when you run that
+.sh script, i want to see darknet version at the end of that
+script.
+
+once you verify that darknet works,
+
+https://www.ccoderun.ca/programming/darknet_faq/
+
+http://maltserver.cise.ufl.edu:6875/books/betos-book/page/legogears-confusion-matrix-yolov4-w-darknet
+
+run the lego training in a docker shell (exec /bin/bash)
