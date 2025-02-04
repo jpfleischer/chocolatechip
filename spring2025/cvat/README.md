@@ -16,3 +16,26 @@ https://gitlab.com/maltgroup/custom-model
 https://docs.cvat.ai/docs/api_sdk/cli/
 
 
+
+# 2/4
+
+feedback:
+
+great! we have cvatcli running.
+now, we have to adapt
+https://gitlab.com/maltgroup/custom-model/-/blob/main/main.py?ref_type=heads
+
+dont use cloudmesh-shell,
+
+just use subprocess.run, 
+to run cvat-cli dump.
+
+once you do that, youre gonna have all the images and
+annotations in your docker container.
+
+so, i suggest that you change your makefile
+to do a volume mount.
+-v ${CURDIR}:/app (or whatever your folder is in your docker container)
+so you can see the images on the host. not just inside the docker container.
+
+
