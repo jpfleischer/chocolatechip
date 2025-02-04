@@ -17,16 +17,16 @@ RUN apt-get update && \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Clone CVAT repository and install its dependencies
-RUN git clone https://github.com/cvat-ai/cvat /app/cvat
-WORKDIR /app/cvat
-RUN pip install -e .
+# # Clone CVAT repository and install its dependencies
+# RUN git clone https://github.com/cvat-ai/cvat /app/cvat
+# WORKDIR /app/cvat
+# RUN pip install -e .
 
-# Set environment variables for CVAT connection (you'll modify this later if needed)
-ENV CVAT_HOST=http://maltserver.cise.ufl.edu:8080/
+# # Set environment variables for CVAT connection (you'll modify this later if needed)
+# ENV CVAT_HOST=http://maltserver.cise.ufl.edu:8080/
 
 # Expose necessary ports
 EXPOSE 8080
 
 # Command to start the application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8080"]
+CMD ["cvat-cli", "--version"]
