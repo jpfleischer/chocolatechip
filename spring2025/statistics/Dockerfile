@@ -1,22 +1,33 @@
-FROM python
+FROM python:3.12
 
 WORKDIR /usr/src
 
 RUN apt update 
-RUN apt install git -y
-RUN git clone https://github.com/jpfleischer/chocolatechip.git
+
+COPY statistics.py ./
+
+#cloning and such (irrelevant with volume mount)
+#   RUN apt install git -y
+#   RUN git clone https://github.com/jpfleischer/chocolatechip.git
+
+#need to move to makefile
+#   RUN cd chocolatechip; pip install -r requirements.txt
+#   RUN cd chocolatechip; pip install -e . --config-settings editable_mode=strict
+
 RUN pip install --upgrade pip
 
-RUN cd chocolatechip; pip install -r requirements.txt
+#fixing some errors
+RUN apt install nano
+RUN pip install poetry
 
+#docker secrets
 RUN --mount=type=secret,id=ACCESS_TOKEN \
-    cat /run/secrets/ACCESS_TOKEN > /usr/src/access_token.txt &&
+    cat /run/secrets/ACCESS_TOKEN > /usr/src/use_this.env 
     
-COPY statistics.py ./
-#CMD ["python3","statistics.py"]
 CMD ls
+#CMD ["python3","statistics.py"]   
 
-#remember to cd into this directory
-#run with this :    docker build -t statsdocker .
-#                   docker build --secret id=ACCESS_TOKEN,src=$PWD/super_secret.env -t statsdocker .
+# Once you make:
+#   pip install -r requirements.txt
+#   pip install -e . --config-settings editable_mode=strict in chocolatechip
 
