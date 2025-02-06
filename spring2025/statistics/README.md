@@ -25,6 +25,8 @@ environment variables with the credentials,
 you have to change the sourcce code to not use
 login.yaml.
 
+docker secrets in the run command [FINISHED]
+
 in order to make these source code changes to begin with,
 you have to make a new branch on chocolatechip.
 

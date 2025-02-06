@@ -3,6 +3,7 @@ FROM python:3.12
 WORKDIR /usr/src
 
 RUN apt update 
+RUN pip install --upgrade pip
 
 COPY statistics.py ./
 
@@ -13,8 +14,6 @@ COPY statistics.py ./
 #need to move to makefile
 #   RUN cd chocolatechip; pip install -r requirements.txt
 #   RUN cd chocolatechip; pip install -e . --config-settings editable_mode=strict
-
-RUN pip install --upgrade pip
 
 #fixing some errors
 RUN apt install nano
@@ -27,7 +26,4 @@ RUN --mount=type=secret,id=ACCESS_TOKEN \
 CMD ls
 #CMD ["python3","statistics.py"]   
 
-# Once you make:
-#   pip install -r requirements.txt
-#   pip install -e . --config-settings editable_mode=strict in chocolatechip
 
