@@ -29,4 +29,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 8080
 
 # Command to start the application
-CMD ["cvat-cli", "--version"]
+# CMD ["cvat-cli", "--version"]
+CMD ["python", "/app/run_dump.py"]
+
