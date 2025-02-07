@@ -13,6 +13,8 @@ RUN apt-get install -y git
 RUN apt-get install -y libopencv-dev 
 RUN apt-get install -y wget
 RUN apt-get install -y file
+RUN apt-get install -y python3-pip
+RUN pip install cloudmesh-common
 
 # Manually install latest CMake
 WORKDIR /tmp
@@ -30,4 +32,4 @@ WORKDIR /workspace
 # COPY LegoGears_v2 /workspace/LegoGears_v2
 # COPY LegoGears.cfg /workspace/LegoGears_v2/LegoGears.cfg
 # CMD ["/bin/bash", "-c", "exec /bin/bash"]
-CMD ["/bin/bash", "-c", "chmod +x script.sh && ./script.sh && darknet version && exec /bin/bash"]
+CMD ["/bin/bash", "-c", "chmod +x script.sh && ./script.sh && darknet version && python3 benchmark.py && exec /bin/bash"]

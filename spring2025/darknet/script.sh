@@ -20,3 +20,4 @@ fi
 
 # Install the package
 dpkg -i /workspace/darknet/build/darknet-*.deb
+
