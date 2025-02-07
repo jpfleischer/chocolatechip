@@ -7,14 +7,12 @@ ENV PATH="/usr/local/cuda/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 
 # Install dependencies including NVIDIA tools
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    git \
-    libopencv-dev \
-    wget \
-    nvidia-cuda-toolkit \
-    nvidia-cuda-toolkit-gcc \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get install -y build-essential
+RUN apt-get install -y git
+RUN apt-get install -y libopencv-dev 
+RUN apt-get install -y wget
+RUN apt-get install -y file
 
 # Manually install latest CMake
 WORKDIR /tmp
@@ -29,18 +27,8 @@ WORKDIR /workspace
 RUN git clone https://github.com/hank-ai/darknet.git
 
 # Build Darknet
-WORKDIR /workspace/darknet
-RUN mkdir build && cd build && \
-    cmake .. && \
-    make -j$(nproc) package
-
-# Install the built package
-RUN dpkg -i build/darknet-*.deb
-
-# Verify installation
-RUN darknet version
-
-WORKDIR /workspace
-
-CMD ["/bin/bash"]
-
+COPY script.sh /workspace
+# set up lego gears training
+COPY train_setup.py /workspace
+COPY LegoGears_v2 /workspace
+CMD ["/bin/bash", "-c", "./script.sh && darknet version && exec /bin/bash"]
