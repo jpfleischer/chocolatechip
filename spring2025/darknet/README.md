@@ -55,4 +55,24 @@ Build & Enter Docker Container:
 `make`  
 
 Command to train in docker container:  
-`darknet detector -map -dont_show -verbose -nocolor train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log`
+```bash
+darknet detector -map -dont_show -verbose -nocolor train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log
+```
+
+
+# 2/7
+
+I have added the LegoGears.cfg file to darknet/ folder.
+This is the one that we have pre-edited.
+
+Then in the Dockerfile, we do 
+`COPY LegoGears.cfg /workspace/LegoGears_v2/LegoGears.cfg`
+
+So for the LegoGears.data, do the same thing,
+changing /home/stephane to /workspace
+
+((ideally it should all be a volume mount! which is done in the
+makefile by going to docker run and doing --v ${CURDIR}:/workspace))
+
+does darknet improve training, when it uses multiple GPUs? is it possible
+to use multiple GPUs?

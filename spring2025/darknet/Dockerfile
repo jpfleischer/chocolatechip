@@ -30,5 +30,7 @@ RUN git clone https://github.com/hank-ai/darknet.git
 COPY script.sh /workspace
 # set up lego gears training
 COPY train_setup.py /workspace
-COPY LegoGears_v2 /workspace
+COPY LegoGears_v2 /workspace/LegoGears_v2
+COPY LegoGears.cfg /workspace/LegoGears_v2/LegoGears.cfg
+
 CMD ["/bin/bash", "-c", "./script.sh && darknet version && exec /bin/bash"]
