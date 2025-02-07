@@ -39,3 +39,30 @@ to do a volume mount.
 so you can see the images on the host. not just inside the docker container.
 
 
+
+# 2/7
+
+we have successfully identified the correct version number for cvat-cli
+and we have identified the correct command for dumping with images.
+
+moving forward, you are going to be augmenting your python script
+to iterate through multiple tasks. not just 67 for example.
+you have already done the volume mount, which is great, so that we dont
+have to copy from the container to the host.
+
+the python script, ideally, should parametrize the name, they cannot all
+be named output.zip. maybe {task_number}.zip?
+
+should be taking care of the unzipping automatically.
+
+i want you to research, how can we have docker containers wait on each other?
+because the workflow is:
+
+1. run the cvat container, get all the images anad annotations, then exit.
+2. once darknet sees that cvat is finished, its gonna want those image files. is there
+a way for docker containers to "steal" each others files? or how to communicate those
+files without introducing redundancy? we dont want a bunch of copies of all of those pictures,
+its gonna add up to several hundred MB.
+
+but first fix up the python script so it runs successfully.
+
