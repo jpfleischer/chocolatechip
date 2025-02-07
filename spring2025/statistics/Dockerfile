@@ -21,7 +21,7 @@ RUN pip install poetry
 
 #docker secrets
 RUN --mount=type=secret,id=ACCESS_TOKEN \
-    cat /run/secrets/ACCESS_TOKEN > /usr/src/use_this.env 
+    cat /run/secrets/ACCESS_TOKEN > /usr/src/chocolatechip/src/chocolatechip/use_this.env 
     
 CMD ls
 #CMD ["python3","statistics.py"]   
