@@ -1,7 +1,9 @@
 CONTAINER_NAME:=statsdocker
 
 secrets:
-	docker build -t ${CONTAINER_NAME} .  
+	@docker build \
+		--secret id=ACCESS_TOKEN,src=default.env \
+		-t ${CONTAINER_NAME} .  
 
 normal:
 	docker build -t ${CONTAINER_NAME} .
@@ -9,20 +11,20 @@ normal:
 run:
 	@echo "Running the docker container..."
 	@docker run \
-		-e API_KEY="testkey" -v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip\
-		-v $(CURDIR)/test.env:/run/secrets/ACCESS_TOKEN:ro \
+		-e API_KEY="testkey" -v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
+		-v $(CURDIR)/test.env:/usr/src/use_this.env:ro \
 		${CONTAINER_NAME}
 
 runt:
 	@echo "Opening in terminal..."
 	@docker run -it \
     	-v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
-    	-v $(CURDIR)/test.env:/run/secrets/ACCESS_TOKEN:ro \
+		-v $(CURDIR)/test.env:/usr/src/chocolatechip/src/chocolatechip/use_this.env:ro \
     	${CONTAINER_NAME} /bin/bash
 	
 # Once you make:
 #   pip install -r requirements.txt
-#   pip install -e . --config-settings editable_mode=strict in chocolatechip
+#   pip install -e . --config-settings editable_mode=strict
 
 stop:
 	@-docker stop ${CONTAINER_NAME}

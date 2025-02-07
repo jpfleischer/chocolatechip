@@ -13,7 +13,7 @@ class MySQLConnector:
     def __init__(self):
         # look in the same dir as mysqlconnector for config file
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(script_dir, 'login.yaml')
+        config_path = os.path.join(script_dir, 'use_this.env')
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
         self.config = config
