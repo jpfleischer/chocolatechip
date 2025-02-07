@@ -13,55 +13,6 @@ i want you to build darknet in a docker container.
 just build it.
 output `darknet --version`
 
-### Steps:
-Searched Discord and found linux users using docker image made by "sherenensberg"  
-Searched his name and found a medium article they posted  
-https://medium.com/@oschenberk/darknet-yolo-and-docker-02f52a927aba  
-
-Followed docker link to get the image  
-https://hub.docker.com/r/sherensberk/darknet/tags  
-
-ran  
-`sudo docker pull sherensberk/darknet:2204.550.1241-devel`  
-
-Realized that this is an image, not a Dockerfile  
-Tried recreating Dockerfile from https://hub.docker.com/layers/sherensberk/darknet/2204.550.1241-devel/images/sha256-1660b206cbbcb4e1a18d1c0fca22336f9513462c292eff40bd1e64ce8225abb0
-
-This failed in the cuda installation process
-
-Tried prompting ChatGPT to build it just from https://github.com/hank-ai/darknet instead  
-
-Issue:
-The docker image seemingly cannot access the NVIDIA GPU
-
-Potential Fixes:
-
-From: https://github.com/NVIDIA/nvidia-docker/issues/1033
-create /etc/docker/daemon.json with this:
-{
-    "runtimes": {
-        "nvidia": {
-            "path": "/usr/bin/nvidia-container-runtime",
-            "runtimeArgs": []
-        }
-    },
-    "default-runtime": "nvidia"
-}
-Then run sudo systemctl restart docker
-
-
-Trying to set DOCKER_BUILDKIT=0 from
-https://stackoverflow.com/questions/75641614/docker-run-has-access-to-gpu-but-docker-build-doesnt
-
-This is the specific error for future reference:
-CMake Error in src-lib/CMakeLists.txt:  
-     CUDA_ARCHITECTURES is set to "native", but no GPU was detected.  
-
-This user seems to have the same issue but was not able to resolve it:
-https://github.com/hank-ai/darknet/issues/71
-
-
-
 
 # 2/4
 
@@ -75,4 +26,33 @@ https://www.ccoderun.ca/programming/darknet_faq/
 
 http://maltserver.cise.ufl.edu:6875/books/betos-book/page/legogears-confusion-matrix-yolov4-w-darknet
 
-run the lego training in a docker shell (exec /bin/bash)
+run the lego training in a docker shell (exec /bin/bash)  
+### Steps for training Lego Model  
+
+Ran the following code to generate LegoGears_v2:  
+
+```
+wget https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip  
+unzip legogears_2_dataset.zip  
+rm legogears_2_dataset.zip  
+python3 train_setup.py  
+cat << EOF > LegoGears_v2/LegoGears.data  
+classes = 5
+train = /workspace/LegoGears_v2/LegoGears_train.txt
+valid = /workspace/LegoGears_v2/LegoGears_valid.txt
+names = /workspace/LegoGears_v2/LegoGears.names
+backup = /workspace/LegoGears_v2
+EOF
+```
+
+Next, edited LegoGears.cfg and changed the following:
+
+`vim LegoGears_v2/LegoGears.cfg`  
+set batch=64  
+set subdivision=8
+
+Build & Enter Docker Container:  
+`make`  
+
+Command to train in docker container:  
+`darknet detector -map -dont_show -verbose -nocolor train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log`
