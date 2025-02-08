@@ -15,6 +15,7 @@ RUN apt-get install -y wget
 RUN apt-get install -y file
 RUN apt-get install -y python3-pip
 RUN pip install cloudmesh-common
+RUN pip install cloudmesh-gpu
 
 # Manually install latest CMake
 WORKDIR /tmp
