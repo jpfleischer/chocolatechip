@@ -14,7 +14,7 @@ check-dataset:
 	@if [ ! -d $(DATASET_DIR) ]; then \
 		mkdir -p docker; \
 		echo "Dataset folder '$(DATASET_DIR)' not found. Downloading dataset..."; \
-		wget $(DATASET_URL) -O $(DATASET_ZIP); \
+		curl -L $(DATASET_URL) -o $(DATASET_ZIP); \
 		unzip -q $(DATASET_ZIP) -d docker; \
 		rm $(DATASET_ZIP); \
 		rm $(DATASET_DIR)/LegoGears.cfg && rm $(DATASET_DIR)/LegoGears.data; \
