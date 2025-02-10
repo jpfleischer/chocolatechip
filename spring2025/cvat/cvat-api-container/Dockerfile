@@ -30,5 +30,6 @@ EXPOSE 8080
 
 # Command to start the application
 # CMD ["cvat-cli", "--version"]
-CMD ["python", "/app/run_dump.py"]
+# CMD ["python", "/app/run_dump.py"]
 
+CMD ["sleep", "2000"]
