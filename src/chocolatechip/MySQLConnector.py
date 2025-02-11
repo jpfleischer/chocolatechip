@@ -13,9 +13,24 @@ class MySQLConnector:
     def __init__(self):
         # look in the same dir as mysqlconnector for config file
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(script_dir, 'use_this.env')
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
+        config_path = os.path.join(script_dir, str('../../../use_this.env'))
+
+        host = os.getenv("CC_host",None)
+        user = os.getenv("CC_user",None)
+        passwd = os.getenv("CC_passwd",None)
+        db = os.getenv("CC_db",None)
+        testdb = os.getenv("CC_testdb",None)
+        port = os.getenv("CC_port",None)
+        
+        config = {
+            "host":host,
+            "user":user,
+            "passwd":passwd,
+            "db":db,
+            "testdb":testdb,
+            "port":port
+        }
+
         self.config = config
         
 
