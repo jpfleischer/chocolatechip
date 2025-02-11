@@ -19,8 +19,8 @@ RUN apt install nano
 RUN pip install poetry
 
 #docker secrets
-RUN --mount=type=secret,id=ACCESS_TOKEN \
-    cat /run/secrets/ACCESS_TOKEN > /usr/src/use_this.env 
+#RUN --mount=type=secret,id=ACCESS_TOKEN \
+#    cat /run/secrets/ACCESS_TOKEN > /usr/src/use_this.env 
 
     
 CMD ls
