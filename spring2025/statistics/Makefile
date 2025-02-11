@@ -36,3 +36,6 @@ stop:
 
 shell:
 	docker run -it ${CONTAINER_NAME} /bin/bash
+
+
+#test
