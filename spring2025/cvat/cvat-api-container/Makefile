@@ -8,5 +8,5 @@ stop down:
 	-docker stop $(CONTAINER_NAME)
 	-docker rm $(CONTAINER_NAME)
 
-shell:
+shell: hello
 	docker exec -it $(CONTAINER_NAME) /bin/bash
