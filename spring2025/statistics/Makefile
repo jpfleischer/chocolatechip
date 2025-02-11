@@ -2,8 +2,9 @@ CONTAINER_NAME:=statsdocker
 
 secrets:
 	@docker build \
-		--secret id=ACCESS_TOKEN,src=default.env \
 		-t ${CONTAINER_NAME} .  
+
+#		--secret id=ACCESS_TOKEN,src=default.env \
 
 normal:
 	docker build -t ${CONTAINER_NAME} .
@@ -12,7 +13,7 @@ run:
 	@echo "Running the docker container..."
 	@docker run \
 		-e API_KEY="testkey" -v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
-		-v $(CURDIR)/test.env:/usr/src/use_this.env:ro \
+		--env-file test.env \
 		${CONTAINER_NAME}
 
 runt:
