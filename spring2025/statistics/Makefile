@@ -18,14 +18,20 @@ run:
 runt:
 	@echo "Opening in terminal..."
 	@docker run -it \
-    	-v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
-		-v $(CURDIR)/test.env:/usr/src/chocolatechip/src/chocolatechip/use_this.env:ro \
-    	${CONTAINER_NAME} /bin/bash
-	
+		-v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
+		--env-file test.env \
+		${CONTAINER_NAME} /bin/bash -c "cd /usr/src/chocolatechip && \
+		pip install -e . --config-settings editable_mode=strict && \
+		exec /bin/bash"
+
 # Once you make:
+#	cd chocolatechip
 #   pip install -r requirements.txt
 #   pip install -e . --config-settings editable_mode=strict
 
 stop:
 	@-docker stop ${CONTAINER_NAME}
 	docker rm ${CONTAINER_NAME}
+
+shell:
+	docker run -it ${CONTAINER_NAME} /bin/bash
