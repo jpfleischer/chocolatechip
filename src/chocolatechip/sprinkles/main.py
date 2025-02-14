@@ -29,6 +29,12 @@ def process_video(mp4_file, conflict_coords, char_placement, thumbnail_size):
         picture = '21_Map.png'
     elif char_placement in ['31', '32']:
         picture = '33_Map.png'
+    elif char_placement in ['25', '26']:
+        picture = '27_Map.png'
+    elif char_placement in ['34', '35']:
+        picture = '34_Map.png'
+    elif char_placement in ['24']:
+        picture = '24_Map.png'
 
     # Load the map image
     map_img = Image.open(picture)
@@ -79,14 +85,34 @@ def process_video(mp4_file, conflict_coords, char_placement, thumbnail_size):
         w_clip = TextClip("N", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
         e_clip = TextClip("S", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
         text_clips.extend([w_clip, e_clip]) 
+    elif char_placement == "24":
+        nw_clip = TextClip("NW", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        se_clip = TextClip("SE", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([nw_clip, se_clip])
+    elif char_placement == "25":
+        w_clip = TextClip("E", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        e_clip = TextClip("W", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([w_clip, e_clip]) 
+    elif char_placement == "26":
+        w_clip = TextClip("W", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        e_clip = TextClip("E", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([w_clip, e_clip]) 
     elif char_placement == "31":
-        w_clip = TextClip("S", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        w_clip = TextClip("E", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
         e_clip = TextClip("N", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
         text_clips.extend([w_clip, e_clip]) 
     elif char_placement == "32":
         w_clip = TextClip("N", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
         e_clip = TextClip("S", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
         text_clips.extend([w_clip, e_clip]) 
+    elif char_placement == "34":
+        ne_clip = TextClip("NE", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        sw_clip = TextClip("SW", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([ne_clip, sw_clip])
+    elif char_placement == "35":
+        nw_clip = TextClip("NW", fontsize=70, color='white').set_duration(video.duration).set_position(("left", "top"))
+        se_clip = TextClip("SE", fontsize=70, color='white').set_duration(video.duration).set_position(("right", "bottom"))
+        text_clips.extend([nw_clip, se_clip])
     
 
     # Composite the map image, rectangles, and text onto the video
@@ -134,7 +160,7 @@ def main():
         Console.error('i dont see any conflict videos')
         quit(1)
 
-    for picture in ['30_Map.png', '21_Map.png', '33_Map.png']:
+    for picture in ['30_Map.png', '21_Map.png', '33_Map.png', '27_Map.png', '34_Map.png', '24_Map.png']:
         if not os.path.isfile(picture):
             Console.info('Downloading photo')
             url = f'http://maltlab.cise.ufl.edu:30101/api/image/{picture}'
@@ -143,9 +169,9 @@ def main():
                 file.write(response.content)
 
 
-    home_dir_sprinkle = path_expand("~/sprinkle_output")
-    if not os.path.isdir(home_dir_sprinkle):
-        Shell.mkdir(home_dir_sprinkle)
+    # home_dir_sprinkle = path_expand("~/sprinkle_output")
+    # if not os.path.isdir(home_dir_sprinkle):
+    #     Shell.mkdir(home_dir_sprinkle)
 
     mp4_files = [file for file in os.listdir('.') if file.endswith('.mp4')]
 
