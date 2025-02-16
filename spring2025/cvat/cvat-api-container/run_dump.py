@@ -2,6 +2,11 @@ import subprocess
 import zipfile
 import os
 
+host = os.getenv("CVAT_host",None)
+user = os.getenv("CVAT_user",None)
+passwd = os.getenv("CVAT_passwd",None)
+port = os.getenv("CVAT_port",None)
+
 # placeholder tasks for now before deciding which tasks are useful.
 tasks = [44, 43]
 os.makedirs("zips", exist_ok=True)
@@ -13,9 +18,9 @@ for task_number in tasks:
     
     subprocess.run([
         "cvat-cli",
-        "--server-host", "maltserver.cise.ufl.edu",
-        "--auth", "maltvideo:maltvideo",
-        "--server-port", "8080",
+        "--server-host", host,
+        "--auth", f"{user}:{passwd}",
+        "--server-port", port,
         "dump",
         "--format", "YOLO 1.1",
         "--with-images", "True",
