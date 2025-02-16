@@ -2,7 +2,7 @@ CONTAINER_NAME:="my_cvat_api"
 HOST_DIR=$(CURDIR)
 hello: stop
 	docker build -t cvat-api .
-	docker run -d --name=$(CONTAINER_NAME) -v $(HOST_DIR):/app cvat-api
+	docker run -d --name=$(CONTAINER_NAME) --env-file .env -v $(HOST_DIR):/app cvat-api
 
 stop down:
 	-docker stop $(CONTAINER_NAME)
