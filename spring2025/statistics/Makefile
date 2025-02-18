@@ -21,6 +21,7 @@ runt:
 	@docker run -it \
 		-v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
 		--env-file test.env \
+		-e in_docker=true \
 		${CONTAINER_NAME} /bin/bash -c "cd /usr/src/chocolatechip && \
 		pip install -e . --config-settings editable_mode=strict && \
 		exec /bin/bash"
