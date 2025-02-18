@@ -32,9 +32,7 @@ class MySQLConnector:
 
             self.config = config
         else:
-            config_path = os.path.join(script_dir, 'login.yaml')
-            with open(config_path, 'r') as file:
-                config = yaml.safe_load(file)
+            config_path = os.path.join(script_dir, 'login.env')
             self.config = config
 
         

@@ -14,6 +14,7 @@ run:
 	@docker run \
 		-e API_KEY="testkey" -v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
 		--env-file test.env \
+		-e in_docker=true \
 		${CONTAINER_NAME}
 
 runt:
