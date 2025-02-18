@@ -8,17 +8,34 @@ import os
 from datetime import datetime, timedelta
 
 class MySQLConnector:
-
-    
     def __init__(self):
         # look in the same dir as mysqlconnector for config file
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(script_dir, 'login.yaml')
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-        self.config = config
-        
+        is_docker = os.environ.get('in_docker', False)
 
+        if is_docker:
+            host = os.getenv("CC_host",None)
+            user = os.getenv("CC_user",None)
+            passwd = os.getenv("CC_passwd",None)
+            db = os.getenv("CC_db",None)
+            testdb = os.getenv("CC_testdb",None)
+            port = os.getenv("CC_port",None)
+            
+            config = {
+                "host":host,
+                "user":user,
+                "passwd":passwd,
+                "db":db,
+                "testdb":testdb,
+                "port":port
+            }
+
+            self.config = config
+        else:
+            config_path = os.path.join(script_dir, 'login.env')
+            self.config = config
+
+        
     # def handleRequest(self, body, num_cameras, dual_cam_id={}):
     def handleRequest(self, params, df_type: str):
         """
