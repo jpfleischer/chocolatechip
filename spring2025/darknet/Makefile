@@ -1,5 +1,6 @@
 CONTAINER_NAME := my_darknet_container
 DATASET_DIR    := docker/LegoGears_v2
+COLLAB_DIR     := ${CURDIR}/../cvat/cvat-api-container/unzips/
 EXTRAFILES_DIR := LegoGearsFiles
 DATASET_ZIP    := legogears_2_dataset.zip
 DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip
@@ -9,6 +10,10 @@ DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legog
 
 run: check-dataset build
 	@docker run --rm -it --gpus all --name $(CONTAINER_NAME) -v ${CURDIR}/docker:/workspace darknet-container
+
+
+collab: build
+	@docker run --rm -it --gpus all --name $(CONTAINER_NAME) -v ${CURDIR}/../cvat/cvat-api-container/unzips:/workspace darknet-container
 
 check-dataset:
 	@if [ ! -d $(DATASET_DIR) ]; then \
@@ -20,6 +25,21 @@ check-dataset:
 		rm $(DATASET_DIR)/LegoGears.cfg && rm $(DATASET_DIR)/LegoGears.data; \
 		cp $(EXTRAFILES_DIR)/LegoGears.cfg $(DATASET_DIR)/LegoGears.cfg; \
 		cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
+		cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
+        cp $(EXTRAFILES_DIR)/benchmark.py docker/benchmark.py; \
+		cp script.sh docker/script.sh; \
+	fi
+
+check-dataset-collab:
+	@if [ ! -d $(COLLAB_DIR) ]; then \
+		mkdir -p docker; \
+		echo "Dataset folder '$(COLLAB_DIR)' not found. Downloading dataset..."; \
+		curl -L $(DATASET_URL) -o $(DATASET_ZIP); \
+		unzip -q $(DATASET_ZIP) -d docker; \
+		rm $(DATASET_ZIP); \
+		rm $(COLLAB_DIR)/LegoGears.cfg && rm $(COLLAB_DIR)/LegoGears.data; \
+		cp $(EXTRAFILES_DIR)/LegoGears.cfg $(COLLAB_DIR)/LegoGears.cfg; \
+		cp $(EXTRAFILES_DIR)/LegoGears.data $(COLLAB_DIR)/LegoGears.data; \
 		cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
         cp $(EXTRAFILES_DIR)/benchmark.py docker/benchmark.py; \
 		cp script.sh docker/script.sh; \
