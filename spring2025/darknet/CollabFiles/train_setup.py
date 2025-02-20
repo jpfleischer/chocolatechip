@@ -4,7 +4,13 @@ import random
 
 # Set your dataset paths
 workspace_dir = '/workspace/unzips'
-dataset_dirs = [os.path.join(workspace_dir, d, 'obj_train_data', 'images') for d in os.listdir(workspace_dir) if d.endswith('_unzipped')]
+dataset_dirs = []
+for d in os.listdir(workspace_dir):
+    if not d.endswith('_unzipped'): continue
+    if os.path.exists(os.path.join(workspace_dir, d, 'obj_train_data', 'images')):
+        dataset_dirs.append(os.path.join(workspace_dir, d, 'obj_train_data', 'images'))
+    elif os.path.exists(os.path.join(workspace_dir, d, 'obj_train_data')):
+        dataset_dirs.append(os.path.join(workspace_dir, d, 'obj_train_data'))
 
 train_file = '/workspace/unzips/cars_train.txt'
 valid_file = '/workspace/unzips/cars_valid.txt'
