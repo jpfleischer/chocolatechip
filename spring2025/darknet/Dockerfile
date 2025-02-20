@@ -26,11 +26,6 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.27.6/cmake-3.27.6
     rm cmake-3.27.6-linux-x86_64.tar.gz
 
 WORKDIR /workspace
+
 # Build Darknet
-# COPY script.sh /workspace
-# # set up lego gears training
-# COPY train_setup.py /workspace
-# COPY LegoGears_v2 /workspace/LegoGears_v2
-# COPY LegoGears.cfg /workspace/LegoGears_v2/LegoGears.cfg
-# CMD ["/bin/bash", "-c", "exec /bin/bash"]
-CMD ["/bin/bash", "-c", "chmod +x script.sh && ./script.sh && darknet version && python3 benchmark.py && exec /bin/bash"]
+CMD ["/bin/bash", "-c", "chmod +x script.sh && ./script.sh && darknet version && python3 run.py && exec /bin/bash"]
