@@ -1,6 +1,6 @@
 import subprocess
 
-# r = subprocess.call('cd cvat/cvat-api-container && make', shell=True,  text=True)
+r = subprocess.call('cd cvat && make', shell=True,  text=True)
 
 # there should be logic
 # to see if r (the object that is returned by subprocess)

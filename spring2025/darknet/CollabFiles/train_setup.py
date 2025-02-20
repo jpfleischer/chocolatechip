@@ -3,19 +3,17 @@ import os
 import random
 
 # Set your dataset paths
-dataset_dirs = [
-    '/workspace/LegoGears_v2/set_01',
-    '/workspace/LegoGears_v2/set_02_empty',
-    '/workspace/LegoGears_v2/set_03'
-]
-train_file = '/workspace/LegoGears_v2/LegoGears_train.txt'
-valid_file = '/workspace/LegoGears_v2/LegoGears_valid.txt'
+workspace_dir = '/workspace/unzips'
+dataset_dirs = [os.path.join(workspace_dir, d, 'obj_train_data', 'images') for d in os.listdir(workspace_dir) if d.endswith('_unzipped')]
+
+train_file = '/workspace/unzips/cars_train.txt'
+valid_file = '/workspace/unzips/cars_valid.txt'
 
 # Get list of all images from all directories
 images = []
 for dataset_dir in dataset_dirs:
     for f in os.listdir(dataset_dir):
-        if f.endswith('.jpg'):
+        if f.endswith('.PNG'):
             images.append(os.path.join(dataset_dir, f))
 
 # Shuffle the images
