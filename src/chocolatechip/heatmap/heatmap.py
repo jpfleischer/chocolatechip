@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pprint import pprint
 import time
+import io
+import base64
+
 
 def heatmap_generator(df_type: str,
                       mean: bool,
@@ -355,9 +358,10 @@ def heatmap_generator(df_type: str,
         plt.xlabel('Hour of Day')
         plt.ylabel('Date (Weekday)')
 
+        #change here 1
+        #plt.savefig(f'{name}.pdf', bbox_inches='tight')
+        #plt.savefig(f'{name}.png', bbox_inches='tight')
 
-        plt.savefig(f'{name}.pdf', bbox_inches='tight')
-        plt.savefig(f'{name}.png', bbox_inches='tight')
         # Create a line plot
         plt.figure(figsize=(10, 6))
         for day in pivot_table.index:
@@ -373,10 +377,16 @@ def heatmap_generator(df_type: str,
         # Set y-ticks to integer format
         plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: int(x)))
         plt.ylim(0, vmax)
-        plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
-        plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight')
 
-        return
+        #plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
+        #plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight')
+        
+        img_buffer = io.BytesIO()
+        plt.savefig(img_buffer, format='png', bbox_inches='tight')
+        
+        base64_img = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+
+        return base64_img
 
 
     omega['hour'] = omega['timestamp'].dt.hour
@@ -444,6 +454,9 @@ def heatmap_generator(df_type: str,
             print('number of vehicles:', len(omega[omega['class'] != 'pedestrian']))
             title = f'Heatmap of average vehicle counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}'
 
+
+    #change here 2 
+    
     else:
         if p2v:
             title = f'Heatmap of average pedestrian-vehicle conflicts by day of week and hour\n{intersec_lookup[params["intersec_id"]]} - {conflict_type.title()} Vehicles' 
@@ -453,8 +466,10 @@ def heatmap_generator(df_type: str,
     plt.xlabel('Hour of Day', fontsize=12)
     plt.ylabel('Day of Week', fontsize=12)
     # name = f'heatmap_{params['intersec_id']}_{"peds" if pedestrian_counting else "vehs"}_{df_type}_{"mean" if mean else "sum"}_{"p2v" if p2v else "v2v"}_{conflict_type.replace(" ", "_") if conflict_type else "all"}'
-    plt.savefig(f'{name}.pdf', bbox_inches='tight')
-    plt.savefig(f'{name}.png', bbox_inches='tight', dpi=600)
+    
+    #plt.savefig(f'{name}.pdf', bbox_inches='tight')
+    #plt.savefig(f'{name}.png', bbox_inches='tight', dpi=600)
+
     # Create a line plot with hours on the x-axis, average track count on the y-axis, and different colors for each day of the week
     plt.figure(figsize=(6, 5))
     for day in pivot_table.index:
@@ -486,8 +501,14 @@ def heatmap_generator(df_type: str,
 
     plt.ylim(0, vmax)
     plt.grid(True)
-    plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
-    plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight', dpi=600)
+
+    #plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
+    #plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight', dpi=600)
+
+    img_buffer = io.BytesIO()
+    plt.savefig(img_buffer, format='png', bbox_inches='tight')
+        
+    base64_img = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
 
         # === NEW: Optionally return some aggregated data for normalization ===
     if return_agg:
@@ -511,7 +532,7 @@ def heatmap_generator(df_type: str,
 
     # If you do NOT want to return data, just let the function exit
     # after plotting
-    return
+    return base64_img
 
 
 def calculate_conflict_rates(conflict_counts_df, volume_counts_df, volume_type='vehicle'):
@@ -618,9 +639,19 @@ def plot_normalized_conflicts(
     plt.legend()
 
     # Save the plot
-    plt.savefig(output_filename, dpi=300)
-    print(f"Saved normalized plot: {output_filename}")
-    plt.close()
+
+    #change here 3
+
+    #plt.savefig(output_filename, dpi=300)
+    #print(f"Saved normalized plot: {output_filename}")
+    #plt.close()
+
+    img_buffer = io.BytesIO()
+    plt.savefig(img_buffer, format='png', bbox_inches='tight')
+        
+    base64_img = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+    return base64_img
+
 
 
 ##################### main prg #######################
@@ -735,3 +766,7 @@ for inter in [3252, ]:  # or your list of IDs
         plot_title=f"Intersection {inter}: V2V Conflicts per 1k Vehicles",
         output_filename=f"intersection_{inter}_v2v_per_1000_vehicles.png"
     )
+
+#if the heatmap() does not have return_agg = True, then binary image data should be returned
+#to find changes if you ever want to revert, ctrl f and then look up change. 
+#Remove lines relating to base64 and uncomment other lines
