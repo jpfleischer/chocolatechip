@@ -17,7 +17,7 @@ run:
 	@echo "Running the docker container"
 	@echo "****************************************************"
 	@docker run \
-		-e API_KEY="testkey" -v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
+		-e API_KEY="testkey" -v $(CURDIR)/../../../../chocolatechip:/usr/src/chocolatechip \
 		--env-file test.env \
 		-e in_docker=true \
 		${CONTAINER_NAME}
@@ -27,7 +27,7 @@ runt:
 	@echo "Opening docker container in terminal"
 	@echo "****************************************************"
 	@docker run -it \
-		-v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
+		-v $(CURDIR)/../../../../chocolatechip:/usr/src/chocolatechip \
 		--env-file test.env \
 		-e in_docker=true \
 		${CONTAINER_NAME} /bin/bash -c "cd /usr/src/chocolatechip && \
@@ -39,7 +39,7 @@ master: secrets
 	@echo "Running heatmap.py"
 	@echo "****************************************************"
 	@docker run -it \
-		-v $(CURDIR)/../../../chocolatechip:/usr/src/chocolatechip \
+		-v $(CURDIR)/../../../../chocolatechip:/usr/src/chocolatechip \
 		--env-file test.env \
 		-e in_docker=true \
 		${CONTAINER_NAME} /bin/bash -c "cd /usr/src/chocolatechip && \
