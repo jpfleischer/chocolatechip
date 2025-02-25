@@ -15,6 +15,30 @@
 
         <img src="{{ url_for('static', filename='monkeyjpeg.jpg') }}" alt="monkey">
 
+        <!-- <button id="display_heatmap">make heatmap</button>
+
+        <script>
+            document.getElementById("generateHeatmap").addEventListener("click", function() {
+                // Define your parameters
+                let intersec_id = 3287;
+                let df_type = "track";
+                let mean = true;  // Boolean value
+
+                // Make an AJAX request to generate the heatmap
+                fetch(`/heatmap?intersec_id=${intersec_id}&df_type=${df_type}&mean=${mean}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.image) {
+                            // Set the base64 image to the img tag
+                            document.getElementById("heatmapImage").src = "data:image/png;base64," + data.image;
+                        } else {
+                            alert("Error generating heatmap: " + data.error);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+        </script> -->
+
         
         <script src="" async defer></script>
     </body>
