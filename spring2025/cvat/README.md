@@ -1,3 +1,25 @@
+# use
+
+you need the .env file that looks like 
+
+```
+CVAT_host=fillmeout
+CVAT_port=fillmeout
+CVAT_user=fillmeout
+CVAT_passwd=fillmeout
+```
+
+then say `make`
+
+# copy_annotations.py
+
+right now the path is hardcoded but
+
+sudo /home/jpf/ENV3/bin/python copy_annotations.py
+
+# other things
+
+
 create a docker container that
 installs cvat-api
 
