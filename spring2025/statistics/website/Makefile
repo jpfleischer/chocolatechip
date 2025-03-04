@@ -10,9 +10,15 @@ build:
 runt:
 	@docker run -it --rm -p 8000:8000 \
 	-v $(CURDIR):/usr/src/app \
+	--env-file test.env \
 	${CONTAINER_NAME} /bin/bash -c \
 	"cd app && gunicorn -w 4 -b 0.0.0.0:8000 server:app"
 
+runtest:
+	@docker run -it --rm -p 8000:8000 \
+	-v $(CURDIR):/usr/src/app \
+	--env-file test.env \
+	${CONTAINER_NAME} /bin/bash
 
 run:
 	@docker run -it --rm -p 8000:8000 \
