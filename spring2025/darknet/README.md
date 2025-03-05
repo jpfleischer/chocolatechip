@@ -40,19 +40,6 @@ Ran the following code to train LegoGears_v2:
 make
 ```
 
-Next, edited LegoGears.cfg and changed the following:
-
-`vim LegoGears_v2/LegoGears.cfg`  
-set batch=64  
-set subdivision=8
-
-Build & Enter Docker Container:  
-`make`  
-
-Command to train in docker container:  
-```bash
-darknet detector -map -dont_show -verbose -nocolor train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log
-```
 
 
 # 2/7
