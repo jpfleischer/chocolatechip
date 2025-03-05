@@ -28,6 +28,7 @@ Usage:
     chip unflag
     chip sprinkles
     chip sprinklesgui
+    chip cvatzip
     chip eat <filename>
 
 Commands:
@@ -45,6 +46,7 @@ Commands:
     unflag     unflag conflicts that are invalid
     sprinkles  initiate automated moviepy
     sprinklesgui    initiate gui
+    cvatzip    while standing in darknet folder, zip annotations for cvat
     eat    eat sprinklesgui yamls 
     """
 
@@ -89,6 +91,10 @@ Commands:
     if args['sprinklesgui']:
         from chocolatechip.sprinkles import gui as sprinkles_gui
         sprinkles_gui.main()
+
+    if args['cvatzip']:
+        from chocolatechip.cvat import cvatzip
+        cvatzip.main()
 
     if args['eat']:
         from chocolatechip.unflag import eat
