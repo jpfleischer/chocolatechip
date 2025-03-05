@@ -15,7 +15,7 @@ then say `make`
 
 right now the path is hardcoded but
 
-sudo /home/jpf/ENV3/bin/python copy_annotations.py
+sudo python3 copy_annotations.py
 
 # other things
 

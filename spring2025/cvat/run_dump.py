@@ -8,7 +8,15 @@ passwd = os.getenv("CVAT_passwd",None)
 port = os.getenv("CVAT_port",None)
 
 # placeholder tasks for now before deciding which tasks are useful.
-tasks = [5, 6, 7, 8, 10, 11, 12, 13, 14, 66, 67, 68, 69, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33, 56, 57, 58, 60, 61, 64, 34, 37,38,39,40,41,42,43,44,46]
+tasks = [
+    # 5, 
+    7, 
+    # 8, 
+    68, 66, 60,  56, 12, 21, 25, 29,
+    76, 
+    81,
+    84, 85, 86, 87
+    ]
 os.makedirs("zips", exist_ok=True)
 os.makedirs("unzips", exist_ok=True)
 
@@ -24,6 +32,7 @@ for task_number in tasks:
         "--server-host", host,
         "--auth", f"{user}:{passwd}",
         "--server-port", port,
+        "--insecure",
         "dump",
         "--format", "YOLO 1.1",
         "--with-images", "True",
