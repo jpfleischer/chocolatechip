@@ -1,10 +1,10 @@
-import numpy as np
 import pandas as pd
 import pymysql
 import json
-import yaml
+
 import os
 
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 class MySQLConnector:
@@ -32,7 +32,35 @@ class MySQLConnector:
 
             self.config = config
         else:
+
             config_path = os.path.join(script_dir, 'login.env')
+            # if this does not exist, error out.
+            if not os.path.exists(config_path):
+                raise FileNotFoundError(f"""
+\nCould not find {config_path}.
+Please make an env with the following creds:
+host=your_host
+user=your_user
+passwd=your_passwd
+db=your_db
+testdb=your_testdb
+port=your_port
+
+This should be placed next to the MySQLConnector.py file.
+                                        """)
+            
+            load_dotenv(config_path)
+            
+            config = {
+                "host": os.getenv("host"),
+                "user": os.getenv("user"),
+                "passwd": os.getenv("passwd"),
+                "db": os.getenv("db"),
+                "testdb": os.getenv("testdb"),
+                "port": os.getenv("port")
+            }
+
+            
             self.config = config
 
         
