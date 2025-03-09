@@ -15,7 +15,8 @@ tasks = [
     68, 66, 60,  56, 12, 21, 25, 29,
     76, 
     81,
-    84, 85, 86, 87
+    84, 85, 86, 87, 89, 100, 101, 103
+    97, 98, 99, 102, # empties
     ]
 os.makedirs("zips", exist_ok=True)
 os.makedirs("unzips", exist_ok=True)
