@@ -1,12 +1,10 @@
 import os
 import sys
 from cloudmesh.common.console import Console
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.util import readfile, writefile, path_expand
 from docopt import docopt
-from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency
-from chocolatechip.unflag import main as unflag
-from chocolatechip.sprinkles import main as sprinkles
+# from chocolatechip import Benchmark, Pipeline, Stream, fastmotstarter, latency
+# from chocolatechip.unflag import main as unflag
+# from chocolatechip.sprinkles import main as sprinkles
 
 
 def main():
@@ -30,6 +28,7 @@ Usage:
     chip sprinklesgui
     chip cvatzip
     chip eat <filename>
+    chip extract <filename> <timestamp> [<frames>]
 
 Commands:
     benchmark  benchmark fastmot
@@ -48,6 +47,7 @@ Commands:
     sprinklesgui    initiate gui
     cvatzip    while standing in darknet folder, zip annotations for cvat
     eat    eat sprinklesgui yamls 
+    extract        extract frames from a video file (requires: filename, timestamp, [frames])
     """
 
     if len(sys.argv) < 2 or sys.argv[1] in ['help', 'hello', 'hi']:
@@ -57,34 +57,43 @@ Commands:
     args = docopt(doc, version='1.0')
 
     if args['benchmark']:
+        from chocolatechip import Benchmark
         Benchmark.main()
 
     if args['stream']:
+        from chocolatechip import Stream
         Stream.main()
 
     if args['pipeline'] or args['up']:
+        from chocolatechip import Pipeline
         Pipeline.main()
 
     if args['stop'] or args['down']:
+        from chocolatechip import Pipeline
         Pipeline.stop_everything()
 
     if args['parallel']:
+        from chocolatechip import fastmotstarter
         fastmotstarter.main()
 
     if args['plain']:
+        from chocolatechip import Pipeline
         Pipeline.plain()
 
     if args['offline']:
+        from chocolatechip import Pipeline
         Pipeline.offline()
 
     if args['latency']:
+        from chocolatechip import latency
         latency.main()
 
     if args['unflag']:
+        from chocolatechip.unflag import main as unflag
         unflag.main()
 
     if args['sprinkles']:
-        
+        from chocolatechip.sprinkles import main as sprinkles
         sprinkles.main()
         # print(sprinkles)
 
@@ -94,7 +103,7 @@ Commands:
 
     if args['cvatzip']:
         from chocolatechip.cvat import cvatzip
-        cvatzip.main()
+        cvatzip.cvatzip()
 
     if args['eat']:
         from chocolatechip.unflag import eat
@@ -106,6 +115,10 @@ Commands:
         else:
             Console.error("Please provide a filename")
             return
+        
+    if args['extract']:
+        from chocolatechip.cvat import extract
+        extract.main()
 
 
 if __name__ == "__main__":

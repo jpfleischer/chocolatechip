@@ -30,7 +30,7 @@ def is_image_file(filename):
     _, ext = os.path.splitext(filename)
     return ext in IMAGE_EXTENSIONS
 
-def main():
+def cvatzip():
     cwd = os.getcwd()
 
     # Find image files in the current directory
@@ -88,4 +88,4 @@ def main():
                 print(name)
 
 if __name__ == "__main__":
-    main()
+    cvatzip()
