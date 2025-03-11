@@ -58,3 +58,7 @@ makefile by going to docker run and doing --v ${CURDIR}:/workspace))
 
 does darknet improve training, when it uses multiple GPUs? is it possible
 to use multiple GPUs?
+
+
+Use this command to validate model
+darknet_03_display_videos detector demo annotations.data annotations.cfg annotations_best.weights -ext_output ~/07_2024-10-01_07-10-04.361.mp4
