@@ -14,8 +14,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install pip dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install cvat-cli==2.12.1
 
 # # Clone CVAT repository and install its dependencies
 # RUN git clone https://github.com/cvat-ai/cvat /app/cvat
