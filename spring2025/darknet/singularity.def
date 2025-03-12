@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
+
+%environment
+    export DEBIAN_FRONTEND=noninteractive
+    export PATH="/usr/local/cuda/bin:${PATH}"
+    export LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
+
+%post
+    # Update package list and install dependencies
+    apt-get update && apt-get install -y build-essential git libopencv-dev file cmake python3-pip
+
+    # Install Python packages
+    pip install --break-system-packages cloudmesh-common
+    pip install --break-system-packages cloudmesh-gpu
+
+    # Create the working directory
+    mkdir -p /workspace
+
+%runscript
+    # Change to working directory and execute commands
+    cd /workspace
+    chmod +x script.sh && ./script.sh && darknet version && python3 run.py && exec /bin/bash
