@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/usr/local/cuda/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 
-# Install dependencies including NVIDIA tools
+# Install dependencies
 RUN apt-get update
 RUN apt-get install -y build-essential git libopencv-dev file cmake python3-pip 
 RUN pip install --break-system-packages cloudmesh-common
