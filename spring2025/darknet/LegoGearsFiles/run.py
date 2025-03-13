@@ -42,10 +42,18 @@ if __name__ == "__main__":
         "Python Version": sysinfo["python.version"],
     }
 
-    # Write to CSV
-    with open("benchmark.csv", mode="w", newline="") as file:
+    # Create a unique filename using username, GPU name, CPU name, and current date/time.
+    username = getpass.getuser()
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Replace spaces with underscores to make a safe filename
+    gpu_name_safe = gpu_name.replace(" ", "_")
+    cpu_name_safe = sysinfo["cpu"].replace(" ", "_")
+    filename = f"benchmark_{username}_{gpu_name_safe}_{cpu_name_safe}_{now}.csv"
+
+    # Write to CSV with the unique filename
+    with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=data.keys())
         writer.writeheader()
         writer.writerow(data)
 
-    print("Benchmark results saved to benchmark.csv")
+    print(f"Benchmark results saved to {filename}")
