@@ -57,6 +57,7 @@ stop:
 	@-docker rm $(CONTAINER_NAME)
 
 
+
 # Build the apptainer image using the definition file
 $(SIF_NAME): apptainer.def
 	apptainer build --force $(SIF_NAME) apptainer.def
@@ -67,6 +68,11 @@ apptainer-build: $(SIF_NAME)
 $(DARKNET_WORKSPACE):
 	mkdir -p $(DARKNET_WORKSPACE)
 
+delete:
+	rm -rf ./docker
+	rm -rf ./darknet_workspace
+	-rm darknet_train.out darknet_train.err
+
 # Run the apptainer container with a bind mount for a writable workspace
 arun: check-dataset apptainer-build $(DARKNET_WORKSPACE)
 	apptainer run --nv --fakeroot -B $(DARKNET_WORKSPACE):/host_workspace -B ${CURDIR}/docker:/workspace $(SIF_NAME)
@@ -74,7 +80,6 @@ arun: check-dataset apptainer-build $(DARKNET_WORKSPACE)
 ashell:
 	apptainer shell $(SIF_NAME)
 
-slurm: check-dataset apptainer-build $(DARKNET_WORKSPACE)
-	-rm darknet_train.out darknet_train.err
+slurm: delete check-dataset apptainer-build $(DARKNET_WORKSPACE)
 	sbatch hipergator.slurm
-	watch cat darknet_train.out
+	watch tail darknet_train.out
