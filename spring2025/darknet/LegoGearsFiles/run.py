@@ -4,12 +4,15 @@ from cloudmesh.gpu.gpu import Gpu
 import subprocess
 import train_setup # links training data to its labels
 import os
+import getpass
 
 if __name__ == "__main__":
     # Get GPU name
     gpu = Gpu()
     vram = ' '.join(card['fb_memory_usage']['total'] for card in gpu._smi)
     gpu_name = ' '.join(card["product_name"] for card in gpu.system())
+
+    # gpu.watch(logfile=f'{gpu_name}.log')
 
     # check environment variable APPTAINER
     if "APPTAINER_ENVIRONMENT" in os.environ:
