@@ -5,9 +5,15 @@ DATASET_DIR    := docker/LegoGears_v2
 EXTRAFILES_DIR := LegoGearsFiles
 DATASET_ZIP    := legogears_2_dataset.zip
 DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip
+# Name for the apptainer image file
+SIF_NAME       := my_darknet_container.sif
+# Local directory for a writable workspace
+DARKNET_WORKSPACE := $(CURDIR)/darknet_workspace
+# Bind mount option stored in a variable
+BIND_OPT := -B $(DARKNET_WORKSPACE):/host_workspace:rw
 
-.PHONY: check-dataset build run stop
 
+.PHONY: check-dataset build run stop apptainer-build arun ashell
 
 run: check-dataset build
 	@docker run --rm -it --gpus all --name $(CONTAINER_NAME) -v ${CURDIR}/docker:/workspace darknet-container
@@ -49,3 +55,26 @@ shell:
 stop:
 	@-docker stop $(CONTAINER_NAME)
 	@-docker rm $(CONTAINER_NAME)
+
+
+# Build the apptainer image using the definition file
+$(SIF_NAME): apptainer.def
+	apptainer build --force $(SIF_NAME) apptainer.def
+
+apptainer-build: $(SIF_NAME)
+
+# Create the workspace directory if it doesn't exist
+$(DARKNET_WORKSPACE):
+	mkdir -p $(DARKNET_WORKSPACE)
+
+# Run the apptainer container with a bind mount for a writable workspace
+arun: check-dataset apptainer-build $(DARKNET_WORKSPACE)
+	apptainer run --nv --fakeroot -B $(DARKNET_WORKSPACE):/host_workspace -B ${CURDIR}/docker:/workspace $(SIF_NAME)
+
+ashell:
+	apptainer shell $(SIF_NAME)
+
+slurm: check-dataset apptainer-build $(DARKNET_WORKSPACE)
+	-rm darknet_train.out darknet_train.err
+	sbatch hipergator.slurm
+	watch cat darknet_train.out
