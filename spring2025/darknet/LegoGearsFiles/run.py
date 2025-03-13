@@ -5,6 +5,7 @@ import subprocess
 import train_setup # links training data to its labels
 import os
 import getpass
+from datetime import datetime
 
 if __name__ == "__main__":
     # Get GPU name
