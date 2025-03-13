@@ -14,5 +14,5 @@
 # Run the container using Apptainer. Here we bind mount both your workspace (for training output)
 # and your dataset directory so that your training data (in docker/) is available inside the container.
 make arun-command
-mv *.out /outputs
+# mv *.out ./LegoGearsFiles/outputs
 
