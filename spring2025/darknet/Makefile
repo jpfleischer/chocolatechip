@@ -88,4 +88,7 @@ ashell:
 
 slurm: delete check-dataset apptainer-build $(DARKNET_WORKSPACE)
 	sbatch -J "darknet_train_$(date +%Y%m%d_%H%M%S)" hipergator.slurm
-	watch tail *darknet_train*.out
+	watch squeue -u $(USER)
+
+slurm-shell:
+	srun -p gpu --gpus=geforce:1 --time=01:00:00 --mem=50gb --pty apptainer shell $(SIF_NAME)
