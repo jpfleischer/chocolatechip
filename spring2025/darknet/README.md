@@ -1,3 +1,11 @@
+# Apptainer
+
+```bash
+make arun # to run with cpu
+make slurm # to run with gpu
+```
+
+
 find stephanes discord server
 
 https://github.com/hank-ai/darknet
