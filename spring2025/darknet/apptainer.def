@@ -24,7 +24,7 @@ From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
 
 %runscript
     /usr/local/bin/script.sh
-    cd /host_workspace/darknet/build/src-cli
-    ls
-    ./darknet version && python3 /workspace/run.py && exec /bin/bash
+    ls /host_workspace/darknet/build/src-cli
+    cd /host_workspace
+    /host_workspace/darknet/build/src-cli/darknet version && python3 -u /workspace/run.py && exec /bin/bash
 
