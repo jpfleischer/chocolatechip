@@ -3,6 +3,7 @@ from cloudmesh.common.StopWatch import StopWatch
 from cloudmesh.gpu.gpu import Gpu
 import subprocess
 import train_setup # links training data to its labels
+import os
 
 if __name__ == "__main__":
     # Get GPU name
@@ -10,9 +11,18 @@ if __name__ == "__main__":
     vram = ' '.join(card['fb_memory_usage']['total'] for card in gpu._smi)
     gpu_name = ' '.join(card["product_name"] for card in gpu.system())
 
+    # check environment variable APPTAINER
+    if "APPTAINER_ENVIRONMENT" in os.environ:
+        print("Running in Apptainer environment")
+        darknetloc = '/host_workspace/darknet/build/src-cli/darknet'
+        # Set up any necessary environment variables or configurations here
+    else:
+        print("Running non-apptainer")
+        darknetloc = 'darknet'
+
     # Run benchmark
     StopWatch.start("benchmark")
-    subprocess.call("darknet detector -map -dont_show -verbose -nocolor train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log", shell=True)
+    subprocess.call(f"{darknetloc} detector -map -dont_show -verbose -nocolor train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log", shell=True)
     StopWatch.stop("benchmark")
     benchmark_result = StopWatch.get_benchmark()
 
