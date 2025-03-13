@@ -1,6 +1,8 @@
 # Apptainer
 
 ```bash
+git clone git@github.com:jpfleischer/chocolatechip.git
+cd chocolatechip/spring2025/darknet
 make arun # to run with cpu
 make slurm # to run with gpu
 ```
