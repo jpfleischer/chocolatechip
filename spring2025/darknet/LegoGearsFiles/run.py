@@ -6,6 +6,8 @@ import subprocess
 import train_setup  # links training data to its labels
 import os
 import getpass
+import glob
+import shutil
 
 if __name__ == "__main__":
     # Step 1: Compute username and current timestamp
@@ -84,3 +86,8 @@ if __name__ == "__main__":
         writer.writerow(data)
 
     print(f"Benchmark results saved to {filename}")
+
+    
+    # Move all files matching "*weights" from /workspace/LegoGears_v2/ to /outputs
+    for file in glob.glob("/workspace/LegoGears_v2/*weights"):
+        shutil.move(file, output_dir)
