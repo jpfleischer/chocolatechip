@@ -79,7 +79,7 @@ if __name__ == "__main__":
     }
 
     # Step 7: Create a unique CSV filename in the current (output) directory
-    filename = f"benchmark_{username}_{gpu_name_safe}_{cpu_name_safe}_{now}.csv"
+    filename = f"benchmark__{username}__{gpu_name_safe}__{cpu_name_safe}__{now}.csv"
     with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=data.keys())
         writer.writeheader()
