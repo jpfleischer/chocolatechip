@@ -83,12 +83,22 @@ arun-command:
 		-B ${CURDIR}/LegoGearsFiles/outputs:/outputs \
 		$(SIF_NAME)
 
+arun-cars-command:
+	apptainer run --nv --fakeroot \
+		-B $(DARKNET_WORKSPACE):/host_workspace \
+		-B ${CURDIR}/CollabFiles:/workspace \
+		$(SIF_NAME)
+
 ashell:
 	apptainer shell $(SIF_NAME)
 
 slurm: delete check-dataset apptainer-build $(DARKNET_WORKSPACE)
-	sbatch -J "darknet_train_$(date +%Y%m%d_%H%M%S)" hipergator.slurm
+	sbatch -J "lego_train_$(date +%Y%m%d_%H%M%S)" hipergator.slurm
 	watch squeue -u $(USER)
 
 slurm-shell:
 	srun -p gpu --gpus=geforce:1 --time=01:00:00 --mem=50gb --pty apptainer shell $(SIF_NAME)
+
+
+cars-slurm: delete check-dataset apptainer-build $(DARKNET_WORKSPACE)
+	sbatch -J "darknet_cars_train_$(date +%Y%m%d_%H%M%S)" CollabFiles/cars.slurm
