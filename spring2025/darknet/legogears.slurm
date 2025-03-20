@@ -13,6 +13,16 @@
 
 # Run the container using Apptainer. Here we bind mount both your workspace (for training output)
 # and your dataset directory so that your training data (in docker/) is available inside the container.
-make arun-command
-# mv *.out ./LegoGearsFiles/outputs
 
+
+apptainer exec --nv \
+    my_darknet_container.sif cms gpu watch --gpu=$(echo $CUDA_VISIBLE_DEVICES | tr -d '\n\r') --delay=1 --dense --logfile=mylogfile.log &
+# sleep 25
+
+make arun-command
+
+pkill -SIGINT -f "cms gpu watch"
+
+# Move the mylogfile.log to the most recently created directory in LegoGearsFiles/outputs/
+target=$(ls -td LegoGearsFiles/outputs/*/ | head -1)
+mv mylogfile.log "$target"
