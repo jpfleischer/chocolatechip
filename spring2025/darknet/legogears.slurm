@@ -23,6 +23,8 @@ make arun-command
 
 pkill -SIGINT -f "cms gpu watch"
 
+sleep 5
+
 # Move the mylogfile.log to the most recently created directory in LegoGearsFiles/outputs/
 target=$(ls -td LegoGearsFiles/outputs/*/ | head -1)
 mv mylogfile.log "$target"
