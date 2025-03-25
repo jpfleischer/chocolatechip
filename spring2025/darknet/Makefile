@@ -12,6 +12,13 @@ DARKNET_WORKSPACE := $(CURDIR)/darknet_workspace
 # Bind mount option stored in a variable
 BIND_OPT := -B $(DARKNET_WORKSPACE):/host_workspace:rw
 
+# check if we are in UVA, if so, then module load apptainer
+MODULE_LOAD_APPTAINER = if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
+		echo WOWVIRGINIA; \
+		. /etc/profile.d/modules.sh; \
+		module load apptainer; \
+	fi;
+
 
 .PHONY: check-dataset build run stop apptainer-build arun ashell
 
@@ -60,7 +67,7 @@ stop:
 
 # Build the apptainer image using the definition file
 $(SIF_NAME): apptainer.def
-	apptainer build --force $(SIF_NAME) apptainer.def
+	@$(MODULE_LOAD_APPTAINER) apptainer build --force -f $(SIF_NAME) apptainer.def
 
 apptainer-build: $(SIF_NAME)
 
@@ -77,30 +84,39 @@ delete:
 arun: check-dataset apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
 arun-command:
-	apptainer run --nv --fakeroot \
+	@$(MODULE_LOAD_APPTAINER) apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/docker:/workspace \
 		-B ${CURDIR}/LegoGearsFiles/outputs:/outputs \
 		$(SIF_NAME)
 
 arun-cms-gpu:
-	apptainer exec --nv --fakeroot \
+	@$(MODULE_LOAD_APPTAINER) apptainer exec --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/docker:/workspace \
 		-B ${CURDIR}/LegoGearsFiles/outputs:/outputs \
 		$(SIF_NAME) cms gpu watch --gpu=0 --delay=1 --dense > gpu0new.log 2>&1 &
 
 arun-cars-command:
-	apptainer run --nv --fakeroot \
+	@$(MODULE_LOAD_APPTAINER) apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/CollabFiles:/workspace \
 		$(SIF_NAME)
 
 ashell:
-	apptainer shell $(SIF_NAME)
+	@$(MODULE_LOAD_APPTAINER) apptainer shell $(SIF_NAME)
 
-slurm: delete check-dataset apptainer-build $(DARKNET_WORKSPACE)
-	sbatch -J "lego_train_$(date +%Y%m%d_%H%M%S)" legogears.slurm
+
+lego-setup: apptainer-build $(DARKNET_WORKSPACE)
+
+slurm: delete check-dataset
+	@if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
+	    ACCOUNT="--account=bi_dsc_community"; \
+	else \
+	    ACCOUNT=""; \
+	fi; \
+	echo "Submitting job with account option: $$ACCOUNT"; \
+	sbatch -J "lego_train_$$(date +%Y%m%d_%H%M%S)" $$ACCOUNT legogears.slurm
 	watch squeue -u $(USER)
 
 slurm-shell:

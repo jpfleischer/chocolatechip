@@ -15,6 +15,8 @@
 # and your dataset directory so that your training data (in docker/) is available inside the container.
 
 
+make lego-setup
+
 apptainer exec --nv \
     my_darknet_container.sif cms gpu watch --gpu=$(echo $CUDA_VISIBLE_DEVICES | tr -d '\n\r') --delay=1 --dense --logfile=mylogfile.log &
 # sleep 25
