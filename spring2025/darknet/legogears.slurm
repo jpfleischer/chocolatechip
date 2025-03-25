@@ -17,8 +17,7 @@
 
 make lego-setup
 
-apptainer exec --nv \
-    my_darknet_container.sif cms gpu watch --gpu=$(echo $CUDA_VISIBLE_DEVICES | tr -d '\n\r') --delay=1 --dense --logfile=mylogfile.log &
+make arun-cms-gpu
 # sleep 25
 
 make arun-command
