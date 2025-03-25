@@ -91,11 +91,9 @@ arun-command:
 		$(SIF_NAME)
 
 arun-cms-gpu:
-	@$(MODULE_LOAD_APPTAINER) apptainer exec --nv --fakeroot \
-		-B $(DARKNET_WORKSPACE):/host_workspace \
-		-B ${CURDIR}/docker:/workspace \
-		-B ${CURDIR}/LegoGearsFiles/outputs:/outputs \
-		$(SIF_NAME) cms gpu watch --gpu=0 --delay=1 --dense > gpu0new.log 2>&1 &
+	@echo "CUDA_VISIBLE_DEVICES is $$CUDA_VISIBLE_DEVICES"
+	$(MODULE_LOAD_APPTAINER) apptainer exec --nv \
+    	$(SIF_NAME) cms gpu watch --gpu=`echo $$CUDA_VISIBLE_DEVICES | tr -d '\n\r'` --delay=1 --dense --logfile=mylogfile.log &
 
 arun-cars-command:
 	@$(MODULE_LOAD_APPTAINER) apptainer run --nv --fakeroot \
@@ -120,6 +118,7 @@ slurm: delete check-dataset
 	watch squeue -u $(USER)
 
 slurm-shell:
+	# srun -p gpu --gpus=v100:1 --account=bi_dsc_community --time=00:40:00 --mem=50gb --pty apptainer shell --nv $(SIF_NAME)
 	srun -p gpu --gpus=geforce:1 --time=01:00:00 --mem=50gb --pty apptainer shell --nv $(SIF_NAME)
 
 
