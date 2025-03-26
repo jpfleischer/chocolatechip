@@ -1,11 +1,19 @@
 # Apptainer
 
 ```bash
+# please ensure your ssh key is set up with GitHub.
+# if not, do ssh-keygen and then once done do cat ~/.ssh/id_rsa.pub
+# and take that key and put it into your github settings new SSH key.
 git clone git@github.com:jpfleischer/chocolatechip.git
 cd chocolatechip/spring2025/darknet
-make arun # to run with cpu
-make slurm # to run with gpu
-module load apptainer # if make: apptainer: command not found
+
+make slurm # to run with gpu on HPC with slurm
+
+make # to run with docker, may require:
+# sudo usermod -aG docker $(whoami)
+# then log back in.
+
+make arun # to run with cpu, this is a bad idea
 ```
 
 
