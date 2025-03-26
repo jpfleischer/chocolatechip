@@ -22,9 +22,17 @@ MODULE_LOAD_APPTAINER = if echo "$$(dig -x $$(dig +short myip.opendns.com @resol
 
 .PHONY: check-dataset build run stop apptainer-build arun ashell
 
-run: check-dataset build
-	@docker run --rm -it --gpus all --name $(CONTAINER_NAME) -v ${CURDIR}/docker:/workspace darknet-container
+run: check-dataset build stop
+	@docker run --rm -d --gpus all --name $(CONTAINER_NAME) \
+	    -v $(DARKNET_WORKSPACE):/host_workspace \
+		-v ${CURDIR}/docker:/workspace \
+		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
+		--env TRUE_USER=$(USER) \
+		darknet-container
+	make logs
 
+logs:
+	@docker logs $(CONTAINER_NAME) --follow
 
 collab: check-dataset-collab build
 	@docker run --rm -it --gpus all --name $(CONTAINER_NAME) -v $(COLLAB_DIR):/workspace darknet-container
