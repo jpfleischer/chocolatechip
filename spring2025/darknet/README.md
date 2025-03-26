@@ -7,7 +7,6 @@ make arun # to run with cpu
 make slurm # to run with gpu
 module load apptainer # if make: apptainer: command not found
 ```
-if you get the error ```sbatch: error: Batch job submission failed: Requested node configuration is not available``` for less powerful gpus (rtx3090,rtx2080,etc), change #SBATCH --mem to a lower value. 
 
 
 find stephanes discord server
