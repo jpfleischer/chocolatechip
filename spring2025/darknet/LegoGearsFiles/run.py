@@ -31,12 +31,6 @@ def get_disk_info():
             raise ValueError("Could not determine device from df output")
         current_device = df_output[1].strip()
 
-        # get name, i.e. /dev/sda2 => sda2
-        current_device = re.sub(r"^/[Aa-zZ]+/", "", current_device)
-
-        # remove trailing numbers, i.e., sda2 => sda
-        current_device = re.sub(r"\d+$", "", current_device)
-
         # List only physical disks (not partitions) with fields: NAME, TYPE, SIZE, MODEL.
         lsblk_cmd = "lsblk -d -o NAME,TYPE,SIZE,MODEL -n"
         lsblk_output = subprocess.check_output(lsblk_cmd, shell=True, text=True).strip()
@@ -52,7 +46,7 @@ def get_disk_info():
 
             # match device name. if theres at least one match, use those.
             # if not, just get everything else 
-            matches = name == current_device
+            matches = name in current_device
 
             dev_type = parts[1]
             size = parts[2]
