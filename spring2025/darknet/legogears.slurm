@@ -2,8 +2,8 @@
 #SBATCH --job-name=lego_train
 #SBATCH --output=%u_%x_%j.out
 #SBATCH --error=%u_%x_%j.out
-#SBATCH --partition=gpu
-#SBATCH --gpus=a100:1          # Change to your desired GPU type and count (e.g., geforce:2)
+#SBATCH --partition=interactive
+#SBATCH --gpus=rtx2080:1          # Change to your desired GPU type and count (e.g., geforce:2)
 #SBATCH --time=05:00:00
 #SBATCH --mem=50gb              # Adjust memory allocation
 
