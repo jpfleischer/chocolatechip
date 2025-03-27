@@ -13,9 +13,16 @@ and take that key and put it into your github settings new SSH key.
 ```bash
 git clone git@github.com:jpfleischer/chocolatechip.git
 cd chocolatechip/spring2025/darknet
+```
+To run with gpu on HPC with slurm
 
-make slurm # to run with gpu on HPC with slurm
+```bash
+make slurm
+```
 
+To run on a GPU with docker
+
+```bash
 make # to run with docker, may require:
 # sudo usermod -aG docker $(whoami)
 # then log back in.
