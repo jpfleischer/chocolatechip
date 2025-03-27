@@ -1,9 +1,16 @@
 # Apptainer
 
+Please ensure your ssh key is set up with GitHub.
+if not, do ssh-keygen and then once done do 
+
 ```bash
-# please ensure your ssh key is set up with GitHub.
-# if not, do ssh-keygen and then once done do cat ~/.ssh/id_rsa.pub
-# and take that key and put it into your github settings new SSH key.
+cat ~/.ssh/id_rsa.pub
+```
+
+and take that key and put it into your github settings new SSH key.
+
+
+```bash
 git clone git@github.com:jpfleischer/chocolatechip.git
 cd chocolatechip/spring2025/darknet
 
