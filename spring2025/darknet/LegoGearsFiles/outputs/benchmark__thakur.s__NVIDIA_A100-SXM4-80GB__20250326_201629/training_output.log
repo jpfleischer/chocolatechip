@@ -1,0 +1,30 @@
+Darknet V4 "Slate" v4.0-33-ga48c04d0
+CUDA runtime version 12080 (v12.8), driver version 12040 (v12.4)
+cuDNN version 12080 (v9.7.0), use of half-size floats is ENABLED
+=> 0: NVIDIA A100-SXM4-80GB [#8.0], 79.1 GiB
+OpenCV v4.6.0, Ubuntu 24.04, docker
+7
+CUDA status error: /host_workspace/darknet/src-lib/dark_cuda.cpp, cuda_set_device(), line #29
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+* Error location: /host_workspace/darknet/src-lib/dark_cuda.cpp, cuda_set_device(), line #29
+* Error message:  current CUDA error: status=101 cudaErrorInvalidDevice: invalid device ordinal
+* Thread #22547775819776: main darknet thread
+* Version "Slate" v4.0-33-ga48c04d0 built on Mar 26 2025 20:14:03
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+backtrace (10 entries):
+1/10: /host_workspace/darknet/build/src-cli/darknet(_Z13log_backtracev+0x38) [0x55f25ae1eb38]
+2/10: /host_workspace/darknet/build/src-cli/darknet(_Z19darknet_fatal_errorPKcS0_iS0_z+0x717) [0x55f25ae20ed7]
+3/10: /host_workspace/darknet/build/src-cli/darknet(+0x6c9c9) [0x55f25ad5e9c9]
+4/10: /host_workspace/darknet/build/src-cli/darknet(_Z25check_cuda_error_extended9cudaErrorPKcS1_i+0xec) [0x55f25ad5eb2c]
+5/10: /host_workspace/darknet/build/src-cli/darknet(_Z14train_detectorPKcS0_S0_PiiiiiffiiiS0_+0x124) [0x55f25add8654]
+6/10: /host_workspace/darknet/build/src-cli/darknet(_Z12run_detectoriPPc+0xafb) [0x55f25ade4aab]
+7/10: /host_workspace/darknet/build/src-cli/darknet(main+0x456) [0x55f25ad2f7d6]
+8/10: /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca) [0x14820f8cc1ca]
+9/10: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b) [0x14820f8cc28b]
+10/10: /host_workspace/darknet/build/src-cli/darknet(_start+0x25) [0x55f25ad323f5]
+
+known threads:  1
+1/1: #22547775819776: main darknet thread
+
