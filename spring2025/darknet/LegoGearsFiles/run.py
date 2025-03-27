@@ -9,6 +9,105 @@ import getpass
 import glob
 import shutil
 
+def get_disk_info():
+    """
+    Returns disk info for the drive containing the current terminal's working directory.
+    Keys:
+      - Disk Names
+      - Disk Capacities
+      - Disk Models
+    """
+    try:
+        # Get current working directory.
+        cwd = os.getcwd()
+
+        # Get the device for the current working directory using 'df'.
+        # The second line of output is the actual device.
+        df_cmd = f"df --output=source {cwd}"
+        df_output = subprocess.check_output(df_cmd, shell=True, text=True).strip().splitlines()
+        if len(df_output) < 2:
+            raise ValueError("Could not determine device from df output")
+        current_device = df_output[1].strip()
+
+        # get name, i.e. /dev/sda2 => sda
+        if current_device.startswith("/dev"):
+            current_device = current_device[5:-1]
+
+        # List only physical disks (not partitions) with fields: NAME, TYPE, SIZE, MODEL.
+        lsblk_cmd = "lsblk -d -o NAME,TYPE,SIZE,MODEL -n"
+        lsblk_output = subprocess.check_output(lsblk_cmd, shell=True, text=True).strip()
+        disk_info_list = []
+
+        for line in lsblk_output.splitlines():
+            parts = line.split()
+
+            if len(parts) < 4:
+                continue
+
+            name = parts[0]
+
+            # match device name, account for multiple just in case
+            if name != current_device:
+                continue
+
+            dev_type = parts[1]
+            size = parts[2]
+            model = " ".join(parts[3:])
+            if dev_type != "disk":
+                continue
+
+            disk_info_list.append({
+                "size": size,
+                "model": model
+            })
+
+        if disk_info_list:
+            disk_capacities = ", ".join(disk["size"] for disk in disk_info_list)
+            disk_models = ", ".join(disk["model"] for disk in disk_info_list)
+        else:
+            disk_capacities = disk_models = "N/A"
+    except Exception as e:
+        disk_capacities = disk_models = "N/A"
+
+    return {
+        "Disk Capacity": disk_capacities,
+        "Disk Model": disk_models,
+    }
+
+
+def run_dd_speed_test(test_file="dd_test_file", block_size="1M", count=1024):
+    """
+    Uses dd to measure disk write and read speeds.
+    Returns a tuple: (write_speed, read_speed)
+    """
+    # Write Speed Test
+    try:
+        write_cmd = f"dd if=/dev/zero of={test_file} bs={block_size} count={count} oflag=direct"
+        write_result = subprocess.run(write_cmd, shell=True, capture_output=True, text=True)
+        write_output = write_result.stderr
+        write_speed = write_output.strip().splitlines()[-1].split(", ")[-1]
+    except Exception as e:
+        print(str(e))
+        write_speed = "N/A"
+
+    # Read Speed Test
+    try:
+        read_cmd = f"dd if={test_file} of=/dev/null bs={block_size} count={count} iflag=direct"
+        read_result = subprocess.run(read_cmd, shell=True, capture_output=True, text=True)
+        read_output = read_result.stderr
+        read_speed = read_output.strip().splitlines()[-1].split(", ")[-1]
+    except Exception as e:
+        read_speed = "N/A"
+
+    # Clean up the test file
+    try:
+        os.remove(test_file)
+    except Exception:
+        pass
+
+    return write_speed, read_speed
+
+
 if __name__ == "__main__":
     username = getpass.getuser()
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -89,6 +188,14 @@ if __name__ == "__main__":
     # Now that we have sysinfo, create a safe CPU name string.
     cpu_name_safe = sysinfo["cpu"].replace(" ", "_")
 
+    # Get disk information using lsblk.
+    print("Getting disk information")
+    disk_info = get_disk_info()
+
+    # Run dd speed tests to get file-based write and read speeds.
+    print("Running disk speed test")
+    dd_write_speed, dd_read_speed = run_dd_speed_test()
+
     data = {
         "Benchmark Time (s)": benchmark["time"],
         "CPU Name": sysinfo["cpu"],
@@ -99,6 +206,10 @@ if __name__ == "__main__":
         "OS": sysinfo["uname.system"],
         "Architecture": sysinfo["uname.machine"],
         "Python Version": sysinfo["python.version"],
+        "Disk Capacity": disk_info["Disk Capacity"],
+        "Disk Model": disk_info["Disk Model"],
+        "Write Speed": dd_write_speed,
+        "Read Speed": dd_read_speed,
     }
 
     # Step 7: Create a unique CSV filename in the current (output) directory
