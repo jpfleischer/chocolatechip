@@ -8,6 +8,7 @@ import os
 import getpass
 import glob
 import shutil
+import re
 
 def get_disk_info():
     """
@@ -26,17 +27,20 @@ def get_disk_info():
         df_cmd = f"df --output=source {cwd}"
         df_output = subprocess.check_output(df_cmd, shell=True, text=True).strip().splitlines()
         if len(df_output) < 2:
+            print(True)
             raise ValueError("Could not determine device from df output")
         current_device = df_output[1].strip()
 
-        # get name, i.e. /dev/sda2 => sda
-        if current_device.startswith("/dev"):
-            current_device = current_device[5:-1]
+        # get name, i.e. /dev/sda2 => sda2
+        current_device = re.sub(r"^/[Aa-zZ]+/", "", current_device)
+
+        # remove trailing numbers, i.e., sda2 => sda
+        current_device = re.sub(r"\d+$", "", current_device)
 
         # List only physical disks (not partitions) with fields: NAME, TYPE, SIZE, MODEL.
         lsblk_cmd = "lsblk -d -o NAME,TYPE,SIZE,MODEL -n"
         lsblk_output = subprocess.check_output(lsblk_cmd, shell=True, text=True).strip()
-        disk_info_list = []
+        disk_info_list = [[], []]
 
         for line in lsblk_output.splitlines():
             parts = line.split()
@@ -46,9 +50,9 @@ def get_disk_info():
 
             name = parts[0]
 
-            # match device name, account for multiple just in case
-            if name != current_device:
-                continue
+            # match device name. if theres at least one match, use those.
+            # if not, just get everything else 
+            matches = name == current_device
 
             dev_type = parts[1]
             size = parts[2]
@@ -56,17 +60,25 @@ def get_disk_info():
             if dev_type != "disk":
                 continue
 
-            disk_info_list.append({
+            disk_info_list[matches].append({
                 "size": size,
                 "model": model
             })
 
-        if disk_info_list:
-            disk_capacities = ", ".join(disk["size"] for disk in disk_info_list)
-            disk_models = ", ".join(disk["model"] for disk in disk_info_list)
+        # list of matches
+        if len(disk_info_list[1]) != 0:
+            disk_capacities = ", ".join(disk["size"] for disk in disk_info_list[1])
+            disk_models = ", ".join(disk["model"] for disk in disk_info_list[1])
+        # list of non matches
+        elif len(disk_info_list[0]) != 0:
+            disk_capacities = ", ".join(disk["size"] for disk in disk_info_list[0])
+            disk_models = ", ".join(disk["model"] for disk in disk_info_list[0])
+        # nothing was found
         else:
             disk_capacities = disk_models = "N/A"
+
     except Exception as e:
+        print(str(e))
         disk_capacities = disk_models = "N/A"
 
     return {
