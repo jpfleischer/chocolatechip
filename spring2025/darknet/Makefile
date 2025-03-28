@@ -38,12 +38,13 @@ endif
 
 .PHONY: check-dataset build run stop apptainer-build arun ashell
 
-run: check-dataset build stop
+run: check-dataset copy-lego-files build stop
 	docker run --rm -d --gpus all --name $(CONTAINER_NAME) \
 	    -v $(DARKNET_WORKSPACE):/host_workspace \
 		-v ${CURDIR}/docker:/workspace \
 		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
 		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) \
+		--env MANUALLY_SET_DOCKER_PWD=$(shell pwd) \
 		darknet-container
 	make logs
 
@@ -61,12 +62,14 @@ check-dataset:
 		unzip -q $(DATASET_ZIP) -d docker; \
 		rm $(DATASET_ZIP); \
 		rm $(DATASET_DIR)/LegoGears.cfg && rm $(DATASET_DIR)/LegoGears.data; \
-		cp $(EXTRAFILES_DIR)/LegoGears.cfg $(DATASET_DIR)/LegoGears.cfg; \
-		cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
-		cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
-		cp $(EXTRAFILES_DIR)/run.py docker/run.py; \
-		cp $(EXTRAFILES_DIR)/script.sh docker/script.sh; \
 	fi
+
+copy-lego-files:
+	cp $(EXTRAFILES_DIR)/LegoGears.cfg $(DATASET_DIR)/LegoGears.cfg; \
+	cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
+	cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
+	cp $(EXTRAFILES_DIR)/run.py docker/run.py; \
+	cp $(EXTRAFILES_DIR)/script.sh docker/script.sh
 
 
 check-dataset-collab:
@@ -105,7 +108,7 @@ delete:
 	-rm darknet_train.out darknet_train.err
 
 # Run the apptainer container with a bind mount for a writable workspace
-arun: check-dataset apptainer-build $(DARKNET_WORKSPACE) arun-command
+arun: check-dataset copy-lego-files apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
 arun-command:
 	@$(MODULE_LOAD_APPTAINER) apptainer run --nv --fakeroot \
@@ -131,7 +134,7 @@ ashell:
 
 lego-setup: apptainer-build $(DARKNET_WORKSPACE)
 
-slurm: delete check-dataset
+slurm: delete check-dataset copy-lego-files 
 	@if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
 	    ACCOUNT="--account=bi_dsc_community"; \
 	else \
@@ -146,5 +149,5 @@ slurm-shell:
 	srun -p gpu --gpus=geforce:1 --time=01:00:00 --mem=50gb --pty apptainer shell --nv $(SIF_NAME)
 
 
-cars-slurm: delete check-dataset apptainer-build $(DARKNET_WORKSPACE)
+cars-slurm: delete check-dataset copy-lego-files apptainer-build $(DARKNET_WORKSPACE)
 	sbatch -J "darknet_cars_train_$(date +%Y%m%d_%H%M%S)" CollabFiles/cars.slurm
