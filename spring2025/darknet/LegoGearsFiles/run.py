@@ -26,6 +26,22 @@ def human_readable_size(num_bytes):
         num_bytes /= 1024
     return f"{num_bytes:.2f} PiB"
 
+
+def is_wsl():
+    """
+    Detect if running in Windows Subsystem for Linux (WSL)
+    """
+    try:
+        with open("/proc/version", "r") as f:
+            version_info = f.read()
+        # In WSL, /proc/version usually contains "Microsoft" or "WSL"
+        if "Microsoft" in version_info or "WSL" in version_info:
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def get_disk_info():
     """
     Returns disk info for the drive containing the current terminal's working directory.
@@ -256,7 +272,7 @@ if __name__ == "__main__":
         "GPU Name": gpu_name,
         "GPU VRAM": vram,
         "Total Memory": sysinfo["mem.total"],
-        "OS": sysinfo["uname.system"],
+        "OS": "WSL" if is_wsl() else sysinfo["uname.system"],
         "Architecture": sysinfo["uname.machine"],
         "Python Version": sysinfo["python.version"],
         "Disk Capacity": disk_info["Disk Capacity"],
