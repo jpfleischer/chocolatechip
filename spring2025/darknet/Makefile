@@ -12,11 +12,20 @@ DARKNET_WORKSPACE := $(CURDIR)/darknet_workspace
 # Bind mount option stored in a variable
 BIND_OPT := -B $(DARKNET_WORKSPACE):/host_workspace:rw
 
-# check if we are in UVA, if so, then module load apptainer
-MODULE_LOAD_APPTAINER = if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
-		echo WOWVIRGINIA; \
-		. /etc/profile.d/modules.sh; \
-		module load apptainer; \
+# Determine if we're on a Virginia host.
+UVA_VIRGINIA_RUNNING := $(shell \
+	if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
+		echo true; \
+	else \
+		echo false; \
+	fi)
+
+# Define a variable for Docker to pass the UVA environment variable.
+DOCKER_UVA_ENV := --env UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING)
+
+# Define a variable to conditionally load apptainer if at UVA.
+MODULE_LOAD_APPTAINER = if [ "$(UVA_VIRGINIA_RUNNING)" = "true" ]; then \
+		. /etc/profile.d/modules.sh && module load apptainer; \
 	fi;
 
 ifeq ($(OS),Windows_NT)
@@ -43,7 +52,7 @@ run: check-dataset copy-lego-files build stop
 	    -v $(DARKNET_WORKSPACE):/host_workspace \
 		-v ${CURDIR}/docker:/workspace \
 		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
-		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) \
+		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) $(DOCKER_UVA_ENV) \
 		--env MANUALLY_SET_DOCKER_PWD=$(shell pwd) \
 		darknet-container
 	make logs
@@ -111,7 +120,8 @@ delete:
 arun: check-dataset copy-lego-files apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
 arun-command:
-	@$(MODULE_LOAD_APPTAINER) apptainer run --nv --fakeroot \
+	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) \
+		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/docker:/workspace \
 		-B ${CURDIR}/LegoGearsFiles/outputs:/outputs \
@@ -123,7 +133,8 @@ arun-cms-gpu:
     	$(SIF_NAME) cms gpu watch --gpu=`echo $$CUDA_VISIBLE_DEVICES | tr -d '\n\r'` --delay=1 --dense --logfile=mylogfile.log &
 
 arun-cars-command:
-	@$(MODULE_LOAD_APPTAINER) apptainer run --nv --fakeroot \
+	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) \
+		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/CollabFiles:/workspace \
 		$(SIF_NAME)

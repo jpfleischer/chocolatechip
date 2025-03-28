@@ -11,6 +11,7 @@ import shutil
 import re
 import json
 
+uva_running = os.environ.get("UVA_VIRGINIA_RUNNING", "false").lower() == "true"
 
 def human_readable_size(num_bytes):
     """
@@ -212,7 +213,10 @@ if __name__ == "__main__":
         selected_gpu_names = [all_gpu_names[i] for i in indices if i < len(all_gpu_names)]
         vram = ", ".join(selected_vram)
         gpu_name = ", ".join(selected_gpu_names)
-        gpus_str = ",".join(str(i) for i in indices)
+        if uva_running:
+            gpus_str = ",".join(str(i) for i in indices)
+        else:
+            gpus_str = ",".join(str(i) for i in range(len(indices)))
     else:
         # Fallback: use all available info if no indices found
         vram = " ".join(all_vram)
