@@ -14,7 +14,7 @@ From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
 
 %post
     # Update package list and install dependencies
-    apt-get update && apt-get install -y build-essential git libopencv-dev file cmake python3-pip python3-venv
+    apt-get update && apt-get install -y build-essential git libopencv-dev file cmake python3-pip python3-venv fio
     # Create a virtual environment in /opt/venv inside the container
     python3 -m venv /opt/venv
     # Activate the virtual environment and upgrade pip
