@@ -8,7 +8,7 @@ ENV LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 
 # Install dependencies
 RUN apt-get update
-RUN apt-get install -y build-essential git libopencv-dev file python3-pip python3-venv
+RUN apt-get install -y build-essential git libopencv-dev file python3-pip python3-venv fio
 
 
 

@@ -19,15 +19,31 @@ MODULE_LOAD_APPTAINER = if echo "$$(dig -x $$(dig +short myip.opendns.com @resol
 		module load apptainer; \
 	fi;
 
+ifeq ($(OS),Windows_NT)
+  # Check for Git Bash by inspecting uname output for "MINGW"
+  GIT_BASH_CHECK := $(shell uname -s 2>/dev/null)
+  ifeq ($(findstring MINGW,$(GIT_BASH_CHECK)),)
+    $(error "This Makefile must be run from Git Bash on Windows. Detected: '$(GIT_BASH_CHECK)'")
+  endif
+  WINDOWS_HD := $(shell wmic diskdrive where "DeviceID like '%PHYSICALDRIVE0%'" get Model | grep -v Model | sed 's/^[[:space:]]*//' | sed 's/\r//')
+  WINDOWS_HD := $(strip $(WINDOWS_HD))
+  WINDOWS_CAP := $(shell wmic diskdrive where "DeviceID like '%PHYSICALDRIVE0%'" get Size | grep -v Size | sed 's/^[[:space:]]*//' | sed 's/\r//')
+  WINDOWS_CAP := $(strip $(WINDOWS_CAP))
+  # Set both environment variables for Docker.
+  DOCKER_WINDOWS_ENV := --env WINDOWS_HARD_DRIVE="$(WINDOWS_HD)" --env WINDOWS_HARD_DRIVE_CAPACITY="$(WINDOWS_CAP)"
+else
+  DOCKER_WINDOWS_ENV :=
+endif
+
 
 .PHONY: check-dataset build run stop apptainer-build arun ashell
 
 run: check-dataset build stop
-	@docker run --rm -d --gpus all --name $(CONTAINER_NAME) \
+	docker run --rm -d --gpus all --name $(CONTAINER_NAME) \
 	    -v $(DARKNET_WORKSPACE):/host_workspace \
 		-v ${CURDIR}/docker:/workspace \
 		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
-		--env TRUE_USER=$(USER) \
+		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) \
 		darknet-container
 	make logs
 

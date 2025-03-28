@@ -9,70 +9,93 @@ import getpass
 import glob
 import shutil
 import re
+import json
+
+
+def human_readable_size(num_bytes):
+    """
+    Convert a size in bytes to a human-readable string.
+    """
+    try:
+        num_bytes = float(num_bytes)
+    except (ValueError, TypeError):
+        return "N/A"
+    for unit in ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']:
+        if num_bytes < 1024:
+            return f"{num_bytes:.2f} {unit}"
+        num_bytes /= 1024
+    return f"{num_bytes:.2f} PiB"
 
 def get_disk_info():
     """
     Returns disk info for the drive containing the current terminal's working directory.
+    
     Keys:
-      - Disk Names
-      - Disk Capacities
-      - Disk Models
+      - Disk Capacity
+      - Disk Model
+
+    If the environment variable WINDOWS_HARD_DRIVE is set (e.g., when using Git Bash on Windows),
+    its value is used as the Disk Model and the environment variable WINDOWS_HARD_DRIVE_CAPACITY (if set)
+    is converted from bytes into a human-readable format and used as the Disk Capacity.
+    Otherwise, the function attempts to determine disk info using Linux commands.
     """
     try:
-        # Get current working directory.
+        # If running on Windows with the environment variable already set, use it.
+        windows_hd = os.environ.get("WINDOWS_HARD_DRIVE")
+        if windows_hd:
+            windows_cap = os.environ.get("WINDOWS_HARD_DRIVE_CAPACITY", "N/A")
+            # Convert capacity from bytes (as a string) to human-readable format.
+            windows_cap_hr = human_readable_size(windows_cap) if windows_cap != "N/A" else "N/A"
+            return {
+                "Disk Capacity": windows_cap_hr,
+                "Disk Model": windows_hd
+            }
+        
+        # For non-Windows systems (or if the environment variable is not set), use Linux commands.
         cwd = os.getcwd()
-
-        # Get the device for the current working directory using 'df'.
-        # The second line of output is the actual device.
+        # Get the device for the current working directory using 'df'
         df_cmd = f"df --output=source {cwd}"
         df_output = subprocess.check_output(df_cmd, shell=True, text=True).strip().splitlines()
         if len(df_output) < 2:
-            print(True)
             raise ValueError("Could not determine device from df output")
         current_device = df_output[1].strip()
 
-        # List only physical disks (not partitions) with fields: NAME, TYPE, SIZE, MODEL.
+        # List physical disks (not partitions) with fields: NAME, TYPE, SIZE, MODEL.
         lsblk_cmd = "lsblk -d -o NAME,TYPE,SIZE,MODEL -n"
         lsblk_output = subprocess.check_output(lsblk_cmd, shell=True, text=True).strip()
-        disk_info_list = [[], []]
+        disk_info_list = [[], []]  # [non-matches, matches]
 
         for line in lsblk_output.splitlines():
             parts = line.split()
-
             if len(parts) < 4:
                 continue
-
             name = parts[0]
-
-            # match device name. if theres at least one match, use those.
-            # if not, just get everything else 
+            # Check if this disk name is found in the current device path.
             matches = name in current_device
-
             dev_type = parts[1]
             size = parts[2]
             model = " ".join(parts[3:])
             if dev_type != "disk":
                 continue
-
-            disk_info_list[matches].append({
+            # Append to the matched list if the device name is found in current_device,
+            # otherwise to the non-matches list.
+            disk_info_list[1 if matches else 0].append({
                 "size": size,
                 "model": model
             })
 
-        # list of matches
-        if len(disk_info_list[1]) != 0:
+        # Prefer the disks that matched the current device.
+        if disk_info_list[1]:
             disk_capacities = ", ".join(disk["size"] for disk in disk_info_list[1])
             disk_models = ", ".join(disk["model"] for disk in disk_info_list[1])
-        # list of non matches
-        elif len(disk_info_list[0]) != 0:
+        elif disk_info_list[0]:
             disk_capacities = ", ".join(disk["size"] for disk in disk_info_list[0])
             disk_models = ", ".join(disk["model"] for disk in disk_info_list[0])
-        # nothing was found
         else:
             disk_capacities = disk_models = "N/A"
 
     except Exception as e:
-        print(str(e))
+        print("Error retrieving disk info:", e)
         disk_capacities = disk_models = "N/A"
 
     return {
@@ -81,28 +104,51 @@ def get_disk_info():
     }
 
 
-def run_dd_speed_test(test_file="dd_test_file", block_size="1M", count=1024):
+def run_fio_speed_test(test_file="fio_test_file", block_size="1M", runtime=20, size="1G"):
     """
-    Uses dd to measure disk write and read speeds.
-    Returns a tuple: (write_speed, read_speed)
+    Uses fio to measure disk sequential write and read speeds.
+    
+    The test uses direct I/O and runs for the specified runtime (in seconds)
+    with a given file size, returning a tuple: (write_speed, read_speed)
+    formatted as strings in MiB/s.
+    
+    Note:
+      - The write test creates/overwrites the test file.
+      - The read test uses the file created by the write test.
+      - The test file is removed after the tests.
     """
-    # Write Speed Test
+    # Sequential Write Speed Test
     try:
-        write_cmd = f"dd if=/dev/zero of={test_file} bs={block_size} count={count} oflag=direct"
+        write_cmd = (
+            f"fio --name=seqwrite --ioengine=libaio --direct=1 --rw=write "
+            f"--bs={block_size} --runtime={runtime} --time_based --size={size} "
+            f"--filename={test_file} --output-format=json"
+        )
         write_result = subprocess.run(write_cmd, shell=True, capture_output=True, text=True)
-        write_output = write_result.stderr
-        write_speed = write_output.strip().splitlines()[-1].split(", ")[-1]
+        write_output = json.loads(write_result.stdout)
+        # Extract write bandwidth (in KiB/s) and convert to MiB/s
+        write_bw_kib = write_output["jobs"][0]["write"]["bw"]
+        write_bw_mib = write_bw_kib / 1024
+        write_speed = f"{write_bw_mib:.2f} MiB/s"
     except Exception as e:
-        print(str(e))
+        print("Error during write test:", e)
         write_speed = "N/A"
 
-    # Read Speed Test
+    # Sequential Read Speed Test
     try:
-        read_cmd = f"dd if={test_file} of=/dev/null bs={block_size} count={count} iflag=direct"
+        read_cmd = (
+            f"fio --name=seqread --ioengine=libaio --direct=1 --rw=read "
+            f"--bs={block_size} --runtime={runtime} --time_based --size={size} "
+            f"--filename={test_file} --output-format=json"
+        )
         read_result = subprocess.run(read_cmd, shell=True, capture_output=True, text=True)
-        read_output = read_result.stderr
-        read_speed = read_output.strip().splitlines()[-1].split(", ")[-1]
+        read_output = json.loads(read_result.stdout)
+        # Extract read bandwidth (in KiB/s) and convert to MiB/s
+        read_bw_kib = read_output["jobs"][0]["read"]["bw"]
+        read_bw_mib = read_bw_kib / 1024
+        read_speed = f"{read_bw_mib:.2f} MiB/s"
     except Exception as e:
+        print("Error during read test:", e)
         read_speed = "N/A"
 
     # Clean up the test file
@@ -111,6 +157,7 @@ def run_dd_speed_test(test_file="dd_test_file", block_size="1M", count=1024):
     except Exception:
         pass
 
+    print(write_speed, read_speed)
     return write_speed, read_speed
 
 
@@ -200,7 +247,7 @@ if __name__ == "__main__":
 
     # Run dd speed tests to get file-based write and read speeds.
     print("Running disk speed test")
-    dd_write_speed, dd_read_speed = run_dd_speed_test()
+    dd_write_speed, dd_read_speed = run_fio_speed_test()
 
     data = {
         "Benchmark Time (s)": benchmark["time"],
