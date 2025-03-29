@@ -1,0 +1,199 @@
+Darknet V4 "Slate" v4.0-33-ga48c04d0
+CUDA runtime version 12080 (v12.8), driver version 12040 (v12.4)
+cuDNN version 12080 (v9.7.0), use of half-size floats is ENABLED
+=> 0: NVIDIA A100-SXM4-80GB [#8.0], 79.1 GiB
+OpenCV v4.6.0, Ubuntu 24.04, docker
+0
+Prepare additional network for mAP calculation...
+0: compute_capability=800, cudnn_half=1, GPU=NVIDIA A100-SXM4-80GB
+net.optimized_memory=0
+mini_batch=1, batch=8, time_steps=1, train=0
+configuration filename="/workspace/LegoGears_v2/LegoGears.cfg"
+  # line    layer     filters   sz/rte/other    input              output       bflops
+  0   51 convolutional   32      3 x 3 / 2  224 x 160 x 3   -> 112 x 80 x 32   0.015 BF
+  1   59 convolutional   64      3 x 3 / 2  112 x 80 x 32   -> 56 x 40 x 64    0.083 BF
+  2   67 convolutional   64      3 x 3 / 1  56 x 40 x 64    -> 56 x 40 x 64    0.165 BF
+  3   75 route           2       #2         1/2             -> 56 x 40 x 32            
+  4   80 convolutional   32      3 x 3 / 1  56 x 40 x 32    -> 56 x 40 x 32    0.041 BF
+  5   88 convolutional   32      3 x 3 / 1  56 x 40 x 32    -> 56 x 40 x 32    0.041 BF
+  6   96 route           1       #5, 4                      -> 56 x 40 x 64            
+  7   99 convolutional   64      1 x 1 / 1  56 x 40 x 64    -> 56 x 40 x 64    0.018 BF
+  8  107 route           1       #2, 7                      -> 56 x 40 x 128           
+  9  110 maxpool                 2 x 2 / 2  56 x 40 x 128   -> 28 x 20 x 128   0.000 BF
+ 10  114 convolutional   128     3 x 3 / 1  28 x 20 x 128   -> 28 x 20 x 128   0.165 BF
+ 11  122 route           2       #10        1/2             -> 28 x 20 x 64            
+ 12  127 convolutional   64      3 x 3 / 1  28 x 20 x 64    -> 28 x 20 x 64    0.041 BF
+ 13  135 convolutional   64      3 x 3 / 1  28 x 20 x 64    -> 28 x 20 x 64    0.041 BF
+ 14  143 route           1       #13, 12                    -> 28 x 20 x 128           
+ 15  146 convolutional   128     1 x 1 / 1  28 x 20 x 128   -> 28 x 20 x 128   0.018 BF
+ 16  154 route           1       #10, 15                    -> 28 x 20 x 256           
+ 17  157 maxpool                 2 x 2 / 2  28 x 20 x 256   -> 14 x 10 x 256   0.000 BF
+ 18  161 convolutional   256     3 x 3 / 1  14 x 10 x 256   -> 14 x 10 x 256   0.165 BF
+ 19  169 route           2       #18        1/2             -> 14 x 10 x 128           
+ 20  174 convolutional   128     3 x 3 / 1  14 x 10 x 128   -> 14 x 10 x 128   0.041 BF
+ 21  182 convolutional   128     3 x 3 / 1  14 x 10 x 128   -> 14 x 10 x 128   0.041 BF
+ 22  190 route           1       #21, 20                    -> 14 x 10 x 256           
+ 23  193 convolutional   256     1 x 1 / 1  14 x 10 x 256   -> 14 x 10 x 256   0.018 BF
+ 24  201 route           1       #18, 23                    -> 14 x 10 x 512           
+ 25  204 maxpool                 2 x 2 / 2  14 x 10 x 512   -> 7 x 5 x 512     0.000 BF
+ 26  208 convolutional   512     3 x 3 / 1  7 x 5 x 512     -> 7 x 5 x 512     0.165 BF
+ 27  218 convolutional   256     1 x 1 / 1  7 x 5 x 512     -> 7 x 5 x 256     0.009 BF
+ 28  226 convolutional   512     3 x 3 / 1  7 x 5 x 256     -> 7 x 5 x 512     0.083 BF
+ 29  234 convolutional   30      1 x 1 / 1  7 x 5 x 512     -> 7 x 5 x 30      0.001 BF
+ 30  243 yolo            3       6 anchors  7 x 5 x 30      -> 7 x 5 x 30              
+ 31  262 route           1       #27                        -> 7 x 5 x 256             
+ 32  265 convolutional   128     1 x 1 / 1  7 x 5 x 256     -> 7 x 5 x 128     0.002 BF
+ 33  273 upsample                2X         7 x 5 x 128     -> 14 x 10 x 128           
+ 34  276 route           1       #33, 23                    -> 14 x 10 x 384           
+ 35  279 convolutional   256     3 x 3 / 1  14 x 10 x 384   -> 14 x 10 x 256   0.248 BF
+ 36  287 convolutional   30      1 x 1 / 1  14 x 10 x 256   -> 14 x 10 x 30    0.002 BF
+ 37  294 yolo            3       6 anchors  14 x 10 x 30    -> 14 x 10 x 30            
+Total BFLOPS = 1.406935
+avg_outputs = 62171
+Allocating workspace to transfer between CPU and GPU:  25.0 MiB
+-> class #0 will use colour 0xff00ff
+-> class #1 will use colour 0xffff00
+-> class #2 will use colour 0x00ffff
+-> class #3 will use colour 0xff0000
+-> class #4 will use colour 0x00ff00
+Loading names from "/workspace/LegoGears_v2/LegoGears.names"
+0: compute_capability=800, cudnn_half=1, GPU=NVIDIA A100-SXM4-80GB
+net.optimized_memory=0
+mini_batch=8, batch=64, time_steps=1, train=1
+configuration filename="/workspace/LegoGears_v2/LegoGears.cfg"
+  # line    layer     filters   sz/rte/other    input              output       bflops
+  0   51 convolutional   32      3 x 3 / 2  224 x 160 x 3   -> 112 x 80 x 32   0.015 BF
+  1   59 convolutional   64      3 x 3 / 2  112 x 80 x 32   -> 56 x 40 x 64    0.083 BF
+  2   67 convolutional   64      3 x 3 / 1  56 x 40 x 64    -> 56 x 40 x 64    0.165 BF
+  3   75 route           2       #2         1/2             -> 56 x 40 x 32            
+  4   80 convolutional   32      3 x 3 / 1  56 x 40 x 32    -> 56 x 40 x 32    0.041 BF
+  5   88 convolutional   32      3 x 3 / 1  56 x 40 x 32    -> 56 x 40 x 32    0.041 BF
+  6   96 route           1       #5, 4                      -> 56 x 40 x 64            
+  7   99 convolutional   64      1 x 1 / 1  56 x 40 x 64    -> 56 x 40 x 64    0.018 BF
+  8  107 route           1       #2, 7                      -> 56 x 40 x 128           
+  9  110 maxpool                 2 x 2 / 2  56 x 40 x 128   -> 28 x 20 x 128   0.000 BF
+ 10  114 convolutional   128     3 x 3 / 1  28 x 20 x 128   -> 28 x 20 x 128   0.165 BF
+ 11  122 route           2       #10        1/2             -> 28 x 20 x 64            
+ 12  127 convolutional   64      3 x 3 / 1  28 x 20 x 64    -> 28 x 20 x 64    0.041 BF
+ 13  135 convolutional   64      3 x 3 / 1  28 x 20 x 64    -> 28 x 20 x 64    0.041 BF
+ 14  143 route           1       #13, 12                    -> 28 x 20 x 128           
+ 15  146 convolutional   128     1 x 1 / 1  28 x 20 x 128   -> 28 x 20 x 128   0.018 BF
+ 16  154 route           1       #10, 15                    -> 28 x 20 x 256           
+ 17  157 maxpool                 2 x 2 / 2  28 x 20 x 256   -> 14 x 10 x 256   0.000 BF
+ 18  161 convolutional   256     3 x 3 / 1  14 x 10 x 256   -> 14 x 10 x 256   0.165 BF
+ 19  169 route           2       #18        1/2             -> 14 x 10 x 128           
+ 20  174 convolutional   128     3 x 3 / 1  14 x 10 x 128   -> 14 x 10 x 128   0.041 BF
+ 21  182 convolutional   128     3 x 3 / 1  14 x 10 x 128   -> 14 x 10 x 128   0.041 BF
+ 22  190 route           1       #21, 20                    -> 14 x 10 x 256           
+ 23  193 convolutional   256     1 x 1 / 1  14 x 10 x 256   -> 14 x 10 x 256   0.018 BF
+ 24  201 route           1       #18, 23                    -> 14 x 10 x 512           
+ 25  204 maxpool                 2 x 2 / 2  14 x 10 x 512   -> 7 x 5 x 512     0.000 BF
+ 26  208 convolutional   512     3 x 3 / 1  7 x 5 x 512     -> 7 x 5 x 512     0.165 BF
+ 27  218 convolutional   256     1 x 1 / 1  7 x 5 x 512     -> 7 x 5 x 256     0.009 BF
+ 28  226 convolutional   512     3 x 3 / 1  7 x 5 x 256     -> 7 x 5 x 512     0.083 BF
+ 29  234 convolutional   30      1 x 1 / 1  7 x 5 x 512     -> 7 x 5 x 30      0.001 BF
+ 30  243 yolo            3       6 anchors  7 x 5 x 30      -> 7 x 5 x 30              
+ 31  262 route           1       #27                        -> 7 x 5 x 256             
+ 32  265 convolutional   128     1 x 1 / 1  7 x 5 x 256     -> 7 x 5 x 128     0.002 BF
+ 33  273 upsample                2X         7 x 5 x 128     -> 14 x 10 x 128           
+ 34  276 route           1       #33, 23                    -> 14 x 10 x 384           
+ 35  279 convolutional   256     3 x 3 / 1  14 x 10 x 384   -> 14 x 10 x 256   0.248 BF
+ 36  287 convolutional   30      1 x 1 / 1  14 x 10 x 256   -> 14 x 10 x 30    0.002 BF
+ 37  294 yolo            3       6 anchors  14 x 10 x 30    -> 14 x 10 x 30            
+Total BFLOPS = 1.406935
+avg_outputs = 62171
+Allocating workspace to transfer between CPU and GPU:  25.0 MiB
+-> class #0 will use colour 0xff00ff
+-> class #1 will use colour 0xffff00
+-> class #2 will use colour 0x00ffff
+-> class #3 will use colour 0xff0000
+-> class #4 will use colour 0x00ff00
+Learning Rate: 0.002610, Momentum: 0.900000, Decay: 0.000500
+Detection layer #30 is type 17 (yolo)
+Detection layer #37 is type 17 (yolo)
+mAP calculations will be every 100 iterations
+weights will be saved every 1000 iterations
+Creating 6 permanent CPU threads to load images and bounding boxes.
+loaded 64 images in 344.631 milliseconds
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.343465), count: 7, class_loss: 36.124878, iou_loss: 0.091125, total_loss: 36.216003
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.232205), count: 7, class_loss: 93.129730, iou_loss: 0.963776, total_loss: 94.093506
+total_bbox=14, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.341805), count: 3, class_loss: 35.289555, iou_loss: 0.048275, total_loss: 35.337830
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.077600), count: 3, class_loss: 93.546585, iou_loss: 0.188705, total_loss: 93.735291
+total_bbox=20, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.000000), count: 1, class_loss: 34.642490, iou_loss: 0.000004, total_loss: 34.642494
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.000000), count: 1, class_loss: 91.818954, iou_loss: 0.000000, total_loss: 91.818954
+total_bbox=20, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.320390), count: 6, class_loss: 36.200096, iou_loss: 0.074207, total_loss: 36.274303
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.103798), count: 9, class_loss: 94.667213, iou_loss: 1.743340, total_loss: 96.410553
+total_bbox=35, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.169830), count: 2, class_loss: 35.302784, iou_loss: 0.003052, total_loss: 35.305836
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.002048), count: 1, class_loss: 91.708031, iou_loss: 0.337059, total_loss: 92.045090
+total_bbox=38, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.350858), count: 6, class_loss: 36.074806, iou_loss: 0.060783, total_loss: 36.135590
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.153648), count: 7, class_loss: 93.836624, iou_loss: 1.056168, total_loss: 94.892792
+total_bbox=51, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.280716), count: 6, class_loss: 35.820793, iou_loss: 0.057201, total_loss: 35.877995
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.178230), count: 8, class_loss: 94.077171, iou_loss: 1.680107, total_loss: 95.757278
+total_bbox=65, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.297473), count: 5, class_loss: 35.706051, iou_loss: 0.034023, total_loss: 35.740074
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.235471), count: 4, class_loss: 92.720726, iou_loss: 0.850243, total_loss: 93.570969
+total_bbox=74, rewritten_bbox=0.00%
+Tensor cores are disabled until iteration #3000.
+1: loss=64.423, avg loss=64.423, last=none, best=none, next=1000, rate=0.00000000, 62.558 seconds, 64 images, time remaining=2.2 days
+loaded 64 images in 8.793 milliseconds
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.296010), count: 5, class_loss: 35.573273, iou_loss: 0.033665, total_loss: 35.606937
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.059942), count: 8, class_loss: 93.774277, iou_loss: 1.373550, total_loss: 95.147827
+total_bbox=87, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.308744), count: 6, class_loss: 35.718906, iou_loss: 0.066105, total_loss: 35.785011
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.176563), count: 8, class_loss: 93.177948, iou_loss: 1.753342, total_loss: 94.931290
+total_bbox=101, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.325023), count: 8, class_loss: 36.459991, iou_loss: 0.062672, total_loss: 36.522663
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.149755), count: 9, class_loss: 93.573746, iou_loss: 1.430511, total_loss: 95.004257
+total_bbox=118, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.405927), count: 10, class_loss: 36.743397, iou_loss: 0.106976, total_loss: 36.850372
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.169793), count: 9, class_loss: 93.331436, iou_loss: 1.110130, total_loss: 94.441566
+total_bbox=137, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.303051), count: 6, class_loss: 35.710476, iou_loss: 0.036392, total_loss: 35.746868
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.185656), count: 5, class_loss: 93.102287, iou_loss: 0.622871, total_loss: 93.725159
+total_bbox=148, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.403931), count: 5, class_loss: 35.361843, iou_loss: 0.103695, total_loss: 35.465538
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.055747), count: 6, class_loss: 93.558807, iou_loss: 0.882889, total_loss: 94.441696
+total_bbox=159, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.281858), count: 12, class_loss: 36.860191, iou_loss: 0.083214, total_loss: 36.943405
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.180689), count: 14, class_loss: 94.536926, iou_loss: 3.677948, total_loss: 98.214874
+total_bbox=185, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.402523), count: 5, class_loss: 35.778393, iou_loss: 0.091785, total_loss: 35.870178
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.044362), count: 6, class_loss: 93.102219, iou_loss: 1.523239, total_loss: 94.625458
+total_bbox=196, rewritten_bbox=0.00%
+Tensor cores are disabled until iteration #3000.
+2: loss=64.779, avg loss=64.458, last=none, best=none, next=1000, rate=0.00000000, 74.785 seconds, 128 images, time remaining=2.4 days
+loaded 64 images in 7.407 milliseconds
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.363200), count: 12, class_loss: 36.794003, iou_loss: 0.133926, total_loss: 36.927929
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.130682), count: 13, class_loss: 95.841187, iou_loss: 2.324402, total_loss: 98.165588
+total_bbox=221, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.165207), count: 2, class_loss: 35.139648, iou_loss: 0.002857, total_loss: 35.142506
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.095406), count: 3, class_loss: 93.142433, iou_loss: 0.184288, total_loss: 93.326721
+total_bbox=226, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.203299), count: 5, class_loss: 35.655956, iou_loss: 0.026035, total_loss: 35.681992
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.178387), count: 6, class_loss: 93.610657, iou_loss: 1.377609, total_loss: 94.988266
+total_bbox=237, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.322163), count: 9, class_loss: 36.336079, iou_loss: 0.060627, total_loss: 36.396706
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.205964), count: 10, class_loss: 94.204483, iou_loss: 1.799713, total_loss: 96.004196
+total_bbox=256, rewritten_bbox=0.00%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.303499), count: 10, class_loss: 35.941116, iou_loss: 0.109016, total_loss: 36.050133
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.153753), count: 11, class_loss: 93.709000, iou_loss: 2.684921, total_loss: 96.393921
+total_bbox=277, rewritten_bbox=0.36%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.323426), count: 8, class_loss: 36.115711, iou_loss: 0.080837, total_loss: 36.196548
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.118582), count: 8, class_loss: 93.810272, iou_loss: 0.765839, total_loss: 94.576111
+total_bbox=293, rewritten_bbox=0.34%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.357749), count: 5, class_loss: 35.859741, iou_loss: 0.062317, total_loss: 35.922058
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.213496), count: 6, class_loss: 93.245239, iou_loss: 2.087242, total_loss: 95.332481
+total_bbox=304, rewritten_bbox=0.33%
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.238126), count: 5, class_loss: 36.106869, iou_loss: 0.038956, total_loss: 36.145824
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 37 Avg (IOU: 0.206352), count: 6, class_loss: 92.360657, iou_loss: 1.557983, total_loss: 93.918640
+total_bbox=315, rewritten_bbox=0.32%
+Tensor cores are disabled until iteration #3000.
+3: loss=64.874, avg loss=64.500, last=none, best=none, next=1000, rate=0.00000000, 68.109 seconds, 192 images, time remaining=2.4 days
+loaded 64 images in 8.210 milliseconds
+v3 iou loss, Normalizer: (iou: 0.07, obj: 1.00, cls: 1.00) Region 30 Avg (IOU: 0.300093), count: 10, class_loss: 36.610424, iou_loss: 0.140388, total_loss: 36.750813
