@@ -3,11 +3,29 @@ import csv
 import matplotlib.pyplot as plt
 from datetime import datetime
 import itertools
+from matplotlib.patches import Patch
+from username_machine_pairings import get_machine  # import your get_machine function
+
+# Flag to control whether to include multiple GPU runs.
+MULTIPLE_GPUS = False  # Set to False to filter out runs with multiple GPUs.
+
+def is_multiple_gpu(gpu_name):
+    """
+    Determine if the GPU name indicates a multiple-GPU run.
+    We assume that if the GPU name contains a hyphen and the two parts
+    (split by the hyphen) are identical (ignoring whitespace), then it's a multi-GPU run.
+    """
+    if '-' in gpu_name:
+        parts = gpu_name.split('-')
+        # Only consider exactly two parts for this heuristic.
+        if len(parts) == 2 and parts[0].strip() == parts[1].strip():
+            return True
+    return False
 
 def plot_benchmark():
-    benchmark_data = []  # list of tuples: (label, benchmark_time)
+    # List of tuples: (label, benchmark_time, machine)
+    benchmark_data = []
 
-    # Walk through ../outputs directory (including subdirectories)
     output_dir = os.path.join("..", "outputs")
     for root, dirs, files in os.walk(output_dir):
         for filename in files:
@@ -16,15 +34,23 @@ def plot_benchmark():
             filepath = os.path.join(root, filename)
             
             # Expected filename format:
-            # benchmark__denis__NVIDIA_GeForce_RTX_2060__Intel(R)_Core(TM)_i7-9700K_CPU_@_3.60GHz__20250328_064036.csv
+            # benchmark__<username>__NVIDIA_GeForce_RTX_2060__Intel(R)_Core(TM)_i7-9700K_CPU_@_3.60GHz__20250328_064036.csv
             parts = filename.split("__")
             if len(parts) < 4:
                 continue
-            
+
+            username = parts[1]  # extract username from the filename
             gpu_name = parts[2].replace("_", " ")
             cpu_name = parts[3].replace("_", " ")
+            # Remove clock speed info: chop off "@" and everything after (and trim whitespace).
+            if "@" in cpu_name:
+                cpu_name = cpu_name.split("@")[0].strip()
             label = f"{gpu_name}\n{cpu_name}"
-            
+
+            # Filter out multiple GPU runs if the flag is set to False.
+            if not MULTIPLE_GPUS and is_multiple_gpu(gpu_name):
+                continue
+
             try:
                 with open(filepath, "r", newline="") as csvfile:
                     reader = csv.reader(csvfile)
@@ -41,23 +67,38 @@ def plot_benchmark():
 
             if benchmark_time < 10:
                 continue
-                
-            benchmark_data.append((label, benchmark_time))
+
+            # Determine the machine using the get_machine function.
+            machine = get_machine(username)
+            benchmark_data.append((label, benchmark_time, machine))
 
     if not benchmark_data:
         print("No benchmark data found!")
         return
 
+    # Sort benchmark data by training time (largest first)
     benchmark_data = sorted(benchmark_data, key=lambda x: x[1], reverse=True)
-    labels, times = zip(*benchmark_data)
+    labels, times, machines = zip(*benchmark_data)
+
+    # Use tab10 colormap to assign colors per machine.
+    unique_machines = sorted(set(machines))
+    cmap = plt.get_cmap("tab10")
+    machine_colors = {machine: cmap(i) for i, machine in enumerate(unique_machines)}
+    # Create a list of bar colors according to each bar's machine.
+    bar_colors = [machine_colors[machine] for machine in machines]
 
     fig, ax = plt.subplots(figsize=(15, 6))
     x_positions = range(len(labels))
-    ax.bar(x_positions, times, color="skyblue")
+    ax.bar(x_positions, times, color=bar_colors)
     ax.set_xticks(x_positions)
     ax.set_xticklabels(labels, rotation=45, ha="right")
     ax.set_ylabel("Benchmark Time (s)")
-    ax.set_title("Benchmark Results by GPU and CPU (Ranked by Training Time)")
+    # ax.set_title("Benchmark Results by GPU and CPU (Ranked by Training Time)")
+
+    # Create legend elements for each machine.
+    legend_elements = [Patch(facecolor=machine_colors[machine], label=machine) for machine in unique_machines]
+    ax.legend(handles=legend_elements, title="Machine", loc="upper right")
+
     plt.tight_layout()
     plt.savefig("gpu_training_time.pdf", bbox_inches="tight")
     plt.show()
@@ -142,14 +183,12 @@ def plot_gpu_temperature_from_logs():
     plt.figure(figsize=(15, 6))
     for gpu_label, runs in gpu_runs.items():
         color = gpu_colors[gpu_label]
-        # Plot each run using the same assigned color.
         for idx, (elapsed_times, avg_temps) in enumerate(runs):
-            # Label only the first run per GPU.
             label = gpu_label if idx == 0 else None
             plt.plot(elapsed_times, avg_temps, label=label, color=color)
     plt.xlabel("Elapsed Time (s)")
     plt.ylabel("Average GPU Temperature (°C)")
-    plt.title("GPU Temperature Over Time by GPU")
+    # plt.title("GPU Temperature Over Time by GPU")
     plt.legend()
     plt.tight_layout()
     plt.savefig("temperature_plot.pdf", bbox_inches="tight")
