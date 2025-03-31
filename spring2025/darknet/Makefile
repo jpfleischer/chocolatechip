@@ -28,6 +28,8 @@ MODULE_LOAD_APPTAINER = if [ "$(UVA_VIRGINIA_RUNNING)" = "true" ]; then \
 		. /etc/profile.d/modules.sh && module load apptainer; \
 	fi;
 
+ACTUAL_PWD := $(shell pwd)
+
 ifeq ($(OS),Windows_NT)
   # Check for Git Bash by inspecting uname output for "MINGW"
   GIT_BASH_CHECK := $(shell uname -s 2>/dev/null)
@@ -53,7 +55,7 @@ run: check-dataset copy-lego-files build stop
 		-v ${CURDIR}/docker:/workspace \
 		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
 		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) $(DOCKER_UVA_ENV) \
-		--env MANUALLY_SET_DOCKER_PWD=$(shell pwd) \
+		--env ACTUAL_PWD=$(ACTUAL_PWD) \
 		darknet-container
 	make logs
 
@@ -120,7 +122,7 @@ delete:
 arun: check-dataset copy-lego-files apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
 arun-command:
-	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) \
+	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) \
 		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/docker:/workspace \
@@ -133,7 +135,7 @@ arun-cms-gpu:
     	$(SIF_NAME) cms gpu watch --gpu=`echo $$CUDA_VISIBLE_DEVICES | tr -d '\n\r'` --delay=1 --dense --logfile=mylogfile.log &
 
 arun-cars-command:
-	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) \
+	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) \
 		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/CollabFiles:/workspace \

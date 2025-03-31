@@ -283,7 +283,7 @@ if __name__ == "__main__":
         "Disk Model": disk_info["Disk Model"],
         "Write Speed": dd_write_speed,
         "Read Speed": dd_read_speed,
-        "Working Dir": os.getenv("MANUALLY_SET_DOCKER_PWD", "N/A"),
+        "Working Dir": os.getenv("ACTUAL_PWD", "N/A"),
     }
 
     # Step 7: Create a unique CSV filename in the current (output) directory
