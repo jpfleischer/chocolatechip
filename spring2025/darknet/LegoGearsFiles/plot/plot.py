@@ -387,7 +387,7 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
                     if temp_range < 5:  # Not enough temperature variation
                         # Just use simple thirds
                         third = len(temps) // 3
-                        before = temps[:third]
+                        before = [temps[0]]
                         during = temps[third:2*third]
                         after = temps[2*third:]
                     else:
@@ -414,7 +414,7 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
                             fall_idx = min(len(temps)-1, fall_idx + window_size//2)
                             
                             # Add padding to catch the full profile
-                            before = temps[:rise_idx]
+                            before = [temps[0]]
                             during = temps[rise_idx:fall_idx]
                             after = temps[fall_idx:]
                         else:
@@ -437,7 +437,7 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
                             else:
                                 fall_idx = len(temps) - 1
                             
-                            before = temps[:rise_idx]
+                            before = [temps[0]]
                             during = temps[rise_idx:fall_idx]
                             after = temps[fall_idx:]
                         
@@ -476,7 +476,7 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
                                     else:
                                         fall_idx = len(temps) - 1
                                     
-                                    before = temps[:rise_idx]
+                                    before = [temps[0]]
                                     during = temps[rise_idx:fall_idx]
                                     after = temps[fall_idx:]
                                 else:
@@ -485,7 +485,7 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
                                     lower_bound = np.percentile(sorted_temps, 25)
                                     upper_bound = np.percentile(sorted_temps, 75)
                                     
-                                    before = [t for t in temps[:len(temps)//3] if t <= lower_bound + 3]
+                                    before = [temps[0]]
                                     during = [t for t in temps if t >= upper_bound - 3]
                                     after = [t for t in temps[2*len(temps)//3:] if lower_bound <= t <= upper_bound]
                     
@@ -507,16 +507,16 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
     if not gpu_data:
         print("No data to plot")
         return None
-
-    # Calculate average temperatures for each GPU for before, during and after training
+    
+    # Calculate average temperatures for each GPU for before, during, and after training
     gpu_labels = []
     before_avgs = []
     during_avgs = []
     after_avgs = []
-    
+
     # Sort GPUs by machine type and then by name
     sorted_gpus = sorted(gpu_data.keys(), key=lambda x: (x.split('(')[-1], x))
-    
+
     for gpu in sorted_gpus:
         data = gpu_data[gpu]
         gpu_labels.append(gpu)
@@ -527,41 +527,42 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
         # Final sanity check for temperature relationships
         if (not np.isnan(before_avgs[-1])) and (not np.isnan(during_avgs[-1])):
             if before_avgs[-1] >= during_avgs[-1]:
-                # If "before" temps are higher than "during", swap them
+                # Swap if "before" temps are higher than "during"
                 temp = before_avgs[-1]
                 before_avgs[-1] = during_avgs[-1]
                 during_avgs[-1] = temp
-                # Print warning about having to correct data
                 print(f"Warning: Had to swap before/during temperatures for {gpu}")
         
         # Ensure "after" temps are between "before" and "during" if all three exist
         if (not np.isnan(after_avgs[-1])) and (not np.isnan(before_avgs[-1])) and (not np.isnan(during_avgs[-1])):
             if after_avgs[-1] >= during_avgs[-1]:
-                # After temps shouldn't be higher than during
                 after_avgs[-1] = (before_avgs[-1] + during_avgs[-1]) / 2
                 print(f"Warning: Had to adjust after temperatures for {gpu}")
 
-    # Create grouped bar chart with 3 groups
+    # --- Plotting ---
+    # Create grouped bar chart with 2 groups (Before and During)
     x = np.arange(len(gpu_labels))
-    width = 0.25  # width of each bar (smaller to fit 3 bars)
+    width = 0.3  # Bar width
 
-    fig, ax = plt.subplots(figsize=(20, 8))  # Wider figure to give more room
-    x = np.arange(len(gpu_labels))
-    width = 0.3  # Slightly wider bar spacing
+    # Increase the figure size for additional clarity
+    fig, ax = plt.subplots(figsize=(20, 8))  
 
     rects1 = ax.bar(x - width/2, before_avgs, width, label='Before Training', color='skyblue')
     rects2 = ax.bar(x + width/2, during_avgs, width, label='During Training', color='salmon')
 
-    ax.set_ylabel(f'{y_axis} ({units})')
-    ax.set_title(f'Average {y_axis} Before, During, and After Training')
+    # Increase font sizes for labels and title
+    ax.set_ylabel(f'{y_axis} ({units})', fontsize=16)
+    ax.set_title(f'Average {y_axis} Before and During Training', fontsize=18)
 
     ax.set_xticks(x)
-    # Rotate labels 45 degrees, anchor them at the right so they don't overlap
+    # Rotate x-axis labels 45° for readability while using a larger font size
     ax.set_xticklabels(gpu_labels, rotation=45, ha='right', rotation_mode='anchor')
+    ax.tick_params(axis='x', labelsize=14)  # Larger x-axis label text
 
-    ax.legend()
+    ax.legend(fontsize=14)
     ax.grid(True, axis='y', linestyle='--', alpha=0.7)
 
+    # Annotate bars with their height values (larger font for annotations)
     def autolabel(rects):
         for rect in rects:
             height = rect.get_height()
@@ -570,17 +571,24 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
                             xy=(rect.get_x() + rect.get_width() / 2, height),
                             xytext=(0, 3),  # vertical offset
                             textcoords="offset points",
-                            ha='center', va='bottom')
+                            ha='center', va='bottom',
+                            fontsize=12)
 
     autolabel(rects1)
     autolabel(rects2)
 
-    # Make sure labels fit nicely
-    plt.subplots_adjust(bottom=0.2)  # Add extra space at bottom for rotated labels
+    max_val = max(val for val in (before_avgs + during_avgs) if not np.isnan(val))
+    ax.set_ylim(top=max_val + 10)  # Add a buffer above your highest bar
+
+    # Optionally adjust y-ticks (for example, every 5 degrees):
+    # y_ticks = np.arange(0, max_val + 10, 10)
+    # ax.set_yticks(y_ticks)
+
+    # Adjust the subplot parameters to give more space for rotated labels
+    plt.subplots_adjust(bottom=0.35, top=0.85)  # Increase top margin to avoid clipping
     plt.tight_layout()
     plt.savefig("gpu_temp_before_during.pdf", bbox_inches="tight")
     plt.show()
-
     return fig
 
 def main():
