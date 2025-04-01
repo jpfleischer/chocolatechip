@@ -6,6 +6,7 @@ def get_machine(username):
         "pnh2pj": "Afton (UVA)",
         "bdu4xa": "Afton (UVA)",
         "ukx5fv": "Afton (UVA)",
-        "jpf": "MALTLab"
+        "jpf": "MALTLab",
+        "julian": "MALTLab"
     }
     return machine_map.get(username, "Personal Machine")
