@@ -24,7 +24,7 @@ def is_multiple_gpu(gpu_name):
             return True
     return False
 
-def plot_benchmark():
+def plot_benchmark(toggle_multiple_gpus=False):
     # List of tuples: (label, benchmark_time, machine)
     benchmark_data = []
 
@@ -50,8 +50,11 @@ def plot_benchmark():
             label = f"{gpu_name}\n{cpu_name}"
 
             # Filter out multiple GPU runs if the flag is set to False.
-            if not MULTIPLE_GPUS and is_multiple_gpu(gpu_name):
-                continue
+            if not MULTIPLE_GPUS:
+                if not toggle_multiple_gpus and is_multiple_gpu(gpu_name):
+                    continue
+                elif toggle_multiple_gpus and not is_multiple_gpu(gpu_name):
+                    continue
 
             try:
                 with open(filepath, "r", newline="") as csvfile:
@@ -104,6 +107,98 @@ def plot_benchmark():
     plt.tight_layout()
     plt.savefig("gpu_training_time.pdf", bbox_inches="tight")
     plt.show()
+
+def plot_benchmark_with_str(filter_string = "NVIDIA RTX A6000"):
+    # List of tuples: (label, benchmark_time, machine)
+    benchmark_data = []
+
+    output_dir = os.path.join("..", "outputs")
+    for root, dirs, files in os.walk(output_dir):
+        for filename in files:
+            if not filename.endswith(".csv"):
+                continue
+            filepath = os.path.join(root, filename)
+            
+            # Expected filename format:
+            # benchmark__<username>__NVIDIA_GeForce_RTX_2060__Intel(R)_Core(TM)_i7-9700K_CPU_@_3.60GHz__20250328_064036.csv
+            parts = filename.split("__")
+            if len(parts) < 4:
+                continue
+
+            username = parts[1]  # extract username from the filename
+            gpu_name = parts[2].replace("_", " ")
+            cpu_name = parts[3].replace("_", " ")
+            # Remove clock speed info: chop off "@" and everything after (and trim whitespace).
+            if "@" in cpu_name:
+                cpu_name = cpu_name.split("@")[0].strip()
+            label = f"{gpu_name}\n{cpu_name}"
+
+            if filter_string not in gpu_name:
+                continue
+
+            try:
+                with open(filepath, "r", newline="") as csvfile:
+                    reader = csv.reader(csvfile)
+                    next(reader)  # Skip header.
+                    row = next(reader, None)
+                    if row is not None:
+                        benchmark_time = float(row[0])
+                    else:
+                        print(f"Warning: File {filepath} contains no data row.")
+                        continue
+            except Exception as e:
+                print(f"Error processing {filepath}: {e}")
+                continue
+
+            if benchmark_time < 10:
+                continue
+
+            # Determine the machine using the get_machine function.
+            machine = 'Single GPU' if '-' not in gpu_name else 'Dual GPU'
+            benchmark_data.append((label, benchmark_time, machine))
+
+    if not benchmark_data:
+        print("No benchmark data found!")
+        return
+
+    # Sort benchmark data by training time (smallest first)
+    benchmark_data = sorted(benchmark_data, key=lambda x: x[1])
+    labels, times, machines = zip(*benchmark_data)
+
+    # Use tab10 colormap to assign colors per machine.
+    unique_machines = sorted(set(machines))
+    cmap = plt.get_cmap("tab10")
+    machine_colors = {machine: cmap(i) for i, machine in enumerate(unique_machines)}
+    # Create a list of bar colors according to each bar's machine.
+    bar_colors = [machine_colors[machine] for machine in machines]
+
+    n = len(labels)
+    # Use np.linspace to get positions evenly spread from 0 to 1.
+    x_positions = np.linspace(0, 1, n)
+    # Define the bar width as a fraction of the spacing between bars.
+    if n > 1:
+        spacing = x_positions[1] - x_positions[0]
+    else:
+        spacing = 0.2  # arbitrary for a single bar
+    bar_width = spacing * 0.4  # adjust this multiplier to make bars thicker/thinner
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.bar(x_positions, times, width=bar_width, color=bar_colors, align='center')
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Benchmark Time (s)")
+
+    # Create legend elements for each machine.
+    legend_elements = [Patch(facecolor=machine_colors[machine], label=machine) for machine in unique_machines]
+    ax.legend(handles=legend_elements, title="Machine", loc="upper right")
+
+    # Set the limits so that there is equal space on the sides.
+    ax.set_xlim(-spacing * 0.5, 1 + spacing * 0.5)
+
+    plt.tight_layout()
+    plt.savefig("dual_gpu_training_times.pdf", bbox_inches="tight")
+    plt.show()
+
 
 def plot_gpu_data(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", bin_range=None):
     """
@@ -336,7 +431,7 @@ def plot_gpu_data(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", 
     return fig
 
 
-def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", window_size=7):
+def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", window_size=7, file_name="temp"):
     """
     Reads GPU data logs and creates side-by-side bar charts for each GPU showing:
       - Average before training 
@@ -379,7 +474,7 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
         )
         
         # Add machine type to the GPU label
-        gpu_label = f"{gpu_label} ({machine_type})"
+        gpu_label = f"{gpu_label}\n{machine_type}"
 
         log_path = os.path.join(root, "mylogfile.log")
         try:
@@ -592,7 +687,7 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
     # --- Plotting ---
     # Create grouped bar chart with 2 groups (Before and During)
     x = np.arange(len(gpu_labels))
-    width = 0.3  # Bar width
+    width = 0.4  # Bar width
 
     # Increase the figure size for additional clarity
     fig, ax = plt.subplots(figsize=(20, 8))  
@@ -628,7 +723,7 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
     autolabel(rects2)
 
     max_val = max(val for val in (before_avgs + during_avgs) if not np.isnan(val))
-    ax.set_ylim(top=max_val + 10)  # Add a buffer above your highest bar
+    ax.set_ylim(top=max_val + 20)  # Add a buffer above your highest bar
 
     # Optionally adjust y-ticks (for example, every 5 degrees):
     # y_ticks = np.arange(0, max_val + 10, 10)
@@ -637,16 +732,17 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
     # Adjust the subplot parameters to give more space for rotated labels
     plt.subplots_adjust(bottom=0.35, top=0.85)  # Increase top margin to avoid clipping
     plt.tight_layout()
-    plt.savefig("gpu_temp_before_during.pdf", bbox_inches="tight")
+    plt.savefig(f"gpu_{file_name}_before_during.pdf", bbox_inches="tight")
     plt.show()
     return fig
 
 def main():
-    # plot_benchmark()
-    plot_gpu_data(bin_range=5)
+    plot_benchmark_with_str()
+    # plot_gpu_data(bin_range=5)
     # plot_gpu_data("gpu_util %", "Utilization", "%")
-    # plot_gpu_data("power_draw W", "Power Draw", "W")
+    # plot_gpu_data("power_draw W", "Power Draw", "W", bin_range=5)
     # plot_gpu_before_after()
+    # plot_gpu_before_after("power_draw W", "Power Draw", "W", file_name="power")
 
 if __name__ == "__main__":
     main()
