@@ -111,6 +111,11 @@ def plot_gpu_data(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", 
     
     If bin_range (in seconds) is provided, the temperature readings are averaged within
     each bin before plotting.
+
+    The function now also trims the raw data by:
+      1. Removing the last 20 seconds.
+      2. Removing an initial segment so that the remaining duration equals the benchmark time,
+         as read from a CSV file in the folder.
     
     Returns the plot figure for further customization if needed.
     """
@@ -122,27 +127,25 @@ def plot_gpu_data(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", 
         if "mylogfile.log" not in files:
             continue
 
-        # Extract username and GPU label from CSV filenames with expected format
+        # Identify CSV files in the folder (could include the benchmark CSV)
         csv_files = [f for f in files if f.endswith(".csv")]
         if not csv_files:
             continue
-            
+
         # Expected filename format: benchmark__<username>__NVIDIA_GeForce_RTX...
         gpu_label = None
         machine_type = "Personal Machine"
-        
         for csv_file in csv_files:
             parts = csv_file.split("__")
             if len(parts) < 3:
                 continue
-                
+
             username = parts[1]  # Extract username correctly from filename
             gpu_label = parts[2].replace("_", " ")
-            
             # Determine machine type based on username
             machine_type = get_machine(username)
             break
-        
+
         if not gpu_label:
             gpu_label = "Unknown GPU"
 
@@ -178,6 +181,48 @@ def plot_gpu_data(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", 
                 if timestamps and avg_temps:
                     base_time = timestamps[0]
                     elapsed = [(t - base_time).total_seconds() for t in timestamps]
+
+                    # ----- TRIMMING THE DATA BASED ON BENCHMARK TIME -----
+                    # Remove the last 20 seconds from the run.
+                    total_elapsed = elapsed[-1]
+                    trimmed_end = total_elapsed - 20
+
+                    # Attempt to read the benchmark time from one of the CSV files.
+                    # The benchmark CSV is assumed to have a header "Benchmark Time (s)".
+                    benchmark_time = None
+                    for f in csv_files:
+                        fpath = os.path.join(root, f)
+                        try:
+                            with open(fpath, "r", newline="") as fcsv:
+                                csv_reader = csv.reader(fcsv)
+                                header = next(csv_reader, None)
+                                if header and header[0].strip() == "Benchmark Time (s)":
+                                    row = next(csv_reader, None)
+                                    if row:
+                                        benchmark_time = float(row[0])
+                                        break
+                        except Exception:
+                            continue
+
+                    if benchmark_time is None:
+                        print(f"Benchmark time not found in {root}, skipping trimming for this run.")
+                    else:
+                        # We now want the remaining data (after chopping off the final 20 sec)
+                        # to span exactly the benchmark time.
+                        # Calculate the extra time at the beginning to drop:
+                        desired_duration = benchmark_time
+                        offset = max(trimmed_end - desired_duration, 0)
+                        # Filter the data to include only points between [offset, trimmed_end]
+                        new_elapsed = []
+                        new_temps = []
+                        for t, temp in zip(elapsed, avg_temps):
+                            if offset <= t <= trimmed_end:
+                                new_elapsed.append(t - offset)  # rebase time to zero
+                                new_temps.append(temp)
+                        elapsed = new_elapsed
+                        avg_temps = new_temps
+                    # ----- END TRIMMING -----
+
                     # Store the machine type along with the data
                     gpu_runs.setdefault(gpu_label, []).append((elapsed, avg_temps, machine_type))
         except Exception as e:
@@ -188,52 +233,50 @@ def plot_gpu_data(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", 
         print("No data to plot")
         return None
 
-    # Set up the plot
+    # Set up the main plot
     fig, ax = plt.subplots(figsize=(12, 6))
-    
+
     # Define markers for different GPUs
     markers = ['o', 'v', '^', '<', '>', 's', 'p', '*', 'h', 'H', 'D', 'X', '+', 'x']
-    
+
     # Define pastel colors for machine types
     machine_colors = {
         "Supercomputer": "#6495ED",  # Pastel blue
         "Personal Machine": "#FF6961"  # Pastel red
     }
-    
+
     # Assign a unique marker to each unique GPU model
     unique_gpus = list(gpu_runs.keys())
     gpu_markers = {gpu: markers[i % len(markers)] for i, gpu in enumerate(unique_gpus)}
-    
+
     # Keep track of which combinations of (gpu, machine_type) we've seen
     # to avoid duplicate legend entries
     legend_entries = set()
-    
+
     for gpu, runs in gpu_runs.items():
         # Get marker for this GPU
         marker = gpu_markers[gpu]
-        
+
         for elapsed, temps, machine_type in runs:
             # Determine if it's a supercomputer
             is_supercomputer = "HiPerGator" in machine_type or "Afton" in machine_type
             machine_category = "Supercomputer" if is_supercomputer else "Personal Machine"
             color = machine_colors[machine_category]
-            
+
             # For the label, combine GPU model and machine type
             legend_key = (gpu, machine_category)
-            
-            # Only add to legend if we haven't seen this combination before
             if legend_key not in legend_entries:
-                label = f"{gpu} ({machine_category})"
+                label = f"{gpu}"
                 legend_entries.add(legend_key)
             else:
-                label = None  # Don't add to legend if already there
-            
+                label = None  # Don't add duplicate legend entries
+
             if bin_range is not None and bin_range > 0:
                 binned_times = {}
                 for t, temp in zip(elapsed, temps):
                     bin_key = int(t // bin_range)
                     binned_times.setdefault(bin_key, []).append((t, temp))
-                
+
                 # Average the data in each bin
                 binned_x = []
                 binned_y = []
@@ -244,25 +287,23 @@ def plot_gpu_data(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", 
                     avg_temp = np.mean(temps_in_bin)
                     binned_x.append(avg_time)
                     binned_y.append(avg_temp)
-                
+
                 ax.plot(binned_x, binned_y, label=label, 
-                       color=color, linestyle='-', alpha=0.8,
-                       marker=marker, markersize=6, markevery=max(1, len(binned_x)//20))
+                        color=color, linestyle='-', alpha=0.8,
+                        marker=marker, markersize=6, markevery=max(1, len(binned_x)//20))
             else:
                 ax.plot(elapsed, temps, label=label, 
-                       color=color, linestyle='-', alpha=0.8,
-                       marker=marker, markersize=6, markevery=max(1, len(elapsed)//20))
+                        color=color, linestyle='-', alpha=0.8,
+                        marker=marker, markersize=6, markevery=max(1, len(elapsed)//20))
 
     ax.set(xlabel='Time (seconds)', ylabel=f'{y_axis} ({units})', title=f'GPU {y_axis} Over Time')
     ax.grid(True, linestyle='--', alpha=0.7)
-    
-    # Create a legend that's easier to read with many entries
+
     if len(legend_entries) > 5:
         ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3)
     else:
         ax.legend()
 
-    # Calculate and print average temperature for each GPU and machine type
     for gpu, runs in gpu_runs.items():
         for machine_category in ["Supercomputer", "Personal Machine"]:
             category_temps = []
@@ -271,20 +312,29 @@ def plot_gpu_data(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", 
                 if (machine_category == "Supercomputer" and is_supercomputer) or \
                    (machine_category == "Personal Machine" and not is_supercomputer):
                     category_temps.extend(temps)
-            
+
             if category_temps:
                 print(f"Average {y_axis} for {gpu} on {machine_category}: {np.mean(category_temps):.1f}{units}")
 
     plt.tight_layout()
-    
-    # Save the plot to PDF
+
+    # --- Add Inset for Machine Type Swatches ---
+    inset_ax = fig.add_axes([0.75, 0.75, 0.2, 0.2])
+    inset_ax.axis('off')
+    import matplotlib.patches as mpatches
+    personal_patch = mpatches.Patch(color=machine_colors["Personal Machine"], label="Personal Machine")
+    super_patch = mpatches.Patch(color=machine_colors["Supercomputer"], label="Supercomputer")
+    inset_ax.legend(handles=[personal_patch, super_patch], loc='center', frameon=False)
+    inset_ax.set_title("Machine Types", fontsize=10)
+
     pdf_filename = f'{y_axis.lower()}_plot.pdf'
     plt.savefig(pdf_filename, bbox_inches='tight')
     print(f"Plot saved to {pdf_filename}")
-    
+
     plt.show()
 
     return fig
+
 
 def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units="°C", window_size=7):
     """
@@ -593,10 +643,10 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
 
 def main():
     # plot_benchmark()
-    # plot_gpu_data(bin_range=5)
+    plot_gpu_data(bin_range=5)
     # plot_gpu_data("gpu_util %", "Utilization", "%")
     # plot_gpu_data("power_draw W", "Power Draw", "W")
-    plot_gpu_before_after()
+    # plot_gpu_before_after()
 
 if __name__ == "__main__":
     main()
