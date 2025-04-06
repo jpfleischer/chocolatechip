@@ -737,7 +737,8 @@ def plot_gpu_before_after(csv_col_name='gpu_temp C', y_axis="Temperature", units
     return fig
 
 def main():
-    plot_benchmark_with_str()
+    plot_benchmark()
+    # plot_benchmark_with_str()
     # plot_gpu_data(bin_range=5)
     # plot_gpu_data("gpu_util %", "Utilization", "%")
     # plot_gpu_data("power_draw W", "Power Draw", "W", bin_range=5)
