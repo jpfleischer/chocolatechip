@@ -78,3 +78,11 @@ Fan Speed - NVIDIA TITAN RTX #1
 
 stream.py does mem usage over time for num streams, not resolution related.
 jsut change the parameter to gpu plotter.
+
+## Long paths
+
+This may be necessary
+
+```bash
+git config --global core.longpaths true
+```
