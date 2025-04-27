@@ -30,6 +30,24 @@ make # to run with docker, may require:
 make arun # to run with cpu, this is a bad idea
 ```
 
+# Cars
+
+https://app.globus.org go here and log in
+click Transfer or Sync to
+In the left hand box put annotated_traffic_images
+in the right hand box put UVA Standard Security Storage
+
+uva's scratch, make  a folder named car_data
+
+hit Select All in the left hand for annotated_traffic_images 
+hit Start
+
+
+```bash
+
+```
+
+# Other Notes
 
 find stephanes discord server
 
