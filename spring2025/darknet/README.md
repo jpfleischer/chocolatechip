@@ -32,6 +32,17 @@ make arun # to run with cpu, this is a bad idea
 
 # Cars
 
+To update the images from signal to HiPerGator
+
+```bash
+# this only gets the pictures that were resized from darkmark.
+# our file quota is being reached so i am getting only what is necessary
+rsync -av darkmark_image_cache/* j.fleischer@hpg.rc.ufl.edu:/blue/ranka/j.fleischer/annotation_data/darkmark_image_cache/.
+
+# then the cfg and the other stuff. it gets the weights too which arent necessary .....
+rsync -av --exclude='*/' ./ j.fleischer@hpg.rc.ufl.edu:/blue/ranka/j.fleischer/annotation_data/.
+```
+
 https://app.globus.org go here and log in
 click Transfer or Sync to
 In the left hand box put annotated_traffic_images
