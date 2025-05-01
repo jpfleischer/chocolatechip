@@ -11,9 +11,17 @@ def get_times(iid: int, period: str = 'before') -> list:
         return times_dict[iid][period]
     except KeyError:
         raise ValueError(f"Invalid intersection ID ({iid}) or period ({period}) in times config.")
+    
+def is_conflict_type(row, code):
+    d1 = ''.join(c for c in str(row['cluster1']) if c.isupper())
+    d2 = ''.join(c for c in str(row['cluster2']) if c.isupper())
+    return (d1.endswith(code[0]) and d2.endswith(code[1])) \
+        or (d1.endswith(code[1]) and d2.endswith(code[0]))
+
 
 def fetch_or_cache_data(my, iid, start_time, end_time, p2v, df_type='track'):
-    cache_filename = f"cache_{iid}"
+    cache_filename = f"cache_{iid}_{p2v}"
+
     if df_type == 'track':
         cache_filename += "_track"
     elif df_type == 'trackthru':
@@ -101,49 +109,102 @@ def count_conflicts_by_type(df, conflict_type):
 
     return pd.Series(counts)
 
-def analyze_and_plot(iid, p2v, period):
+def analyze_and_plot(iid, p2v, period, hourly_conflict=None):
     print(f"Running analysis for intersection {iid} ({period})")
     ttc_df = get_intersection_data(iid, p2v, period=period)
-    
-    # Convert the timestamp column to datetime and extract the week number
-    ttc_df['start_time'] = pd.to_datetime(ttc_df['timestamp'], errors='coerce')
+
+    # --- (1) your original weekly P2V logic, verbatim ---
+    ttc_df['start_time']  = pd.to_datetime(ttc_df['timestamp'], errors='coerce')
     ttc_df['week_number'] = ttc_df['start_time'].dt.isocalendar().week
 
     weekly_counts_list = []
-    weeks = ttc_df['week_number'].unique()
+    for wk in ttc_df['week_number'].unique():
+        dfw       = ttc_df[ttc_df['week_number'] == wk]
+        cnts      = count_conflicts_by_type(dfw, 'P2V')
+        cnts['week_number'] = wk
+        weekly_counts_list.append(cnts)
 
-    for week in weeks:
-        df_week = ttc_df[ttc_df['week_number'] == week]
-        counts = count_conflicts_by_type(df_week, 'P2V')
-        counts['week_number'] = week
-        weekly_counts_list.append(counts)
+    weekly_counts  = pd.DataFrame(weekly_counts_list)
+    average_counts = weekly_counts[
+        ['Left Turning Vehs','Right Turning Vehs','Through Vehs']
+    ].mean().reset_index()
+    average_counts.columns = ['Movement Type','Average Count']
 
-    weekly_counts = pd.DataFrame(weekly_counts_list)
-    average_counts = weekly_counts[['Left Turning Vehs', 'Right Turning Vehs', 'Through Vehs']].mean().reset_index()
-    average_counts.columns = ['Movement Type', 'Average Count']
-
-    print("Average weekly conflicts by movement type:")
-    print(average_counts)
-
-    # Plot the average counts with a fixed y-limit
+    # ←— exactly your bar chart block:
     plt.figure(figsize=(7, 5))
-    plt.bar(average_counts['Movement Type'], average_counts['Average Count'], color=['blue', 'green', 'red'])
+    plt.bar(average_counts['Movement Type'],
+            average_counts['Average Count'],
+            color=['blue', 'green', 'red'])
     plt.xlabel('Movement Type')
     plt.ylabel('Average Number of Conflicts per Week')
     plt.ylim(0, 100)
-    plt.title(f'Average Weekly P2V Conflicts by Movement Type at Intersection {iid} ({period.capitalize()})')
+    plt.title(f'Average Weekly P2V Conflicts by Movement Type '
+              f'at Intersection {iid} ({period.capitalize()})')
     plt.grid(axis='y', alpha=0.75)
     plt.tight_layout()
 
-    filename_png = f'average_p2v_conflicts_by_movement_type_intersection_{iid}_{period}.png'
-    filename_pdf = f'average_p2v_conflicts_by_movement_type_intersection_{iid}_{period}.pdf'
-    plt.savefig(filename_png, dpi=300, bbox_inches='tight')
-    plt.savefig(filename_pdf, dpi=300, bbox_inches='tight')
+    fn_png = (f'average_p2v_conflicts_by_movement_type_intersection_'
+              f'{iid}_{period}.png')
+    fn_pdf = fn_png.replace('.png', '.pdf')
+    plt.savefig(fn_png, dpi=300, bbox_inches='tight')
+    plt.savefig(fn_pdf, dpi=300, bbox_inches='tight')
     plt.close()
-    print(f"Saved plots as {filename_png} and {filename_pdf}")
+    print(f"Saved weekly P2V plot as {fn_png}")
+
+    # --- (2) now your working LOT logic, generalized ---
+    if hourly_conflict:
+        # map acronym to its two direction letters
+        V2V_MAP = {'LOT': ('L','T'),
+                   'RMT': ('R','T'),
+                   'ROL': ('R','L')}
+        if hourly_conflict not in V2V_MAP:
+            raise ValueError(f"Unsupported hourly_conflict: {hourly_conflict}")
+        dirA, dirB = V2V_MAP[hourly_conflict]
+
+        # define exactly your working endswith test
+        def is_conflict_type(row):
+            d1 = ''.join(c for c in str(row['cluster1']) if c.isupper())
+            d2 = ''.join(c for c in str(row['cluster2']) if c.isupper())
+            return ((d1.endswith(dirA) and d2.endswith(dirB)) or
+                    (d1.endswith(dirB) and d2.endswith(dirA)))
+
+        # extract date/hour
+        ttc_df['date'] = ttc_df['start_time'].dt.date
+        ttc_df['hour'] = ttc_df['start_time'].dt.hour
+
+        # filter & count
+        v2v_df        = ttc_df[ttc_df.apply(is_conflict_type, axis=1)]
+        hourly_counts = v2v_df.groupby('hour').size()
+        n_days        = ttc_df['date'].nunique()
+        average_hour  = (hourly_counts / n_days) \
+                        .reindex(range(24), fill_value=0)
+
+        # plot just like your working LOT graph
+        plt.figure(figsize=(8,4))
+        plt.plot(average_hour.index, average_hour.values, marker='o')
+        hours = list(range(24))
+        labels = [f"{(h%12) or 12} {'AM' if h < 12 else 'PM'}" for h in hours]
+        plt.xticks(hours, labels, rotation=45)
+
+        plt.xlabel('Hour of Day')
+        plt.ylabel(f'Average {hourly_conflict} Conflicts per Hour')
+        plt.title(f'Average Hourly {hourly_conflict} Conflicts at '
+                  f'Intersection {iid} ({period})')
+        plt.grid(True, axis='y', alpha=0.6)
+        plt.tight_layout()
+
+        fn2 = f'hourly_{hourly_conflict}_{iid}_{period}.png'
+        plt.savefig(fn2, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"Saved hourly {hourly_conflict} plot as {fn2}")
+
+
 
 # Main Loop: Run analysis for both 'before' and 'after'
 iid = 3287
-p2v = '1'
+p2v = 0
 for period in ['before', 'after']:
+    # analyze_and_plot(iid, p2v, period, hourly_conflict='LOT')
     analyze_and_plot(iid, p2v, period)
+
+
