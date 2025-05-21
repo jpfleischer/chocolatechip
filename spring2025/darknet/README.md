@@ -53,9 +53,12 @@ uva's scratch, make  a folder named car_data
 hit Select All in the left hand for annotated_traffic_images 
 hit Start
 
+On Afton,
 
 ```bash
-
+cd /scratch/$USER/car_data
+find . -type f -exec sed -i 's#/blue/ranka/j.fleischer/annotation_data/#/scratch/dje5dj/car_data/#g' {} +
+find . -type f -exec sed -i 's#/data/ke_images_newrepo/darknet/data/combined/#/scratch/dje5dj/car_data/#g' {} +
 ```
 
 # Other Notes
