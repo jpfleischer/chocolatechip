@@ -1,5 +1,6 @@
 from chocolatechip.MySQLConnector import MySQLConnector
 from chocolatechip.times_config import times_dict
+import datetime
 import numpy as np
 from yaspin import yaspin
 from yaspin.spinners import Spinners
@@ -12,6 +13,83 @@ import io
 import base64
 
 
+def aggregate_period_counts(times: list,
+                            df_type: str,
+                            params: dict,
+                            pedestrian_counting: bool = False,
+                            p2v: bool = None,
+                            conflict_type: str = None) -> pd.DataFrame:
+    """
+    1) Fetch everything from the very first start to the very last end
+    2) Apply your class / p2v filters
+    3) Floor timestamps to 15-minute bins
+    4) Count uniques per bin
+    5) Reindex on a true 15-min grid globally, but only interpolate *within* each day's recorded window,
+       then drop any bins outside the actual video intervals so you never extrapolate past the final clip.
+    """
+    conn = MySQLConnector()
+    column_name = 'track_id' if df_type == 'track' else 'unique_ID1'
+
+    # 1) Big fetch
+    params['start_date'], params['end_date'] = times[0], times[-1]
+    print(f"Fetching {df_type} data from {params['start_date']} to {params['end_date']}")
+    full_df = conn.handleRequest(params, df_type)
+    print(f"Fetched {len(full_df)} rows")
+    full_df['timestamp'] = pd.to_datetime(full_df['timestamp'])
+
+    # 2) Filters
+    if df_type == 'track':
+        if pedestrian_counting:
+            full_df = full_df[full_df['class'] == 'pedestrian']
+        else:
+            full_df = full_df[full_df['class'] != 'pedestrian']
+    else:
+        if p2v:
+            full_df = full_df[full_df['p2v'] == 1]
+            if conflict_type in ('left turning', 'right turning', 'thru'):
+                code_map = {
+                    'left turning': (3,4),
+                    'right turning': (1,2),
+                    'thru': (5,6)
+                }
+                full_df = full_df[full_df['conflict_type'].isin(code_map[conflict_type])]
+        else:
+            full_df = full_df[full_df['p2v'] == 0]
+
+    # 3) Bin into 15-minute
+    full_df['period_start'] = full_df['timestamp'].dt.floor('15min')
+
+    # 4) Unique-count per bin
+    counts = (
+        full_df
+        .groupby('period_start')[column_name]
+        .nunique()
+        .rename('count')
+    )
+
+    # 5a) Build a global 15-min grid
+    start = pd.to_datetime(times[0]).floor('15min')
+    end   = pd.to_datetime(times[-1]).floor('15min')
+    grid  = pd.date_range(start, end, freq='15min')
+
+    df_pc = counts.reindex(grid).to_frame()
+
+    # 5b) Interpolate only *within* each calendar day
+    df_pc['count'] = (
+        df_pc['count']
+          .groupby(df_pc.index.date)
+          .transform(lambda grp: grp.interpolate(method='time'))
+    )
+
+    # 5c) Drop any bins that lie outside the actual video intervals
+    #     (those will still be NaN after the interpolation above)
+    df_pc = df_pc[df_pc['count'].notna()]
+
+    return df_pc
+
+
+
+
 def heatmap_generator(df_type: str,
                       mean: bool,
                       intersec_id: int,
@@ -19,362 +97,215 @@ def heatmap_generator(df_type: str,
                       p2v: bool = None,
                       conflict_type: str = None,
                       pedestrian_counting: bool = False,
-                      return_agg: bool = False   # <-- NEW
-                      ):
+                      return_agg: bool = False):
     """
-    Generate a heatmap (and lineplot) for either 'track' or 'conflict' data.
-    If return_agg=True, return a summarized DataFrame grouped by day_of_week
-    for possible downstream normalizing.
+    Generate a heatmap (and lineplot) for 'track' or 'conflict' data,
+    with missing 15-min clips interpolated.
     """
-
+    # 1) Validate
     if df_type not in ['track', 'conflict']:
         raise ValueError('df_type must be "track" or "conflict"')
-    
     if df_type == 'conflict' and p2v is None:
-        raise ValueError('p2v must be True or False when df_type is "conflict"')
-    
-    # if df_type == 'conflict' and conflict_type is None:
-        # raise ValueError('conflict_type must be left right or thru when df_type is "conflict" and p2v true')
-    
-    if p2v is False and conflict_type in ['left turning', 'right turning', 'thru']:
-        raise ValueError('try commenting the three lines and uncommenting the one, or make p2v true')
+        raise ValueError('p2v must be True or False for conflict data')
+    if p2v is False and conflict_type in ['left turning','right turning','thru']:
+        raise ValueError('use p2v=True or conflict_type=None')
 
-    #5&6 is for through
-    #3&4 is for left turn
-    #1&2 are for right turn
-
-
+    # 2) Intersection lookups
     intersec_lookup = {
-        3287: "Stirling Road and N 68th Avenue",
-        3248: "Stirling Road and N 66th Avenue",
-        3032: "Stirling Road and SR-7",
-        3265: "Stirling Road and University Drive",
+        3287: "Stirling Road and N 68th Avenue", 3248: "Stirling Road and N 66th Avenue",
+        3032: "Stirling Road and SR-7", 3265: "Stirling Road and University Drive",
         3334: "Stirling Road and Carriage Hills Drive/SW 61st Avenue",
-        3252: "Stirling Road and Davie Road Extension",
-        5060: "SW 13th St and University Ave"
+        3252: "Stirling Road and Davie Road Extension", 5060: "SW 13th St and University Ave"
     }
+    cam_lookup = {3287:24,3248:27,3032:23,3265:30,3334:33,3252:36,5060:7}
 
-    cam_lookup = {
-        3287: 24,
-        3248: 27,
-        3032: 23,
-        3265: 30,
-        3334: 33,
-        3252: 36,
-        5060: 7
-    }
-
+    # 3) Base params
     params = {
-        'start_date': '2024-02-26 07:00:00',
-        'end_date': '2024-02-27 00:00:00',
         'intersec_id': intersec_id,
         'cam_id': cam_lookup[intersec_id],
-        'p2v': 0 if p2v is False else 1
+        'p2v': 0 if p2v is False else 1,
+        'start_date': None,
+        'end_date': None
     }
 
+    # 4) Time windows
     try:
         times = times_dict[intersec_id][period]
     except KeyError:
-        raise ValueError(f"Intersection {intersec_id} or period '{period}' not found in times_dict.")
+        raise ValueError(f"Missing period '{period}' for intersection {intersec_id}")
 
-    omega = pd.DataFrame()
+    # 5) Build interpolated counts via single query
+    df_pc = aggregate_period_counts(
+        times, df_type, params,
+        pedestrian_counting=pedestrian_counting,
+        p2v=p2v,
+        conflict_type=conflict_type
+    )
 
-    for i in range(0, len(times), 2):
-        params['start_date'] = times[i]
-        params['end_date'] = times[i+1]
-        params['start_date_datetime_object'] = pd.to_datetime(params['start_date'])
-        params['end_date_datetime_object'] = pd.to_datetime(params['end_date'])
+    # 6) Enrich for plotting
+    df_pc['day_of_week'] = df_pc.index.day_name()
+    df_pc['hour']       = df_pc.index.hour
+    df_pc['date']       = df_pc.index.date
 
-        my = MySQLConnector()
+    # 7) If requested, return aggregated summary
+    if return_agg:
+        agg = df_pc.groupby(['day_of_week','date'])['count']\
+                   .sum().reset_index(name='count')
+        total = agg.groupby('day_of_week')['count']\
+                   .sum().reset_index(name='total_count')
+        days  = agg.groupby('day_of_week')['date']\
+                   .nunique().reset_index(name='num_days')
+        merged = pd.merge(total, days, on='day_of_week')
+        merged['average_count'] = merged['total_count'] / merged['num_days']
+        return merged
 
-        with yaspin(Spinners.pong, text=f"Fetching data from MySQL starting at {times[i]}") as sp:
-            df = my.handleRequest(params, df_type)
-
-            
-        df['day_of_week'] = df['timestamp'].dt.day_name()
-
-
-        # print(df.to_string())
-        # describe df
-        # Convert 'day_of_week' to categorical to maintain order of days in the heatmap
-        df['day_of_week'] = pd.Categorical(df['day_of_week'], categories=
-        ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday', 'Sunday'],
-        ordered=True)
-
-        # print(df)
-        # print(params['start_date'], params['end_date'])
-        # time.sleep(2)
-
-        # print(df.head())
-        # print(len(df))
-        omega = pd.concat([omega, df])
-
-    # print(omega['timestamp'].unique())
-    # time.sleep(1000)
-
+    # 8) Titles & filenames
     if df_type == 'track':
-        if pedestrian_counting:
-            omega = omega[omega['class'] == 'pedestrian']
-        else:
-            omega = omega[omega['class'] != 'pedestrian']
-    else:
-        if p2v:
-            if conflict_type == 'left turning':
-                omega = omega[((omega['p2v']==1)&((omega['conflict_type'] == 3)|(omega['conflict_type'] == 4)))]
-            elif conflict_type == 'right turning':
-                omega = omega[((omega['p2v']==1)&((omega['conflict_type'] == 1)|(omega['conflict_type'] == 2)))]
-            elif conflict_type == 'thru':
-                omega = omega[((omega['p2v']==1)&((omega['conflict_type'] == 5)|(omega['conflict_type'] == 6)))]
-            elif conflict_type == 'all':
-                omega = omega[(omega['p2v']==1)]
-
-    column_name = 'track_id' if df_type == 'track' else 'unique_ID1'
-
-    # Convert 'timestamp' to date only
-    omega['date'] = omega['timestamp'].dt.date
-
-    print('!')
-    print(omega['date'].unique())
-
-    # Create a new column 'track_count' that represents the count of unique conflicts for each unique combination of 'day_of_week' and 'hour_digit'
-    omega['track_count'] = omega.groupby(['day_of_week', 'hour_digit'])[column_name].transform('nunique')
-
-        
-    if df_type == "track":
         if pedestrian_counting:
             title = (f"Heatmap of {'average' if mean else 'total'} pedestrian counts "
-                    f"by day of week and hour\n{intersec_lookup[params['intersec_id']]}")
+                     f"by day of week and hour\n{intersec_lookup[intersec_id]}")
+            label = 'peds'
         else:
             title = (f"Heatmap of {'average' if mean else 'total'} vehicle counts "
-                    f"by day of week and hour\n{intersec_lookup[params['intersec_id']]}")
-
-        # For track data: peds vs vehs
-        track_label = "peds" if pedestrian_counting else "vehs"
-        name = (f"heatmap_{params['intersec_id']}_{track_label}_{df_type}_"
-                f"{'mean' if mean else 'sum'}"
-                f"_{conflict_type.replace(' ', '_') if conflict_type else 'all'}")
-
-    elif df_type == "conflict":
+                     f"by day of week and hour\n{intersec_lookup[intersec_id]}")
+            label = 'vehs'
+    else:
         if p2v:
             title = (f"Heatmap of {'average' if mean else 'total'} pedestrian-vehicle conflicts "
-                    f"by day of week and hour\n{intersec_lookup[params['intersec_id']]} "
-                    f"- {conflict_type.title()} Vehicles")
+                     f"by day of week and hour\n{intersec_lookup[intersec_id]} - {conflict_type.title()} Vehicles")
         else:
             title = (f"Heatmap of {'average' if mean else 'total'} vehicle-vehicle conflicts "
-                    f"by day of week and hour\n{intersec_lookup[params['intersec_id']]}")
-
-        # For conflict data: p2v vs v2v
-        conflict_label = "p2v" if p2v else "v2v"
-        name = (f"heatmap_{params['intersec_id']}_{conflict_label}_{df_type}_"
-                f"{'mean' if mean else 'sum'}"
-                f"_{conflict_type.replace(' ', '_') if conflict_type else 'all'}")
-
-    if not mean:
-        # Convert 'timestamp' to date only and create a new column 'date_weekday_short' that combines date and abbreviated weekday
-
-        
-        omega['date'] = omega['timestamp'].dt.date
-        omega['weekday_short'] = omega['timestamp'].dt.day_name().str[:3]
-        omega['date_weekday_short'] = omega['date'].astype(str) + ' (' + omega['weekday_short'] + ')'
-        
-        # Create a pivot table
-        pivot_table = omega.pivot_table(values=column_name, index='date_weekday_short', columns='hour_digit', aggfunc='count', fill_value=0)
-
-        # Create a heatmap
-        plt.figure(figsize=(10, 6))
-        if not p2v:
-            vmax = 20 if df_type == 'conflict' else 4200
-            cmap = 'YlGnBu'
-        else:
-            vmax = 40 if df_type == 'conflict' else 4200
-            cmap = 'inferno'
-
-        if df_type == 'track':
-            cmap = 'viridis'
-
-        sns.heatmap(pivot_table, cmap=cmap, annot=True, fmt='.0f', vmin=0, vmax=vmax, annot_kws={"size": 10},
-                    cbar_kws={'format': plt.FuncFormatter(lambda x, pos: f'{int(x)}')})
-
-        # title = f'Heatmap of {"average" if mean else "total"} track counts by date and hour\n{intersec_lookup[params["intersec_id"]]}' if df_type == 'track' else f'Heatmap of {"average" if mean else "total"} {"V2V" if not p2v else "P2V"} conflict counts by date and hour\n{intersec_lookup[params["intersec_id"]]}{' - ' + conflict_type.title() + ' Vehicles' if conflict_type else ''}'
-        plt.title(title, fontsize=14)
-        plt.xlabel('Hour of Day')
-        plt.ylabel('Date (Weekday)')
-
-        #change here 1
-        plt.savefig(f'{name}.pdf', bbox_inches='tight')
-        plt.savefig(f'{name}.png', bbox_inches='tight')
-
-        # Create a line plot
-        plt.figure(figsize=(10, 6))
-        for day in pivot_table.index:
-            plt.plot(pivot_table.columns, pivot_table.loc[day], label=day)
-
-        plt.title(title.replace('Heatmap', 'Lineplot'))
-        plt.xlabel('Hour of Day')
-        plt.ylabel('Track Count')
-        plt.legend(title='Day of Week', loc='upper left', bbox_to_anchor=(1, 1))
-        plt.grid(True)
-        # Set x-ticks to all hours
-        plt.xticks(pivot_table.columns)
-        # Set y-ticks to integer format
-        plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: int(x)))
-        plt.ylim(0, vmax)
-
-        plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
-        plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight')
-        
-        img_buffer = io.BytesIO()
-        plt.savefig(img_buffer, format='png', bbox_inches='tight')
-        
-        base64_img = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
-
-        return base64_img
-
-
-    omega['hour'] = omega['timestamp'].dt.hour
-    
-    # Filter data to keep only non-zero track counts
-    non_zero_tracks = omega.groupby(['hour', 'day_of_week', 'date']).size().reset_index(name='track_count')
-    non_zero_tracks = non_zero_tracks[non_zero_tracks['track_count'] > 0]
-    # non_zero_tracks = non_zero_tracks
-
-    # Calculate the number of unique days for each hour and weekday with non-zero track counts
-    unique_days_per_hour_and_weekday = non_zero_tracks.groupby(['hour', 'day_of_week'])['date'].nunique().reset_index(name='unique_day_count')
-
-    # Create a DataFrame with the number of tracks per hour and per weekday
-    tracks_per_hour_and_weekday = omega.groupby(['hour', 'day_of_week']).size().reset_index(name='track_count')
-
-    # Merge the unique days DataFrame with the track counts DataFrame
-    merged_df = pd.merge(tracks_per_hour_and_weekday, unique_days_per_hour_and_weekday, on=['hour', 'day_of_week'], how='left')
-
-    # Fill NaN values in unique_day_count with 1 to handle cases where there are no non-zero track counts
-    merged_df['unique_day_count'] = merged_df['unique_day_count'].fillna(1)
-
-    # Calculate the average track count
-    merged_df['average_track_count'] = merged_df['track_count'] / merged_df['unique_day_count']
-
-    # Create a pivot table with 'average_track_count' as values, 'day_of_week' as index, and 'hour' as columns
-    pivot_table = merged_df.pivot_table(
-        values='average_track_count', 
-        index='day_of_week', 
-        columns='hour', 
-        fill_value=0
+                     f"by day of week and hour\n{intersec_lookup[intersec_id]}")
+        label = 'p2v' if p2v else 'v2v'
+    name = (
+        f"heatmap_{intersec_id}_{period}_"
+        f"{label}_{df_type}_"
+        f"{'mean' if mean else 'sum'}_"
+        f"{conflict_type.replace(' ', '_') if conflict_type else 'all'}"
     )
-    # Ensure that the pivot table includes all hours from 7 to 18
-    for hour in range(7, 19):
-        if hour not in pivot_table.columns:
-            pivot_table[hour] = 0
 
-    # Sort the columns to ensure hours are in order
-    pivot_table = pivot_table.sort_index(axis=1)
+    # 9) Build pivot
+    if mean:
+        # 1) sum the four 15-min bins into each hour, per day
+        hourly = (
+            df_pc
+            .groupby([df_pc.index.date, df_pc.index.hour])['count']
+            .sum()                        # total vehicles per day-per-hour
+            .reset_index(name='hourly_count')
+        )
+
+        # 2) clean up the column names
+        hourly.rename(columns={'level_0':'date','level_1':'hour'}, inplace=True)
+        hourly['date'] = pd.to_datetime(hourly['date'])
+
+        # 3) extract the weekday name
+        day_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+        hourly['day_of_week'] = pd.Categorical(
+            hourly['date'].dt.day_name(),
+            categories=day_order,
+            ordered=True
+        )
+
+        
+        # 1) find which hours each weekday actually appears in:
+        hours_by_day = (
+            hourly
+            .groupby(['day_of_week','hour'])
+            .size()
+            .unstack(fill_value=0)
+            # this is a DataFrame: rows=day_of_week, cols=hour, values=#Mondays with data at that hour
+        )
+
+        # 2) pick only hours where *all* weekdays have at least one sample:
+        common_hours = [
+            h for h in hours_by_day.columns
+            if (hours_by_day[h] > 0).all()
+        ]
+        print(hours_by_day.loc['Monday'])
 
 
-    print(pivot_table)
+        # 3) when you pivot for the mean, drop all other hours:
+        pivot_table = (
+            hourly
+            .pivot_table(
+            index='day_of_week',
+            columns='hour',
+            values='hourly_count',
+            aggfunc='mean'
+            # no fill_value
+            )
+        )
 
-    vmax = 35 if df_type == 'conflict' else 150
-
-    if not p2v:        
-        cmap = 'YlGnBu'
+        pivot_table = pivot_table.loc[:, common_hours]
     else:
-        cmap = 'inferno'
+        df_pc['weekday_short'] = df_pc['day_of_week'].str[:3]
+        df_pc['date_weekday_short'] = df_pc['date'].astype(str) + ' (' + df_pc['weekday_short'] + ')'
+        pivot_table = df_pc.pivot_table(
+            values='count', index='date_weekday_short', columns='hour',
+            aggfunc='sum', fill_value=0
+        )
 
-    if df_type == 'track':
-        if not pedestrian_counting:
-            vmax = 7000
-        cmap = 'YlGnBu'
-
-    # Create a heatmap
-    plt.figure(figsize=(8, 5))
-    sns.heatmap(pivot_table, cmap=cmap, annot=True, fmt='.0f', vmin=0, vmax=vmax, annot_kws={"size": 10},
-            cbar_kws={'format': plt.FuncFormatter(lambda x, pos: f'{int(x)}')})
-
-    if df_type == "track":
-        if pedestrian_counting:
-            print('number of pedestrians:', len(omega[omega['class'] == 'pedestrian']))
-            title = f'Heatmap of average pedestrian counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}' 
-        else:
-            print('number of vehicles:', len(omega[omega['class'] != 'pedestrian']))
-            title = f'Heatmap of average vehicle counts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}'
+    pivot_table = pivot_table.loc[
+        :, 
+        (pivot_table.columns >= 7) & (pivot_table.columns <= 19)
+    ]
 
 
-    #change here 2 
-    
-    else:
-        if p2v:
-            title = f'Heatmap of average pedestrian-vehicle conflicts by day of week and hour\n{intersec_lookup[params["intersec_id"]]} - {conflict_type.title()} Vehicles' 
-        else:
-            title = f'Heatmap of average vehicle-vehicle conflicts by day of week and hour\n{intersec_lookup[params["intersec_id"]]}' 
-    # plt.title(title, fontsize=14)
-    plt.xlabel('Hour of Day', fontsize=12)
-    plt.ylabel('Day of Week', fontsize=12)
-    name = f'heatmap_{params['intersec_id']}_{"peds" if pedestrian_counting else "vehs"}_{df_type}_{"mean" if mean else "sum"}_{"p2v" if p2v else "v2v"}_{conflict_type.replace(" ", "_") if conflict_type else "all"}'
-    
+    # 10) Heatmap
+    plt.figure(figsize=(10,6) if not mean else (8,5))
+    cmap, vmax = ('viridis', 5000) if df_type=='track' else ('YlGnBu', 4200)
+    if df_type=='conflict' and p2v: cmap, vmax = ('inferno', 30)
+    sns.heatmap(
+        pivot_table, cmap=cmap, annot=True, fmt='.0f',
+        vmin=0, vmax=vmax,
+        annot_kws={'size':10},
+        cbar_kws={'format': plt.FuncFormatter(lambda x,pos: f'{int(x)}')}
+    )
+    plt.title(title, fontsize=14)
+    plt.xlabel('Hour of Day')
+    plt.ylabel('Date (Weekday)' if not mean else 'Day of Week')
     plt.savefig(f'{name}.pdf', bbox_inches='tight')
-    plt.savefig(f'{name}.png', bbox_inches='tight', dpi=600)
+    plt.savefig(f'{name}.png', bbox_inches='tight')
 
-    # Create a line plot with hours on the x-axis, average track count on the y-axis, and different colors for each day of the week
-    plt.figure(figsize=(6, 5))
-    for day in pivot_table.index:
-        plt.plot(pivot_table.columns, pivot_table.loc[day], label=f'{day}')
-
-    if df_type == 'conflict':
-        vmax = 40
-    else:
-        if pedestrian_counting:
-            vmax = 120
-        else:
-            vmax = 7000
-    # vmax = 25 if df_type == 'conflict' else 150
-    
-        
-    # plt.title(title.replace('Heatmap', 'Lineplot'), fontsize=14)
-    plt.xlabel('Hour of Day', fontsize=12)
-    if df_type == 'track':
-        plt.ylabel('Average Track Count', fontsize=12)
-    else:
-        plt.ylabel('Average Conflict Count', fontsize=12)
-    # plt.ylabel('Average Track Count', fontsize=12)
-    plt.legend(title='Day of Week', loc='upper left', bbox_to_anchor=(1, 1))
-    # Set x-ticks to all hours
-    plt.xticks(pivot_table.columns, fontsize=10)
-    plt.yticks(fontsize=10)
-    # Set y-ticks to integer format
-    plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: int(x)))
-
-    plt.ylim(0, vmax)
+    # 11) Lineplot
+    plt.figure(figsize=(10,6) if not mean else (8,5))
+    for idx in pivot_table.index:
+        plt.plot(pivot_table.columns, pivot_table.loc[idx], label=idx)
+    plt.title(title.replace('Heatmap','Lineplot'))
+    plt.xlabel('Hour of Day')
+    plt.ylabel('Count')
     plt.grid(True)
+    hours = list(pivot_table.columns)
+    labels = [(datetime.datetime(2025,1,1,h).strftime("%I %p").lstrip("0")) for h in hours]
+    plt.xticks(hours, labels, rotation=30, ha='right', rotation_mode='anchor')
+     # get current handles & labels
+    handles, labels = plt.gca().get_legend_handles_labels()
+    # define the correct chronological order
+    day_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+    # sort by the weekday’s position in day_order
+    sorted_pairs = sorted(
+        zip(labels, handles),
+        key=lambda x: day_order.index(x[0])
+    )
+    sorted_labels, sorted_handles = zip(*sorted_pairs)
+    # reapply legend in that order
+    plt.legend(
+        sorted_handles,
+        sorted_labels,
+        title='Day of Week',
+        loc='upper left',
+        bbox_to_anchor=(1,1)
+    )
 
-    plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.pdf', bbox_inches='tight')
-    plt.savefig(f'{name.replace('heatmap', 'lineplot')}_lineplot.png', bbox_inches='tight', dpi=600)
+    plt.tight_layout(); plt.subplots_adjust(right=0.8)
+    plt.savefig(f'{name.replace("heatmap","lineplot")}_lineplot_{period}.pdf', bbox_inches='tight')
+    plt.savefig(f'{name.replace("heatmap","lineplot")}_lineplot_{period}.png', bbox_inches='tight')
 
-    img_buffer = io.BytesIO()
-    plt.savefig(img_buffer, format='png', bbox_inches='tight')
-        
-    base64_img = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+    # return image
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    return base64.b64encode(buf.getvalue()).decode('utf-8')
 
-        # === NEW: Optionally return some aggregated data for normalization ===
-    if return_agg:
-        # Example: group by day_of_week and count unique IDs
-        # (You can adapt or extend this as needed)
-        agg_df = (omega.groupby(['day_of_week', 'date'])[column_name]
-                  .nunique()
-                  .reset_index(name='count'))
-        
-        # Summarize by day_of_week across all dates in this dataset
-        agg_day = agg_df.groupby('day_of_week')['count'].sum().reset_index(name='total_count')
-        # Number of distinct days used
-        days_per_dw = agg_df.groupby('day_of_week')['date'].nunique().reset_index(name='num_days')
-        
-        # Merge to get total_count and num_days side by side
-        merged = pd.merge(agg_day, days_per_dw, on='day_of_week', how='left')
-        # Example: an average count
-        merged['average_count'] = merged['total_count'] / merged['num_days']
-
-        return merged  # <--- Return your aggregated data
-
-    # If you do NOT want to return data, just let the function exit
-    # after plotting
-    return base64_img
 
 
 def calculate_conflict_rates(conflict_counts_df, volume_counts_df, volume_type='vehicle'):
@@ -526,92 +457,89 @@ p2v = False
 # df_type = "track"
 
 # for inter in [3032, 3265, 3334, 3248, 3287]:
-for inter in [3287, ]:  # or your list of IDs
-    print(f"\n=== Processing intersection: {inter} ===")
+for inter in [3248, 3287]:
+    for period in ['before', 'after']:
+        print(f"\n=== Processing intersection: {inter} ({period}) ===")
 
-    # (1) Gather P2V conflict + Ped Volume aggregates
-    p2v_conflicts_agg = heatmap_generator(
-        df_type="conflict",
-        mean=True,
-        intersec_id=inter,
-        period='after',
-        p2v=True,
-        conflict_type='all',
-        pedestrian_counting=False,
-        return_agg=True
-    )
-    ped_volume_agg = heatmap_generator(
-        df_type="track",
-        mean=True,
-        intersec_id=inter,
-        period='after',
-        p2v=False,
-        conflict_type=None,
-        pedestrian_counting=True,
-        return_agg=True
-    )
+        # (1) P2V conflict + Ped volume (aggregated)
+        p2v_conflicts_agg = heatmap_generator(
+            df_type="conflict", mean=True,
+            intersec_id=inter, period=period,
+            p2v=True, conflict_type='all',
+            pedestrian_counting=False,
+            return_agg=True
+        )
+        ped_volume_agg = heatmap_generator(
+            df_type="track", mean=True,
+            intersec_id=inter, period=period,
+            p2v=False, conflict_type=None,
+            pedestrian_counting=True,
+            return_agg=True
+        )
 
-    # (2) Calculate P2V per 1,000 Pedestrians
-    p2v_per_1000_peds = calculate_conflict_rates(
-        conflict_counts_df=p2v_conflicts_agg,
-        volume_counts_df=ped_volume_agg,
-        volume_type='pedestrian'
-    )
+        # (2) Draw the two heatmaps & lineplots for peds & vehs
+        heatmap_generator(
+            df_type="track", mean=True,
+            intersec_id=inter, period=period,
+            p2v=False, conflict_type=None,
+            pedestrian_counting=True,
+            return_agg=False
+        )
+        heatmap_generator(
+            df_type="track", mean=True,
+            intersec_id=inter, period=period,
+            p2v=False, conflict_type=None,
+            pedestrian_counting=False,
+            return_agg=False
+        )
 
-    print(f"\n=== Intersection {inter}: P2V Conflicts per 1,000 Pedestrians ===")
-    print(p2v_per_1000_peds)
+        # (3) Compute P2V per 1k peds
+        p2v_per_1000_peds = calculate_conflict_rates(
+            conflict_counts_df=p2v_conflicts_agg,
+            volume_counts_df=ped_volume_agg,
+            volume_type='pedestrian'
+        )
+        print(f"--- P2V per 1k peds ({period}):")
+        print(p2v_per_1000_peds)
+        plot_normalized_conflicts(
+            df=p2v_per_1000_peds, day_col="day_of_week",
+            rate_col="avg_conflicts_per_1000_pedestrian",
+            intersection_id=inter,
+            plot_title=f"Intersection {inter}: P2V per 1k peds ({period})",
+            output_filename=f"intersection_{inter}_p2v_per_1000_peds_{period}.png"
+        )
 
-    # (3) Plot P2V per 1,000 Pedestrians
-    plot_normalized_conflicts(
-        df=p2v_per_1000_peds,
-        day_col="day_of_week",
-        rate_col="avg_conflicts_per_1000_pedestrian",  # or conflicts_per_1000_pedestrian
-        intersection_id=inter,
-        plot_title=f"Intersection {inter}: P2V Conflicts per 1k Pedestrians",
-        output_filename=f"intersection_{inter}_p2v_per_1000_peds.png"
-    )
+        # (4) V2V conflict + Veh volume
+        v2v_conflicts_agg = heatmap_generator(
+            df_type="conflict", mean=True,
+            intersec_id=inter, period=period,
+            p2v=False, conflict_type='all',
+            pedestrian_counting=False,
+            return_agg=True
+        )
+        vehicle_volume_agg = heatmap_generator(
+            df_type="track", mean=True,
+            intersec_id=inter, period=period,
+            p2v=False, conflict_type=None,
+            pedestrian_counting=False,
+            return_agg=True
+        )
 
-    # (4) Gather V2V conflict + Vehicle Volume aggregates
-    v2v_conflicts_agg = heatmap_generator(
-        df_type="conflict",
-        mean=True,
-        intersec_id=inter,
-        period='after',
-        p2v=False,
-        conflict_type='all',
-        pedestrian_counting=False,
-        return_agg=True
-    )
-    vehicle_volume_agg = heatmap_generator(
-        df_type="track",
-        mean=True,
-        intersec_id=inter,
-        period='after',
-        p2v=False,
-        conflict_type=None,
-        pedestrian_counting=False,
-        return_agg=True
-    )
-
-    # (5) Calculate V2V per 1,000 Vehicles
-    v2v_per_1000_vehicles = calculate_conflict_rates(
-        conflict_counts_df=v2v_conflicts_agg,
-        volume_counts_df=vehicle_volume_agg,
-        volume_type='vehicle'
-    )
-
-    print(f"\n=== Intersection {inter}: V2V Conflicts per 1,000 Vehicles ===")
-    print(v2v_per_1000_vehicles)
-
-    # (6) Plot V2V per 1,000 Vehicles
-    plot_normalized_conflicts(
-        df=v2v_per_1000_vehicles,
-        day_col="day_of_week",
-        rate_col="avg_conflicts_per_1000_vehicle",  # or conflicts_per_1000_vehicle
-        intersection_id=inter,
-        plot_title=f"Intersection {inter}: V2V Conflicts per 1k Vehicles",
-        output_filename=f"intersection_{inter}_v2v_per_1000_vehicles.png"
-    )
+        # (5) Compute V2V per 1k vehicles
+        v2v_per_1000_vehicles = calculate_conflict_rates(
+            conflict_counts_df=v2v_conflicts_agg,
+            volume_counts_df=vehicle_volume_agg,
+            volume_type='vehicle'
+        )
+        print(f"--- V2V per 1k vehicles ({period}):")
+        print(v2v_per_1000_vehicles)
+        plot_normalized_conflicts(
+            df=v2v_per_1000_vehicles, day_col="day_of_week",
+            rate_col="avg_conflicts_per_1000_vehicle",
+            intersection_id=inter,
+            plot_title=f"Intersection {inter}: V2V per 1k vehicles ({period})",
+            output_filename=f"intersection_{inter}_v2v_per_1000_vehicle_{period}.png"
+        )
 
 #if the heatmap() does not have return_agg = True, then binary image data should be returned
 #to find changes if you ever want to revert, ctrl f and then look up change. 
