@@ -1,156 +1,166 @@
-import os
-import re
-import json
-import subprocess
-from datetime import datetime, timedelta
-import pandas as pd
-import glob
-import matplotlib.pyplot as plt
+#!/usr/bin/env python3
+import os, re, json, subprocess, glob
+from datetime import datetime, date, timedelta
 from tqdm import tqdm
 
-# Use glob to get files matching the specific pattern.
-# video_files = glob.glob("/mnt/vast/BrowardVideosAll/2024/2024*68Av*mp4")
-video_files = glob.glob("/mnt/huge/GainesvilleVideos/2022/07_2022-10*mp4")
-# video_files = glob.glob("/mnt/huge/GainesvilleVideos/2024/oct24/07_2024-10*mp4")
+# === CONFIG ===
+# If you want to test a single camera, you can comment out CAMERA_IDS and uncomment:
+CAMERA_IDS  = [24]           # ← put your camera number here (the "24_…" prefix)
+# CAMERA_IDS = [25, 26]      # ← your camera prefixes
+TIMEFRAME  = "after"      # "before" or "after"
+TRACKING_DIR = "/mnt/hdd/data/video_pipeline/tracking"
+SSH_ALIAS    = "maltlab"
+
+# cutoff = Oct 1 2024
+CUTOFF_DATE = date(2024,10,1)
+
+OUTPUT_TIMES_PY     = "video_times_output.py"
+OUTPUT_COVERAGE_PNG = "video_coverage.png"
+
+# build a regex that matches any of your camera prefixes
+camera_group = "|".join(str(c) for c in CAMERA_IDS)
+# match e.g. "25_2024-03-16_08-45-05.000.mp4" or without millis
+FNAME_RE = re.compile(
+    rf"^({camera_group})_"         # camera prefix
+    r"(\d{4})-(\d{2})-(\d{2})_"     # YYYY-MM-DD_
+    r"(\d{2})-(\d{2})-(\d{2})"      # HH-MM-SS
+    r"(?:\.\d{3})?\.mp4$"           # optional .mmm + .mp4
+)
+
+# 1) Discover all .mp4 files (local first, then remote)
+video_files = []
+
+if os.path.isdir(TRACKING_DIR):
+    # Local discovery
+    for cam in CAMERA_IDS:
+        pattern = os.path.join(TRACKING_DIR, f"{cam}_*.mp4")
+        for p in glob.glob(pattern):
+            if FNAME_RE.match(os.path.basename(p)):
+                video_files.append((False, None, p))
+else:
+    # Remote discovery via ssh find, per-camera
+    for cam in CAMERA_IDS:
+        remote_pattern = f"{TRACKING_DIR}/{cam}_*.mp4"
+        ssh_find = [
+            "ssh", SSH_ALIAS,
+            "find", TRACKING_DIR,
+            "-type", "f",
+            "-name", f"{cam}_*.mp4",
+            "-print"
+        ]
+        try:
+            out = subprocess.check_output(ssh_find, stderr=subprocess.DEVNULL, text=True)
+            for line in out.splitlines():
+                path = line.strip()
+                if FNAME_RE.match(os.path.basename(path)):
+                    video_files.append((True, SSH_ALIAS, path))
+        except subprocess.CalledProcessError:
+            # no files for this camera
+            continue
+
+# sort by filename (so you process in chronological order)
+video_files.sort(key=lambda x: os.path.basename(x[2]))
 
 
-# Regular expression to extract start date and time from filename.
-# Example filename: 2024-12-31_09-30-02-rtsp_Stirling-68Av_0.mp4
-pattern = re.compile(r"(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})")
+# 2) Filter by year and before/after cutoff
+filtered = []
+for is_remote, host, path in video_files:
+    fn = os.path.basename(path)
+    m = FNAME_RE.match(fn)
+        # pull out only groups 2,3,4
+    yr = int(m.group(2))
+    mo = int(m.group(3))
+    dy = int(m.group(4))
 
-# List to hold tuples of (start_dt, start_str, end_str)
-video_times = []
+    if yr == 2023:
+        continue
+    file_date = date(yr,mo,dy)
+    if TIMEFRAME == "before" and file_date >= CUTOFF_DATE:
+        continue
+    if TIMEFRAME == "after"  and file_date <  CUTOFF_DATE:
+        continue
+    filtered.append((is_remote, host, path))
 
-# Variable to accumulate total duration (in seconds)
-total_seconds = 0.0
 
-for video_path in tqdm(video_files, desc="Processing videos"):
-    filename = os.path.basename(video_path)
-    match = pattern.search(filename)
-    if not match:
-        continue  # Skip files that don't match the expected pattern
+# 3) Probe durations and collect start/end
+video_times = []  # tuples (start_dt, end_dt, start_str, end_str)
+total_secs = 0.0
 
-    # Parse the start datetime from the filename.
-    start_date = match.group(1)              # e.g., "2024-12-31"
-    start_time_str = match.group(2).replace("-", ":")  # e.g., "09:30:02"
+for is_remote, host, path in tqdm(filtered, desc="Probing"):
+    fn = os.path.basename(path)
+    yr,mo,dy, hh,mm,ss = map(int, FNAME_RE.match(fn).groups()[1:7])
+    start_dt = datetime(yr,mo,dy,hh,mm,ss)
+    cmd = (["ssh", host] if is_remote else []) + [
+        "ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", path
+    ]
     try:
-        start_dt = datetime.strptime(f"{start_date} {start_time_str}", "%Y-%m-%d %H:%M:%S")
-    except Exception as e:
-        continue  # Skip if the datetime cannot be parsed
-
-    try:
-        # Use ffprobe to extract the video duration (in seconds).
-        result = subprocess.run(
-            ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", video_path],
-            capture_output=True, text=True, check=True
-        )
-        metadata = json.loads(result.stdout)
-        duration = float(metadata["format"]["duration"])
-        if duration <= 0:
-            continue  # Skip if duration is zero or negative
-    except Exception as e:
-        continue  # Skip broken or unreadable videos
-
-    # Accumulate total duration.
-    total_seconds += duration
-
-    # Calculate the end time.
-    end_dt = start_dt + timedelta(seconds=duration)
-
-    # Format the datetimes as strings with .000 appended.
-    start_str = start_dt.strftime("%Y-%m-%d %H:%M:%S") + ".000"
-    end_str = end_dt.strftime("%Y-%m-%d %H:%M:%S") + ".000"
-
-    video_times.append((start_dt, start_str, end_str))
-
-# Sort the list by the actual start datetime.
-video_times.sort(key=lambda x: x[0])
-
-# Create a DataFrame for inspection (optional)
-df = pd.DataFrame([(start_str, end_str) for _, start_str, end_str in video_times], 
-                  columns=["start", "end"])
-print("Video Times DataFrame:")
-print(df)
-
-# Print total duration information.
-print(f"Total duration in seconds: {total_seconds:.2f}")
-print(f"Total duration in hours: {total_seconds/3600:.2f}")
-
-# Save the results to a file in the desired format.
-output_file = "video_times_output.py"
-with open(output_file, "w") as f:
-    for _, start_str, end_str in video_times:
-        f.write(f"'{start_str}', '{end_str}',\n")
-
-print(f"Saved video times to {output_file}")
-
-# ==== PART 2: Plot the video coverage timeline ====
-
-# Read the saved file to extract timestamps.
-with open(output_file, "r") as f:
-    content = f.read()
-
-# Use regex to extract all quoted timestamps.
-timestamps = re.findall(r"'([^']+)'", content)
-
-# Check that we have an even number (each segment has a start and end).
-if len(timestamps) % 2 != 0:
-    print("Warning: Expected an even number of timestamps, found", len(timestamps))
-
-# Build a list of segments: each segment is a tuple (start_datetime, end_datetime)
-segments = []
-for i in range(0, len(timestamps), 2):
-    start_str = timestamps[i]
-    end_str = timestamps[i+1]
-    try:
-        start_dt = datetime.strptime(start_str, "%Y-%m-%d %H:%M:%S.%f")
-        end_dt = datetime.strptime(end_str, "%Y-%m-%d %H:%M:%S.%f")
-        segments.append((start_dt, end_dt))
-    except Exception as e:
-        print("Error parsing:", start_str, end_str, e)
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        dur = float(json.loads(res.stdout)["format"]["duration"])
+        if dur <= 0:
+            continue
+    except Exception:
         continue
 
-# Group segments by day (using the date part of the start time)
-day_segments = {}
-for start_dt, end_dt in segments:
-    day = start_dt.date()  # assumes each segment is within one day
-    start_sec = start_dt.hour * 3600 + start_dt.minute * 60 + start_dt.second + start_dt.microsecond / 1e6
-    duration = (end_dt - start_dt).total_seconds()
-    if day not in day_segments:
-        day_segments[day] = []
-    day_segments[day].append((start_sec, duration))
+    total_secs += dur
+    end_dt = start_dt + timedelta(seconds=dur)
+    s_str = start_dt.strftime("%Y-%m-%d %H:%M:%S") + ".000"
+    e_str = end_dt.strftime("%Y-%m-%d %H:%M:%S") + ".000"
+    video_times.append((start_dt, end_dt, s_str, e_str))
 
-# Sort days
-sorted_days = sorted(day_segments.keys())
 
-# Set up the plot.
-fig, ax = plt.subplots(figsize=(10, len(sorted_days) * 0.5 + 2))
+# 4) Dedupe overlapping starts: keep the longest clip for each start_dt
+video_times.sort(key=lambda x: x[0])
+best = {}
+for s_dt, e_dt, s_str, e_str in video_times:
+    if s_dt not in best or e_dt > best[s_dt][0]:
+        best[s_dt] = (e_dt, s_str, e_str)
 
-# For each day, plot a horizontal bar from 0 to 86400 seconds (full day) in light gray,
-# and overlay the video segments in blue.
-y_ticks = []
-y_labels = []
-y = 0
-bar_height = 0.8
-for day in sorted_days:
-    # Full day background (light gray)
-    ax.broken_barh([(0, 86400)], (y, bar_height), facecolors='lightgray')
-    # Video segments (blue)
-    ax.broken_barh(day_segments[day], (y, bar_height), facecolors='blue')
-    y_ticks.append(y + bar_height/2)
-    y_labels.append(day.strftime("%b %d"))
-    y += 1
+unique = [(s_dt, v[1], v[2]) for s_dt, v in sorted(best.items())]
 
-ax.set_ylim(0, y)
+
+# 5) Write to your times file
+with open(OUTPUT_TIMES_PY, "w") as f:
+    for _, s_str, e_str in unique:
+        f.write(f"'{s_str}','{e_str}',\n")
+
+print(f"Saved {len(unique)} ranges; total hours={total_secs/3600:.2f}")
+
+
+# 6) Plot coverage timeline
+import matplotlib.pyplot as plt
+
+# rebuild datetime ranges
+segs = [
+    (
+        datetime.strptime(s_str, "%Y-%m-%d %H:%M:%S.%f"),
+        datetime.strptime(e_str, "%Y-%m-%d %H:%M:%S.%f")
+    )
+    for _, s_str, e_str in unique
+]
+
+by_day = {}
+for sd, ed in segs:
+    day = sd.date()
+    start_sec = sd.hour*3600 + sd.minute*60 + sd.second
+    dur = (ed - sd).total_seconds()
+    by_day.setdefault(day, []).append((start_sec, dur))
+
+days = sorted(by_day)
+fig, ax = plt.subplots(figsize=(10, len(days)*0.5 + 1))
+for i, day in enumerate(days):
+    # full-day gray bar
+    ax.broken_barh([(0, 86400)], (i, 0.8), facecolors='lightgray')
+    # actual coverage
+    ax.broken_barh(by_day[day], (i, 0.8), facecolors='blue')
+
+ax.set_yticks([i + 0.4 for i in range(len(days))])
+ax.set_yticklabels([d.strftime("%b %d") for d in days])
 ax.set_xlim(0, 86400)
 ax.set_xlabel("Seconds from midnight")
-ax.set_ylabel("Day")
-ax.set_yticks(y_ticks)
-ax.set_yticklabels(y_labels)
-ax.set_title("Video Coverage Timeline for October")
-plt.tight_layout()
 
-# Instead of showing the plot, save it to a PNG file.
-output_png = "2022_video_coverage.png"
-plt.savefig(output_png, dpi=300)
-print(f"Saved coverage plot to {output_png}")
+cam_label = ",".join(str(c) for c in CAMERA_IDS)
+ax.set_title(f"Cameras {cam_label} — {TIMEFRAME.capitalize()} since Oct 1 2024")
+
+plt.tight_layout()
+plt.savefig(OUTPUT_COVERAGE_PNG, dpi=300)
+print(f"Saved plot to {OUTPUT_COVERAGE_PNG}")
