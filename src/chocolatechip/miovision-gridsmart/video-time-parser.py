@@ -7,7 +7,7 @@ from tqdm import tqdm
 # If you want to test a single camera, you can comment out CAMERA_IDS and uncomment:
 CAMERA_IDS  = [24]           # ← put your camera number here (the "24_…" prefix)
 # CAMERA_IDS = [25, 26]      # ← your camera prefixes
-TIMEFRAME  = "after"      # "before" or "after"
+TIMEFRAME  = "before"      # "before" or "after"
 TRACKING_DIR = "/mnt/hdd/data/video_pipeline/tracking"
 SSH_ALIAS    = "maltlab"
 
@@ -15,7 +15,6 @@ SSH_ALIAS    = "maltlab"
 CUTOFF_DATE = date(2024,10,1)
 
 OUTPUT_TIMES_PY     = "video_times_output.py"
-OUTPUT_COVERAGE_PNG = "video_coverage.png"
 
 # build a regex that matches any of your camera prefixes
 camera_group = "|".join(str(c) for c in CAMERA_IDS)
@@ -145,20 +144,25 @@ for sd, ed in segs:
     dur = (ed - sd).total_seconds()
     by_day.setdefault(day, []).append((start_sec, dur))
 
+
 days = sorted(by_day)
+
+# prepare a clean underscore-separated camera label
+cam_label = "_".join(str(c) for c in CAMERA_IDS)
+
+# now build the coverage-plot filename
+OUTPUT_COVERAGE_PNG = f"video_coverage_{cam_label}_{TIMEFRAME}.png"
+
 fig, ax = plt.subplots(figsize=(10, len(days)*0.5 + 1))
 for i, day in enumerate(days):
-    # full-day gray bar
     ax.broken_barh([(0, 86400)], (i, 0.8), facecolors='lightgray')
-    # actual coverage
-    ax.broken_barh(by_day[day], (i, 0.8), facecolors='blue')
+    ax.broken_barh(by_day[day],     (i, 0.8), facecolors='blue')
 
 ax.set_yticks([i + 0.4 for i in range(len(days))])
 ax.set_yticklabels([d.strftime("%b %d") for d in days])
 ax.set_xlim(0, 86400)
 ax.set_xlabel("Seconds from midnight")
 
-cam_label = ",".join(str(c) for c in CAMERA_IDS)
 ax.set_title(f"Cameras {cam_label} — {TIMEFRAME.capitalize()} since Oct 1 2024")
 
 plt.tight_layout()
