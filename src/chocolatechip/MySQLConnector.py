@@ -1,131 +1,217 @@
+import os
+import time
+import json
 import pandas as pd
 import pymysql
-import json
-
-import os
-
+import pymysql.cursors
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 class MySQLConnector:
     def __init__(self):
-        # look in the same dir as mysqlconnector for config file
+        # load config once
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        is_docker = os.environ.get('in_docker', False)
-
+        is_docker = bool(os.environ.get('in_docker', False))
         if is_docker:
-            host = os.getenv("CC_host",None)
-            user = os.getenv("CC_user",None)
-            passwd = os.getenv("CC_passwd",None)
-            db = os.getenv("CC_db",None)
-            testdb = os.getenv("CC_testdb",None)
-            port = os.getenv("CC_port",None)
-            
-            config = {
-                "host":host,
-                "user":user,
-                "passwd":passwd,
-                "db":db,
-                "testdb":testdb,
-                "port":port
+            self.config = {
+                "host": os.getenv("CC_host"),
+                "user": os.getenv("CC_user"),
+                "passwd": os.getenv("CC_passwd"),
+                "db": os.getenv("CC_db"),
+                "testdb": os.getenv("CC_testdb"),
+                "port": int(os.getenv("CC_port", 3306))
             }
-
-            self.config = config
         else:
-
-            config_path = os.path.join(script_dir, 'login.env')
-            # if this does not exist, error out.
-            if not os.path.exists(config_path):
-                raise FileNotFoundError(f"""
-\nCould not find {config_path}.
-Please make an env with the following creds:
-host=your_host
-user=your_user
-passwd=your_passwd
-db=your_db
-testdb=your_testdb
-port=your_port
-
-This should be placed next to the MySQLConnector.py file.
-                                        """)
-            
-            load_dotenv(config_path)
-            
-            config = {
+            env_path = os.path.join(script_dir, "login.env")
+            if not os.path.exists(env_path):
+                raise FileNotFoundError(f"Could not find {env_path}")
+            load_dotenv(env_path)
+            self.config = {
                 "host": os.getenv("host"),
                 "user": os.getenv("user"),
                 "passwd": os.getenv("passwd"),
                 "db": os.getenv("db"),
                 "testdb": os.getenv("testdb"),
-                "port": os.getenv("port")
+                "port": int(os.getenv("port", 3306))
             }
 
-            
-            self.config = config
+    def _connect(self, *, streaming: bool = False):
+        """
+        Centralize all pymysql.connect(...) calls.
+        If streaming=True, we return a server-side cursor, with timeouts.
+        """
+        kwargs = {
+            "host": self.config["host"],
+            "user": self.config["user"],
+            "passwd": self.config["passwd"],
+            "db": self.config["testdb"],
+            "port": self.config["port"]
+        }
+        if streaming:
+            kwargs.update({
+                "connect_timeout": 10,
+                "read_timeout": 60,
+                "write_timeout": 60,
+                "cursorclass": pymysql.cursors.SSCursor
+            })
+        return pymysql.connect(**kwargs)
 
-        
-    # def handleRequest(self, body, num_cameras, dual_cam_id={}):
-    def handleRequest(self, params, df_type: str):
+    def fetchPeriodicTrackCounts(self,
+                                 intersec_id: int,
+                                 cam_id:     int,
+                                 start:      str,
+                                 end:        str,
+                                 pedestrian_counting: bool | None = None
+                                 ) -> pd.DataFrame:
         """
-        params is a dict with attributes
-        start date, end date, intersec_id, camera_id
-        df_type is a string that can be "conflict" or "track"
+        15-minute bins, DISTINCT track_id per bin.
         """
-        mydb = pymysql.connect(host=self.config['host'], \
-                user=self.config['user'], passwd=self.config['passwd'], \
-                db=self.config['testdb'], port=int(self.config['port']))
-        
+        sql = """
+        SELECT
+          FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(timestamp)/900)*900) AS period_start,
+          COUNT(DISTINCT track_id)                     AS count
+        FROM RealTrackProperties
+        WHERE timestamp BETWEEN %s AND %s
+          AND intersection_id = %s
+          AND camera_id      = %s
+          AND isAnomalous    = 0
+        """
+        params = [start, end, intersec_id, cam_id]
+
+        if pedestrian_counting is True:
+            sql += " AND `class` = %s"
+            params.append("pedestrian")
+        elif pedestrian_counting is False:
+            sql += " AND `class` != %s"
+            params.append("pedestrian")
+
+        sql += " GROUP BY period_start ORDER BY period_start;"
+
+        with self._connect() as conn:
+            df = pd.read_sql(sql, con=conn, params=params)
+
+        df['period_start'] = pd.to_datetime(df['period_start'])
+        return df
+
+    def fetchPeriodicTrackCountsPerMinute(self,
+                                          intersec_id: int,
+                                          cam_id:     int,
+                                          start:      str,
+                                          end:        str,
+                                          pedestrian_counting: bool | None = None
+                                          ) -> pd.DataFrame:
+        """
+        1-minute bins, DISTINCT track_id per minute.
+        """
+        sql = """
+        SELECT
+          FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(timestamp)/60)*60) AS period_start,
+          COUNT(DISTINCT track_id)                     AS count
+        FROM RealTrackProperties
+        WHERE timestamp BETWEEN %s AND %s
+          AND intersection_id = %s
+          AND camera_id      = %s
+          AND isAnomalous    = 0
+        """
+        params = [start, end, intersec_id, cam_id]
+
+        if pedestrian_counting is True:
+            sql += " AND `class` = %s"
+            params.append("pedestrian")
+        elif pedestrian_counting is False:
+            sql += " AND `class` != %s"
+            params.append("pedestrian")
+
+        sql += " GROUP BY period_start ORDER BY period_start;"
+
+        with self._connect() as conn:
+            df = pd.read_sql(sql, con=conn, params=params)
+
+        df['period_start'] = pd.to_datetime(df['period_start'])
+        return df
+
+    def handleRequest(self, params: dict, df_type: str) -> pd.DataFrame:
+        """
+        Raw-row streaming for conflicts or full track dump.
+        """
+        print(f"[DB] Connecting to {self.config['testdb']}...", end="", flush=True)
+        t0 = time.time()
+        conn = self._connect(streaming=True)
+        print(f" done in {time.time()-t0:.2f}s")
+
         try:
-            with mydb.cursor() as cursor:
-                # query = "SELECT * FROM RealTrackProperties WHERE timestamp BETWEEN %s AND %s AND intersection_id = %s AND camera_id = %s AND isAnomalous = 0"
-                # path_query = "SELECT * FROM Paths WHERE source = %s"
+            with conn.cursor() as cursor:
                 if df_type == "conflict":
+                    query = """
+                    SELECT *
+                      FROM TTCTable
+                     WHERE intersection_id = %s
+                       AND p2v             = %s
+                       AND include_flag    = 1
+                       AND timestamp BETWEEN %s AND %s
+                    """
+                    sql_params = (
+                        params['intersec_id'],
+                        params['p2v'],
+                        params['start_date'],
+                        params['end_date']
+                    )
+                else:
+                    query = """
+                    SELECT timestamp, track_id, class
+                      FROM RealTrackProperties
+                     WHERE timestamp BETWEEN %s AND %s
+                       AND intersection_id = %s
+                       AND camera_id       = %s
+                       AND isAnomalous     = 0
+                    """
+                    sql_params = (
+                        params['start_date'],
+                        params['end_date'],
+                        params['intersec_id'],
+                        params['cam_id']
+                    )
 
-                    query = "SELECT * FROM TTCTable WHERE " \
-                        "intersection_id = %s AND p2v = %s " \
-                        "AND include_flag=1 AND timestamp BETWEEN %s AND %s;"
-                    cursor.execute(query, (params['intersec_id'], params['p2v'], params['start_date'], params['end_date']))
-                elif df_type == "track":
-                    query = "SELECT * FROM RealTrackProperties WHERE " \
-                        "timestamp BETWEEN %s AND %s AND intersection_id = %s "\
-                        "AND camera_id = %s AND isAnomalous = 0;"
-                    cursor.execute(query, (params['start_date'], params['end_date'], params['intersec_id'], params['cam_id']))
-                
-                result = cursor.fetchall()
+                print("[DB] Executing query...", end="", flush=True)
+                t1 = time.time()
+                cursor.execute(query, sql_params)
+                print(f" done in {time.time()-t1:.2f}s")
 
-                column_headers = [desc[0] for desc in cursor.description]
-                # cursor.execute(path_query, (camid,))
-                # path_result = cursor.fetchall()
+                print("[DB] Fetching rows…", end="", flush=True)
+                t2 = time.time()
+                rows = []
+                while batch := cursor.fetchmany(5000):
+                    rows.extend(batch)
+                print(f" done in {time.time()-t2:.2f}s; rows={len(rows)}")
+
+                cols = [d[0] for d in cursor.description]
 
         finally:
-            mydb.close()
-        # print('hey')
-        # print(column_headers)
+            conn.close()
 
-        df = pd.DataFrame(result, columns=column_headers)
-        # Convert the 'timestamp' column to datetime type
+        df = pd.DataFrame(rows, columns=cols)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
-
-        # Extract hour digit and create a new column
-        df['hour_digit'] = df['timestamp'].dt.hour
+        if 'track_id' in df.columns:
+            df['hour_digit'] = df['timestamp'].dt.hour
         return df
 
 
-        #
-        # excess, old code that we dont use 
-        # but keep just in case :)
-        # 
-        mycursor = mydb.cursor()
-        (iid,camid,dtstart,dtend,num_cameras)=json.loads(body)
-        stime = pd.to_datetime(dtstart)
-        ftime = pd.to_datetime(dtend)
-        query = "SELECT * FROM RealTrackProperties where timestamp between '{}' and '{}' and intersection_id = {} and camera_id = {} and isAnomalous=0".format(dtstart,dtend,iid,camid)
-        path_query = "SELECT * FROM Paths where source = {}".format(camid)
-        tracksdf = pd.read_sql(query, con=mydb)
-        pathdf = pd.read_sql(path_query, con=mydb)
-        for index, row in pathdf.iterrows():
-            lane = row['name']
-            print (camid, lane, len(tracksdf[tracksdf.lane==lane]))
+
+        # #
+        # # excess, old code that we dont use 
+        # # but keep just in case :)
+        # # 
+        # mycursor = mydb.cursor()
+        # (iid,camid,dtstart,dtend,num_cameras)=json.loads(body)
+        # stime = pd.to_datetime(dtstart)
+        # ftime = pd.to_datetime(dtend)
+        # query = "SELECT * FROM RealTrackProperties where timestamp between '{}' and '{}' and intersection_id = {} and camera_id = {} and isAnomalous=0".format(dtstart,dtend,iid,camid)
+        # path_query = "SELECT * FROM Paths where source = {}".format(camid)
+        # tracksdf = pd.read_sql(query, con=mydb)
+        # pathdf = pd.read_sql(path_query, con=mydb)
+        # for index, row in pathdf.iterrows():
+        #     lane = row['name']
+        #     print (camid, lane, len(tracksdf[tracksdf.lane==lane]))
 
     def fetch_latest_entry_from_table(self, table_name):
         mydb = pymysql.connect(host=self.config['host'], \

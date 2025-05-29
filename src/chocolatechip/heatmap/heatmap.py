@@ -2,13 +2,11 @@ from chocolatechip.MySQLConnector import MySQLConnector
 from chocolatechip.times_config import times_dict
 import datetime
 import numpy as np
-from yaspin import yaspin
-from yaspin.spinners import Spinners
+
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
-from pprint import pprint
-import time
+
 import io
 import base64
 
@@ -20,74 +18,159 @@ def aggregate_period_counts(times: list,
                             p2v: bool = None,
                             conflict_type: str = None) -> pd.DataFrame:
     """
-    1) Fetch everything from the very first start to the very last end
-    2) Apply your class / p2v filters
-    3) Floor timestamps to 15-minute bins
-    4) Count uniques per bin
-    5) Reindex on a true 15-min grid globally, but only interpolate *within* each day's recorded window,
-       then drop any bins outside the actual video intervals so you never extrapolate past the final clip.
+    1) For track data: fetch pre-aggregated 15-min counts via SQL, 
+       reindex onto a full 15-min grid, interpolate *only inside* each
+       day's recorded window, then drop bins outside that window.
+    2) For conflict data: fetch the raw 15-min distinct counts and return
+       them directly, without any interpolation.
     """
     conn = MySQLConnector()
     column_name = 'track_id' if df_type == 'track' else 'unique_ID1'
 
-    # 1) Big fetch
-    params['start_date'], params['end_date'] = times[0], times[-1]
-    print(f"Fetching {df_type} data from {params['start_date']} to {params['end_date']}")
-    full_df = conn.handleRequest(params, df_type)
-    print(f"Fetched {len(full_df)} rows")
-    full_df['timestamp'] = pd.to_datetime(full_df['timestamp'])
+    # 1) Determine absolute start/end
+    start, end = times[0], times[-1]
+    params['start_date'], params['end_date'] = start, end
+    print(f"Fetching {df_type} data from {start} to {end}")
 
-    # 2) Filters
     if df_type == 'track':
-        if pedestrian_counting:
-            full_df = full_df[full_df['class'] == 'pedestrian']
+        df_counts = conn.fetchPeriodicTrackCountsPerMinute(
+            intersec_id         = params['intersec_id'],
+            cam_id              = params['cam_id'],
+            start               = start,
+            end                 = end,
+            pedestrian_counting = pedestrian_counting
+        )
+        df_counts.set_index('period_start', inplace=True)
+        minute_counts = df_counts['count']
+
+        # 1) build full 1-minute grid for 7–19
+        full_idx = pd.date_range(
+            pd.to_datetime(start).floor('min'),
+            pd.to_datetime(end).floor('min'),
+            freq='T'
+        )
+        active_idx = full_idx[(full_idx.hour >= 7) & (full_idx.hour <= 19)]
+
+        # 2) HOURLY PRE-INTERPOLATION (or RAW) pivot
+        hourly_pre = (
+            minute_counts
+            .reindex(active_idx, fill_value=0)
+            .to_frame(name='count')
+            .assign(
+                date=lambda df: df.index.date,
+                hour=lambda df: df.index.hour
+            )
+            .groupby(['date','hour'])['count']
+            .sum()
+            .reset_index()
+            .pivot(index='date',columns='hour',values='count')
+            .fillna(0)
+        )
+        # annotate & print
+        day_order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+        hourly_pre['day_of_week'] = pd.Categorical(
+            pd.to_datetime(hourly_pre.index).day_name(),
+            categories=day_order, ordered=True
+        )
+        hourly_pre = (
+            hourly_pre
+            .loc[ (hourly_pre.drop('day_of_week',axis=1) > 0).any(axis=1) ]
+            .sort_values('day_of_week')
+        )
+        print("\n=== HOURLY RAW COUNTS ===")
+        print(hourly_pre.to_string())
+
+        # 3) if it’s vehicles, interpolate; if peds, skip it
+        if not pedestrian_counting:
+            df_min = minute_counts.reindex(active_idx).to_frame('count')
+            df_min['count'] = (
+                df_min['count']
+                .groupby(df_min.index.date)
+                .transform(lambda g: g.interpolate(
+                    method='time', limit=120, limit_area='inside'
+                ))
+            )
+            df_min = df_min[df_min['count'].notna()]
+
+            # hourly post-interp pivot & print…
+            hourly_post = (
+                df_min
+                .assign(
+                    date=lambda df: df.index.date,
+                    hour=lambda df: df.index.hour
+                )
+                .groupby(['date','hour'])['count']
+                .sum()
+                .reset_index()
+                .pivot(index='date',columns='hour',values='count')
+                .fillna(0)
+            )
+            hourly_post['day_of_week'] = pd.Categorical(
+                pd.to_datetime(hourly_post.index).day_name(),
+                categories=day_order, ordered=True
+            )
+            hourly_post = (
+                hourly_post
+                .loc[ (hourly_post.drop('day_of_week',axis=1) > 0).any(axis=1) ]
+                .sort_values('day_of_week')
+            )
+            print("\n=== HOURLY POST-INTERPOLATION ===")
+            print(hourly_post.to_string())
+
+            df_pc = df_min
+
         else:
-            full_df = full_df[full_df['class'] != 'pedestrian']
+            # pedestrians: no interpolation, just raw minute_counts
+            df_pc = minute_counts.reindex(active_idx).to_frame('count')
     else:
+        # --- conflict path: no interpolation at all ---
+        full_df = conn.handleRequest(params, df_type)
+
+        # apply p2v / conflict_type filters
         if p2v:
             full_df = full_df[full_df['p2v'] == 1]
-            if conflict_type in ('left turning', 'right turning', 'thru'):
+            if conflict_type in ('left turning','right turning','thru'):
                 code_map = {
                     'left turning': (3,4),
                     'right turning': (1,2),
                     'thru': (5,6)
                 }
-                full_df = full_df[full_df['conflict_type'].isin(code_map[conflict_type])]
+                full_df = full_df[full_df['conflict_type']\
+                                 .isin(code_map[conflict_type])]
         else:
             full_df = full_df[full_df['p2v'] == 0]
 
-    # 3) Bin into 15-minute
-    full_df['period_start'] = full_df['timestamp'].dt.floor('15min')
+        # floor into 15-min bins and count distinct
+        full_df['period_start'] = pd.to_datetime(full_df['timestamp'])\
+                                 .dt.floor('15min')
+        counts = (
+            full_df
+              .groupby('period_start')[column_name]
+              .nunique()
+              .rename('count')
+        )
+        # keep exactly the observed bins
+        df_pc = counts.to_frame()
 
-    # 4) Unique-count per bin
-    counts = (
-        full_df
-        .groupby('period_start')[column_name]
-        .nunique()
-        .rename('count')
+    # ─── print the *interpolated* hourly pivot for sanity ───
+    interp_hourly = (
+        df_pc
+        .assign(
+            date = df_pc.index.date,
+            hour = df_pc.index.hour
+        )
+        .groupby(['date','hour'])['count']
+        .sum()
+        .reset_index(name='interp_hourly_count')
     )
-
-    # 5a) Build a global 15-min grid
-    start = pd.to_datetime(times[0]).floor('15min')
-    end   = pd.to_datetime(times[-1]).floor('15min')
-    grid  = pd.date_range(start, end, freq='15min')
-
-    df_pc = counts.reindex(grid).to_frame()
-
-    # 5b) Interpolate only *within* each calendar day
-    df_pc['count'] = (
-        df_pc['count']
-          .groupby(df_pc.index.date)
-          .transform(lambda grp: grp.interpolate(method='time'))
-    )
-
-    # 5c) Drop any bins that lie outside the actual video intervals
-    #     (those will still be NaN after the interpolation above)
-    df_pc = df_pc[df_pc['count'].notna()]
+    interp_pivot = interp_hourly.pivot(
+        index='date', columns='hour', values='interp_hourly_count'
+    ).fillna(0)
+    print("\nInterpolated hourly counts:")
+    print(interp_pivot.to_string())
+    # ───────────────────────────────────────────────────────
 
     return df_pc
-
-
 
 
 def heatmap_generator(df_type: str,
@@ -207,36 +290,14 @@ def heatmap_generator(df_type: str,
         )
 
         
-        # 1) find which hours each weekday actually appears in:
-        hours_by_day = (
-            hourly
-            .groupby(['day_of_week','hour'])
-            .size()
-            .unstack(fill_value=0)
-            # this is a DataFrame: rows=day_of_week, cols=hour, values=#Mondays with data at that hour
-        )
-
-        # 2) pick only hours where *all* weekdays have at least one sample:
-        common_hours = [
-            h for h in hours_by_day.columns
-            if (hours_by_day[h] > 0).all()
-        ]
-        print(hours_by_day.loc['Monday'])
-
-
-        # 3) when you pivot for the mean, drop all other hours:
-        pivot_table = (
-            hourly
-            .pivot_table(
+        pivot_table = hourly.pivot_table(
             index='day_of_week',
             columns='hour',
             values='hourly_count',
-            aggfunc='mean'
-            # no fill_value
-            )
+            aggfunc='mean'    # skipp NaNs, so only days with data
         )
+        
 
-        pivot_table = pivot_table.loc[:, common_hours]
     else:
         df_pc['weekday_short'] = df_pc['day_of_week'].str[:3]
         df_pc['date_weekday_short'] = df_pc['date'].astype(str) + ' (' + df_pc['weekday_short'] + ')'
@@ -271,10 +332,22 @@ def heatmap_generator(df_type: str,
     plt.figure(figsize=(10,6) if not mean else (8,5))
     for idx in pivot_table.index:
         plt.plot(pivot_table.columns, pivot_table.loc[idx], label=idx)
-    plt.title(title.replace('Heatmap','Lineplot'))
+    # plt.title(title.replace('Heatmap','Lineplot'))
     plt.xlabel('Hour of Day')
-    plt.ylabel('Count')
+    
+    if pedestrian_counting:
+        plt.ylabel('Average Pedestrian Count')
+    else:
+        plt.ylabel('Average Vehicle Count')
+    
     plt.grid(True)
+    # dynamic y-limit
+    if df_type == 'track':
+        if pedestrian_counting:
+            plt.ylim(0, 60)
+        else:
+            plt.ylim(0, 5000)
+
     hours = list(pivot_table.columns)
     labels = [(datetime.datetime(2025,1,1,h).strftime("%I %p").lstrip("0")) for h in hours]
     plt.xticks(hours, labels, rotation=30, ha='right', rotation_mode='anchor')
