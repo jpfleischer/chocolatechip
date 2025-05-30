@@ -7,6 +7,9 @@ import pymysql.cursors
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
+from contextlib import contextmanager
+
+
 class MySQLConnector:
     def __init__(self):
         # load config once
@@ -55,6 +58,21 @@ class MySQLConnector:
                 "cursorclass": pymysql.cursors.SSCursor
             })
         return pymysql.connect(**kwargs)
+    
+
+    @contextmanager
+    def cursor(self, *, streaming: bool = False):
+        """
+        Yields a cursor (SSCursor if streaming=True), and closes the connection
+        when the with-block exits.
+        """
+        conn = self._connect(streaming=streaming)
+        try:
+            cur = conn.cursor()
+            yield cur
+        finally:
+            conn.close()
+
 
     def fetchPeriodicTrackCounts(self,
                                  intersec_id: int,
