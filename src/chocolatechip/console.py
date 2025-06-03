@@ -23,11 +23,10 @@ Usage:
     chip plain
     chip offline
     chip latency
-    chip unflag
+    chip unflag [<flags.yaml>]
     chip sprinkles
     chip sprinklesgui
     chip cvatzip
-    chip eat <filename>
     chip extract <filename> <timestamp> [<frames>]
 
 Commands:
@@ -46,7 +45,6 @@ Commands:
     sprinkles  initiate automated moviepy
     sprinklesgui    initiate gui
     cvatzip    while standing in darknet folder, zip annotations for cvat
-    eat    eat sprinklesgui yamls 
     extract        extract frames from a video file (requires: filename, timestamp, [frames])
     """
 
@@ -89,8 +87,9 @@ Commands:
         latency.main()
 
     if args['unflag']:
-        from chocolatechip.unflag import main as unflag
-        unflag.main()
+        yaml_file = args['<flags.yaml>'] or "flags.yaml"
+        from chocolatechip.unflag import main as unflag_main
+        unflag_main.main(yaml_file)
 
     if args['sprinkles']:
         from chocolatechip.sprinkles import main as sprinkles
@@ -104,17 +103,6 @@ Commands:
     if args['cvatzip']:
         from chocolatechip.cvat import cvatzip
         cvatzip.cvatzip()
-
-    if args['eat']:
-        from chocolatechip.unflag import eat
-        if len(sys.argv) > 2 and sys.argv[2]:
-            filename = sys.argv[2]
-            if not os.path.isabs(filename):
-                filename = os.path.abspath(filename)
-            eat.main(filename)
-        else:
-            Console.error("Please provide a filename")
-            return
         
     if args['extract']:
         from chocolatechip.cvat import extract
