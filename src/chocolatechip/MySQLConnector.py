@@ -147,6 +147,66 @@ class MySQLConnector:
 
         df['period_start'] = pd.to_datetime(df['period_start'])
         return df
+    
+    
+    def fetchConflictRecords(self, intersec_id: int, p2v: int, start: str, end: str) -> pd.DataFrame:
+        """
+        Fetch raw conflict rows (timestamp, cluster1, cluster2) for a given intersection/p2v/time range,
+        using a single pandas.read_sql call instead of streaming.
+        """
+        sql = """
+        SELECT
+          timestamp,
+          cluster1,
+          cluster2
+        FROM TTCTable
+        WHERE intersection_id = %s
+          AND p2v           = %s
+          AND include_flag  = 1
+          AND timestamp BETWEEN %s AND %s
+        """
+        params = (intersec_id, p2v, start, end)
+        # This executes in one shot, which is faster than handleRequest’s fetch‐many loop
+        df = pd.read_sql(sql, con=self._connect(), params=params)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        return df
+    
+
+    def fetchHourlyConflictCounts(self,
+                                  intersec_id: int,
+                                  p2v:         int,
+                                  start:       str,
+                                  end:         str
+                                  ) -> pd.DataFrame:
+        """
+        Returns a DataFrame with columns [date, hour, count], where
+        'count' = number of distinct (unique_ID1, unique_ID2) pairs
+        in TTCTable for that intersection, within [start,end],
+        with include_flag=1 and the given p2v flag.
+        """
+        sql = """
+        SELECT
+          DATE(timestamp)                    AS date,
+          HOUR(timestamp)                    AS hour,
+          COUNT(DISTINCT CONCAT(unique_ID1,'_',unique_ID2)) AS count
+        FROM TTCTable
+        WHERE intersection_id = %s
+          AND p2v             = %s
+          AND include_flag    = 1
+          AND timestamp BETWEEN %s AND %s
+        GROUP BY date, hour
+        ORDER BY date, hour;
+        """
+        params = [intersec_id, p2v, start, end]
+
+        with self._connect() as conn:
+            df = pd.read_sql(sql, con=conn, params=params)
+
+        # Make sure 'date' is a datetime.date and 'hour' is int
+        df['date'] = pd.to_datetime(df['date']).dt.date
+        df['hour'] = df['hour'].astype(int)
+        return df
+
 
     def handleRequest(self, params: dict, df_type: str) -> pd.DataFrame:
         """
