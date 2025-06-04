@@ -6,8 +6,8 @@ from yaspin.spinners import Spinners
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
-from pprint import pprint
 import numpy as np
+from scipy import stats
 
 def heatmap_generator(df_type: str,
                       mean: bool,
@@ -17,259 +17,218 @@ def heatmap_generator(df_type: str,
                       conflict_type: str = None,
                       pedestrian_counting: bool = False,
                       ):
+    """
+    Fetch track or conflict data over the given time windows,
+    return (counts_df, total_hours).
+    counts_df has columns ['day_of_week','count','num_days','average_count'].
+    """
     if df_type not in ['track', 'conflict']:
         raise ValueError('df_type must be "track" or "conflict"')
-    
     if df_type == 'conflict' and p2v is None:
-        raise ValueError('p2v must be True or False when df_type is "conflict"')
-    
-    if p2v is False and conflict_type in ['left turning', 'right turning', 'thru']:
-        raise ValueError('Try commenting the three lines and uncommenting the one, or make p2v true')
+        raise ValueError('p2v must be True or False for conflict')
+    if p2v is False and conflict_type in ['left turning','right turning','thru']:
+        raise ValueError('that conflict_type requires p2v=True')
 
-    # Intersection and camera lookup dictionaries
-    intersec_lookup = {
-        3287: "Stirling Road and N 68th Avenue",
-        3248: "Stirling Road and N 66th Avenue",
-        3032: "Stirling Road and SR-7",
-        3265: "Stirling Road and University Drive",
-        3334: "Stirling Road and Carriage Hills Drive/SW 61st Avenue",
-    }
-
-    cam_lookup = {
-        3287: 24,
-        3248: 27,
-        3032: 23,
-        3265: 30,
-        3334: 33,
-        5060: 7
-    }
-
-    params = {
-        'start_date': '2024-02-26 07:00:00',
-        'end_date': '2024-02-27 00:00:00',
-        'intersec_id': intersec_id,
-        'cam_id': cam_lookup[intersec_id],
-        'p2v': 0 if p2v is False else 1
-    }
+    cam_lookup = {3287:24, 3248:27, 3032:23, 3265:30, 3334:33, 3252:36, 5060:7}
+    params = {'intersec_id': intersec_id,
+              'cam_id': cam_lookup[intersec_id],
+              'p2v': 0 if p2v is False else 1,
+              'start_date': None, 'end_date': None}
 
     omega = pd.DataFrame()
-
     for i in range(0, len(times), 2):
-        params['start_date'] = times[i]
-        params['end_date'] = times[i+1]
-        params['start_date_datetime_object'] = pd.to_datetime(params['start_date'])
-        params['end_date_datetime_object'] = pd.to_datetime(params['end_date'])
-
+        params['start_date'], params['end_date'] = times[i], times[i+1]
         my = MySQLConnector()
-
-        with yaspin(Spinners.pong, text=f"Fetching data from MySQL starting at {times[i]}") as sp:
+        with yaspin(Spinners.pong, text=f"Fetching {df_type}@{times[i]}") as sp:
             df = my.handleRequest(params, df_type)
-            sp.ok("✔")  # Mark the spinner as done
-
-        print(f"Fetched {len(df)} rows for time range {params['start_date']} to {params['end_date']}")
-
-
+            sp.ok("✔")
         if df.empty:
-            continue  # Skip if the DataFrame is empty
-
-        df['day_of_week'] = df['timestamp'].dt.day_name()
-
-        # Convert 'day_of_week' to categorical to maintain order in the heatmap
-        df['day_of_week'] = pd.Categorical(df['day_of_week'], categories=[
-            'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-            ordered=True)
-
+            continue
+        df['day_of_week'] = pd.Categorical(
+            df['timestamp'].dt.day_name(),
+            categories=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+            ordered=True
+        )
         omega = pd.concat([omega, df], ignore_index=True)
 
     if omega.empty:
-        # Return empty counts_df if no data is fetched
-        counts_df = pd.DataFrame(columns=['day_of_week', 'count', 'num_days', 'average_count'])
-        total_hours = 0
-        return counts_df, total_hours
+        return pd.DataFrame(columns=['day_of_week','count','num_days','average_count']), 0
 
+    # filter classes
     if df_type == 'track':
         if pedestrian_counting:
-            omega = omega[omega['class'] == 'pedestrian']
+            omega = omega[omega['class']=='pedestrian']
         else:
-            omega = omega[omega['class'] != 'pedestrian']
+            omega = omega[omega['class']!='pedestrian']
     else:
-        if p2v:
-            if conflict_type == 'left turning':
-                omega = omega[((omega['p2v'] == 1) & ((omega['conflict_type'] == 3) | (omega['conflict_type'] == 4)))]
-            elif conflict_type == 'right turning':
-                omega = omega[((omega['p2v'] == 1) & ((omega['conflict_type'] == 1) | (omega['conflict_type'] == 2)))]
-            elif conflict_type == 'thru':
-                omega = omega[((omega['p2v'] == 1) & ((omega['conflict_type'] == 5) | (omega['conflict_type'] == 6)))]
-            elif conflict_type == 'all':
-                omega = omega[(omega['p2v'] == 1)]
+        if conflict_type == 'all':
+            omega = omega[omega['p2v']==1]
+        elif conflict_type == 'left turning':
+            omega = omega[(omega['p2v']==1)&omega['conflict_type'].isin([3,4])]
+        elif conflict_type == 'right turning':
+            omega = omega[(omega['p2v']==1)&omega['conflict_type'].isin([1,2])]
+        elif conflict_type == 'thru':
+            omega = omega[(omega['p2v']==1)&omega['conflict_type'].isin([5,6])]
 
-    column_name = 'track_id' if df_type == 'track' else 'unique_ID1'
-
-    # Convert 'timestamp' to date only
+    col = 'track_id' if df_type=='track' else 'unique_ID1'
     omega['date'] = omega['timestamp'].dt.date
 
-    # Group by 'day_of_week' and 'date', count unique entries
-    counts_per_date = omega.groupby(['day_of_week', 'date'])[column_name].nunique().reset_index(name='count')
-
-    # Sum counts per day of week
-    counts_per_dayofweek = counts_per_date.groupby('day_of_week')['count'].sum().reset_index()
-
-    # Get number of days per day of week
-    days_per_dayofweek = counts_per_date.groupby('day_of_week')['date'].nunique().reset_index(name='num_days')
-
-    # Merge counts and days
-    counts_df = pd.merge(counts_per_dayofweek, days_per_dayofweek, on='day_of_week')
-
-    # Compute average counts per day
+    per_date = omega.groupby(['day_of_week','date'])[col]\
+                    .nunique().reset_index(name='count')
+    sum_by_day = per_date.groupby('day_of_week')['count']\
+                         .sum().reset_index()
+    days_by_day = per_date.groupby('day_of_week')['date']\
+                          .nunique().reset_index(name='num_days')
+    counts_df = pd.merge(sum_by_day, days_by_day, on='day_of_week')
     counts_df['average_count'] = counts_df['count'] / counts_df['num_days']
 
-    total_seconds = 0
-    for i in range(0, len(times), 2):
-        start = datetime.strptime(times[i], "%Y-%m-%d %H:%M:%S.%f")
-        end = datetime.strptime(times[i+1], "%Y-%m-%d %H:%M:%S.%f")
-        total_seconds += (end - start).total_seconds()
-    total_hours = total_seconds / 3600.0
-
-    return counts_df, total_hours
+    total_seconds = sum(
+        (datetime.strptime(times[j+1], "%Y-%m-%d %H:%M:%S.%f") -
+         datetime.strptime(times[j],   "%Y-%m-%d %H:%M:%S.%f")
+        ).total_seconds()
+        for j in range(0, len(times), 2)
+    )
+    return counts_df, total_seconds/3600.0
 
 
 def calculate_conflict_rates(conflict_counts, volume_counts, volume_type):
-    # Rename columns for clarity
-    conflict_counts = conflict_counts.rename(columns={'count': 'conflict_count', 'average_count': 'average_conflict_count'})
-    volume_counts = volume_counts.rename(columns={'count': f'{volume_type}_count', 'average_count': f'average_{volume_type}_count'})
-
-    print("Conflict Counts:")
-    print(conflict_counts[['day_of_week', 'num_days']].dtypes)
-    print(conflict_counts[['day_of_week', 'num_days']].drop_duplicates())
-
-    print("\nVolume Counts:")
-    print(volume_counts[['day_of_week', 'num_days']].dtypes)
-    print(volume_counts[['day_of_week', 'num_days']].drop_duplicates())
-
-
-    # Merge conflict counts with volume counts
+    cc = conflict_counts.rename(
+        columns={'count':'conflict_count','average_count':'avg_conflict_count'}
+    )
+    vc = volume_counts.rename(
+        columns={'count':f'{volume_type}_count',
+                 'average_count':f'avg_{volume_type}_count'}
+    )
     merged = pd.merge(
-        conflict_counts[['day_of_week', 'conflict_count', 'num_days', 'average_conflict_count']],
-        volume_counts[['day_of_week', f'{volume_type}_count', 'num_days', f'average_{volume_type}_count']],
+        cc[['day_of_week','conflict_count','num_days','avg_conflict_count']],
+        vc[['day_of_week',f'{volume_type}_count','num_days',f'avg_{volume_type}_count']],
         on='day_of_week'
     )
-
-    # Calculate conflicts per 1,000 units, handling division by zero
-    merged[f'conflicts_per_1000_{volume_type}'] = np.where(
-        merged[f'{volume_type}_count'] > 0,
-        (merged['conflict_count'] / merged[f'{volume_type}_count']) * 1000,
-        0
+    merged[f'avg_conflicts_per_1000_{volume_type}'] = np.where(
+        merged[f'{volume_type}_count']>0,
+        merged['avg_conflict_count']/merged[f'avg_{volume_type}_count']*1000, 0
     )
-    merged[f'average_conflicts_per_1000_{volume_type}'] = np.where(
-        merged[f'average_{volume_type}_count'] > 0,
-        (merged['average_conflict_count'] / merged[f'average_{volume_type}_count']) * 1000,
-        0
-    )
-
     return merged
 
 
-##################### main program #######################
+def summarize_intersection(iid):
+    before = times_dict[iid]['before']
+    after  = times_dict[iid]['after']
 
-# Main program
-iid = 3287  # Intersection ID
+    # totals
+    vc_b,_ = heatmap_generator("track",    False, iid, before, p2v=False, pedestrian_counting=False)
+    vc_a,_ = heatmap_generator("track",    False, iid, after,  p2v=False, pedestrian_counting=False)
+    pc_b,_ = heatmap_generator("track",    False, iid, before, p2v=False, pedestrian_counting=True)
+    pc_a,_ = heatmap_generator("track",    False, iid, after,  p2v=False, pedestrian_counting=True)
+    cc_b,_ = heatmap_generator("conflict", False, iid, before, p2v=True, conflict_type='all')
+    cc_a,_ = heatmap_generator("conflict", False, iid, after,  p2v=True, conflict_type='all')
 
-times_before = times_dict[iid]['before']
-times_after = times_dict[iid]['after']
+    Cb, Ca = cc_b['count'].sum(), cc_a['count'].sum()
+    Vb, Va = vc_b['count'].sum(), vc_a['count'].sum()
+    Pb, Pa = pc_b['count'].sum(), pc_a['count'].sum()
 
-# Fetch data for 'before' period
-df_type = "track"
-mean = False  # We want total counts, not averages
+    r1_v, r2_v = Cb/Vb, Ca/Va
+    r1_p, r2_p = Cb/Pb, Ca/Pa
 
-vehicle_counts_before, total_hours_before = heatmap_generator(df_type, mean, iid, times_before, p2v=False, pedestrian_counting=False)
+    se_v = np.sqrt(r1_v/Vb + r2_v/Va)
+    p_v  = 2*(1 - stats.norm.cdf(abs((r2_v-r1_v)/se_v)))
 
-pedestrian_counts_before, _ = heatmap_generator(df_type, mean, iid, times_before, p2v=False, pedestrian_counting=True)
+    se_p = np.sqrt(r1_p/Pb + r2_p/Pa)
+    p_p  = 2*(1 - stats.norm.cdf(abs((r2_p-r1_p)/se_p)))
 
-
-df_type = "conflict"
-p2v = True
-conflict_type = 'all'
-
-conflict_counts_before, _ = heatmap_generator(df_type, mean, iid, times_before, p2v=p2v, conflict_type=conflict_type)
-
-
-print("Conflict Counts (Before):")
-print(conflict_counts_before)
-print("Vehicle Counts (Before):")
-print(vehicle_counts_before)
-print("Pedestrian Counts (Before):")
-print(pedestrian_counts_before)
-
-total_vehicle_count_before = vehicle_counts_before['count'].sum()
-total_conflict_count_before = conflict_counts_before['count'].sum()
-total_pedestrian_count_before = pedestrian_counts_before['count'].sum()
-
-print(f"Total Conflict Count (Before): {total_conflict_count_before}")
-print(f"Total Vehicle Count (Before): {total_vehicle_count_before}")
-print(f"Total Pedestrian Count (Before): {total_pedestrian_count_before}")
+    return pd.DataFrame({
+        'Intersection':[iid,iid],
+        'Metric':[
+          'Conflicts per 1 000 vehicles',
+          'Conflicts per 1 000 pedestrians'
+        ],
+        'Before':    [r1_v*1000, r1_p*1000],
+        'After':     [r2_v*1000, r2_p*1000],
+        'Change (%)':[(r2_v-r1_v)/r1_v*100,(r2_p-r1_p)/r1_p*100],
+        'p‑value':   [p_v,p_p]
+    })
 
 
-# Fetch data for 'after' period
-df_type = "track"
-mean = False
+if __name__=="__main__":
+    intersections = [3248, 3287]
 
-vehicle_counts_after, total_hours_after = heatmap_generator(df_type, mean, iid, times_after, p2v=False, pedestrian_counting=False)
-pedestrian_counts_after, _ = heatmap_generator(df_type, mean, iid, times_after, p2v=False, pedestrian_counting=True)
+    for iid in intersections:
+        # prepare merged DataFrames for normalized‐conflict plots
+        before = times_dict[iid]['before']
+        after  = times_dict[iid]['after']
 
-total_vehicle_count_after = vehicle_counts_after['count'].sum()
-total_pedestrian_count_after = pedestrian_counts_after['count'].sum()
+        vc_b,_ = heatmap_generator("track", False, iid, before, p2v=False, pedestrian_counting=False)
+        vc_a,_ = heatmap_generator("track", False, iid, after,  p2v=False, pedestrian_counting=False)
+        pc_b,_ = heatmap_generator("track", False, iid, before, p2v=False, pedestrian_counting=True)
+        pc_a,_ = heatmap_generator("track", False, iid, after,  p2v=False, pedestrian_counting=True)
+        cc_b,_ = heatmap_generator("conflict", False, iid, before, p2v=True, conflict_type='all')
+        cc_a,_ = heatmap_generator("conflict", False, iid, after,  p2v=True, conflict_type='all')
 
-print("Vehicle Counts (After):", total_vehicle_count_after)
-print("Pedestrian Counts (After):", total_pedestrian_count_after)
+        mv_b = calculate_conflict_rates(cc_b, vc_b, 'vehicle')
+        mv_a = calculate_conflict_rates(cc_a, vc_a, 'vehicle')
+        mp_b = calculate_conflict_rates(cc_b, pc_b, 'pedestrian')
+        mp_a = calculate_conflict_rates(cc_a, pc_a, 'pedestrian')
 
+        # ensure ordering
+        for df in (mv_b, mv_a, mp_b, mp_a):
+            df['day_of_week'] = pd.Categorical(
+                df['day_of_week'],
+                categories=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+                ordered=True
+            )
+            df.sort_values('day_of_week', inplace=True)
 
-df_type = "conflict"
-p2v = True
+        # plot per‐1 000 vehicles
+        plt.figure(figsize=(8,5))
+        plt.plot(mv_b['day_of_week'], mv_b['avg_conflicts_per_1000_vehicle'], marker='o', label='Before')
+        plt.plot(mv_a['day_of_week'], mv_a['avg_conflicts_per_1000_vehicle'], marker='o', label='After')
+        # plt.title(f'Average P2V Conflicts / 1,000 Vehicles @ Intersection {iid}')
+        plt.xlabel('Day of Week')
+        plt.ylabel('Conflicts / 1,000 Vehicles')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(f'normalized_conflicts_vehicles_{iid}.pdf', dpi=300)
+        plt.close()
 
-conflict_counts_after, _ = heatmap_generator(df_type, mean, iid, times_after, p2v=p2v, conflict_type=conflict_type)
+        # plot per‐1 000 pedestrians
+        plt.figure(figsize=(8,5))
+        plt.plot(mp_b['day_of_week'], mp_b['avg_conflicts_per_1000_pedestrian'], marker='o', label='Before')
+        plt.plot(mp_a['day_of_week'], mp_a['avg_conflicts_per_1000_pedestrian'], marker='o', label='After')
+        # plt.title(f'Average P2V Conflicts / 1,000 Pedestrians @ Intersection {iid}')
+        plt.xlabel('Day of Week')
+        plt.ylabel('Conflicts / 1,000 Pedestrians')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(f'normalized_conflicts_pedestrians_{iid}.pdf', dpi=300)
+        plt.close()
 
-# Calculate conflict rates
-merged_before_vehicle = calculate_conflict_rates(conflict_counts_before, vehicle_counts_before, 'vehicle')
-merged_after_vehicle = calculate_conflict_rates(conflict_counts_after, vehicle_counts_after, 'vehicle')
-merged_before_pedestrian = calculate_conflict_rates(conflict_counts_before, pedestrian_counts_before, 'pedestrian')
-merged_after_pedestrian = calculate_conflict_rates(conflict_counts_after, pedestrian_counts_after, 'pedestrian')
-
-print("Merged Before Vehicle:")
-print(merged_before_vehicle)
-print("Merged Before Pedestrian:")
-print(merged_before_pedestrian)
-
-
-# Plotting
-categories = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-for df in [merged_before_vehicle, merged_after_vehicle, merged_before_pedestrian, merged_after_pedestrian]:
-    df['day_of_week'] = pd.Categorical(df['day_of_week'], categories=categories, ordered=True)
-    df.sort_values('day_of_week', inplace=True)
-
-print(merged_before_pedestrian)
-
-# Plot conflicts per 1,000 vehicles
-plt.figure(figsize=(10, 6))
-plt.plot(merged_before_vehicle['day_of_week'], merged_before_vehicle['average_conflicts_per_1000_vehicle'], marker='o', label='Before')
-plt.plot(merged_after_vehicle['day_of_week'], merged_after_vehicle['average_conflicts_per_1000_vehicle'], marker='o', label='After')
-plt.title('Average P2V Conflicts per 1,000 Vehicles by Day of Week')
-plt.xlabel('Day of Week')
-plt.ylabel('Conflicts per 1,000 Vehicles')
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.savefig(f'p2v_conflicts_per_1000_vehicles_{iid}.png', dpi=300)
-plt.close()
-
-# Plot conflicts per 1,000 pedestrians
-plt.figure(figsize=(10, 6))
-plt.plot(merged_before_pedestrian['day_of_week'], merged_before_pedestrian['average_conflicts_per_1000_pedestrian'], marker='o', label='Before')
-plt.plot(merged_after_pedestrian['day_of_week'], merged_after_pedestrian['average_conflicts_per_1000_pedestrian'], marker='o', label='After')
-plt.title('Average P2V Conflicts per 1,000 Pedestrians by Day of Week')
-plt.xlabel('Day of Week')
-plt.ylabel('Conflicts per 1,000 Pedestrians')
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.savefig(f'p2v_conflicts_per_1000_pedestrians_{iid}.png', dpi=300)
-plt.close()
+    # finally, print the combined summary table
+    all_summaries = pd.concat(
+      [summarize_intersection(i) for i in intersections],
+      ignore_index=True
+    )
+    colspec = "p{2cm}p{4cm}XXXXL"
+    print(r"\begin{table}[htbp]")
+    print(r"  \begin{flushleft}")
+    print(
+      r"    \caption{Average number of P2V conflicts per 1,000 vehicles and per 1,000 pedestrians, "
+      r"before vs after, for the 66th and 68th Avenue intersections.}"
+    )
+    print(r"    \label{tab:p2v_compare_two}")
+    print(r"    \begin{tabularx}{\textwidth}{" + colspec + r"}")
+    print(r"      \hline")
+    headers = ["Intersection","Metric","Before","After","Change (\\%)","p‑value"]
+    print("      " + " & ".join(f"\\textbf{{{h}}}" for h in headers) + r" \\")
+    print(r"      \hline")
+    for _, row in all_summaries.iterrows():
+        print(
+            f"      {int(row['Intersection'])} & {row['Metric']} & "
+            f"{row['Before']:.2f} & {row['After']:.2f} & "
+            f"{row['Change (%)']:.2f} & {row['p‑value']:.8f} \\\\"
+        )
+    print(r"      \hline")
+    print(r"    \end{tabularx}")
+    print(r"  \end{flushleft}")
+    print(r"\end{table}")
