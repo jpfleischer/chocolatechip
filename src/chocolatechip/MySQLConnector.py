@@ -148,7 +148,7 @@ class MySQLConnector:
         df['period_start'] = pd.to_datetime(df['period_start'])
         return df
     
-    
+
     def fetchConflictRecords(self, intersec_id: int, p2v: int, start: str, end: str) -> pd.DataFrame:
         """
         Fetch raw conflict rows (timestamp, cluster1, cluster2) for a given intersection/p2v/time range,
@@ -168,6 +168,28 @@ class MySQLConnector:
         params = (intersec_id, p2v, start, end)
         # This executes in one shot, which is faster than handleRequest’s fetch‐many loop
         df = pd.read_sql(sql, con=self._connect(), params=params)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        return df
+    
+
+    def fetchConflictCoordinates(self, intersec_id: int, p2v: int, start: str, end: str) -> pd.DataFrame:
+        """
+        Fetch timestamp, numeric x/y and cluster codes for P2V or V2V.
+        """
+        sql = '''
+        SELECT
+          timestamp,
+          cluster1,
+          cluster2,
+          conflict_x,
+          conflict_y
+        FROM TTCTable
+        WHERE intersection_id = %s
+          AND p2v           = %s
+          AND include_flag  = 1
+          AND timestamp BETWEEN %s AND %s
+        '''
+        df = pd.read_sql(sql, con=self._connect(), params=(intersec_id, p2v, start, end))
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         return df
     
