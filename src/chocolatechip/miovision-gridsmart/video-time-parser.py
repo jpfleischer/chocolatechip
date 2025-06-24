@@ -3,11 +3,16 @@ import os, re, json, subprocess, glob
 from datetime import datetime, date, timedelta
 from tqdm import tqdm
 
+import matplotlib.ticker as ticker
+import matplotlib.pyplot as plt
+
+
 # === CONFIG ===
 # If you want to test a single camera, you can comment out CAMERA_IDS and uncomment:
-CAMERA_IDS  = [24]           # ← put your camera number here (the "24_…" prefix)
-# CAMERA_IDS = [25, 26]      # ← your camera prefixes
-TIMEFRAME  = "before"      # "before" or "after"
+# CAMERA_IDS  = [24]           # ← put your camera number here (the "24_…" prefix)
+CAMERA_IDS = [25, 26]      # ← your camera prefixes
+TIMEFRAME  = "after"      # "before" or "after"
+# TIMEFRAME  = "before"
 TRACKING_DIR = "/mnt/hdd/data/video_pipeline/tracking"
 SSH_ALIAS    = "maltlab"
 
@@ -126,7 +131,6 @@ print(f"Saved {len(unique)} ranges; total hours={total_secs/3600:.2f}")
 
 
 # 6) Plot coverage timeline
-import matplotlib.pyplot as plt
 
 # rebuild datetime ranges
 segs = [
@@ -153,7 +157,7 @@ cam_label = "_".join(str(c) for c in CAMERA_IDS)
 # now build the coverage-plot filename
 OUTPUT_COVERAGE_PNG = f"video_coverage_{cam_label}_{TIMEFRAME}.png"
 
-fig, ax = plt.subplots(figsize=(10, len(days)*0.5 + 1))
+fig, ax = plt.subplots(figsize=(16, len(days)*0.5 + 1))
 for i, day in enumerate(days):
     ax.broken_barh([(0, 86400)], (i, 0.8), facecolors='lightgray')
     ax.broken_barh(by_day[day],     (i, 0.8), facecolors='blue')
@@ -161,9 +165,40 @@ for i, day in enumerate(days):
 ax.set_yticks([i + 0.4 for i in range(len(days))])
 ax.set_yticklabels([d.strftime("%b %d") for d in days])
 ax.set_xlim(0, 86400)
-ax.set_xlabel("Seconds from midnight")
+
+# tick every hour
+ax.xaxis.set_major_locator(ticker.MultipleLocator(3600))
+
+
+def sec_to_ampm(x, pos):
+    # x is seconds from midnight
+    h = int(x // 3600)
+    m = int((x % 3600) // 60)
+    ampm = "AM" if h < 12 else "PM"
+    h12 = h % 12
+    if h12 == 0:
+        h12 = 12
+    return f"{h12} {ampm}"
+
+
+# format ticks as “H:MM AM/PM”
+ax.xaxis.set_major_formatter(ticker.FuncFormatter(sec_to_ampm))
+
+# nicer label
+ax.set_xlabel("Time of day")
 
 ax.set_title(f"Cameras {cam_label} — {TIMEFRAME.capitalize()} since Oct 1 2024")
+
+
+# Make grid lines black…
+ax.set_axisbelow(False)   # draw grid lines *above* the bars
+ax.grid(
+    axis='x',             # vertical lines only
+    which='major',        # at your hourly ticks
+    color='black',
+    linestyle='--',
+    linewidth=0.7
+)
 
 plt.tight_layout()
 plt.savefig(OUTPUT_COVERAGE_PNG, dpi=300)
