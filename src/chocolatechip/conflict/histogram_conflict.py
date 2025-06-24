@@ -96,7 +96,7 @@ def get_all_conflicts_for_period(iid, p2v, period):
 # ────────────────────────────────────────────────────────────────────────────────
 
 def plot_p2v_triple_heatmap(df, img_path, out_path,
-                            img_extent=(0,1280,0,960), bin_size=30):
+                            img_extent=(0,1280,0,960), bin_size=30, global_max=None):
     # require columns
     for col in ['cluster1','cluster2','conflict_x','conflict_y','timestamp']:
         if col not in df.columns:
@@ -156,8 +156,8 @@ def plot_p2v_triple_heatmap(df, img_path, out_path,
     H_thru  /= ndays
     H_right /= ndays
 
-    # find global max for scaling
-    global_max = max(H_left.max(), H_thru.max(), H_right.max(), 1)
+    if global_max is None:
+        global_max = max(H_left.max(), H_thru.max(), H_right.max(), 1e-3)
 
     # plot
     bg = plt.imread(img_path)
@@ -222,7 +222,7 @@ def plot_p2v_triple_heatmap(df, img_path, out_path,
 
 
 def plot_v2v_triple_heatmap(df, img_path, out_path,
-                            img_extent=(0,1280,0,960), bin_size=30):
+                            img_extent=(0,1280,0,960), bin_size=30, global_max=None):
     # require same conflict_x, conflict_y, cluster1/2, timestamp columns
     for col in ['cluster1','cluster2','conflict_x','conflict_y','timestamp']:
         if col not in df.columns:
@@ -274,7 +274,8 @@ def plot_v2v_triple_heatmap(df, img_path, out_path,
                            y_flipped[rol_mask.loc[valid]],
                            bins=[xbins,ybins])[0] / ndays
 
-    global_max = max(H_lot.max(), H_rmt.max(), H_rol.max(), 1e-3)
+    if global_max is None:
+        global_max = max(H_lot.max(), H_rmt.max(), H_rol.max(), 1e-3)
 
     # start plot
     bg = plt.imread(img_path)
@@ -330,6 +331,8 @@ if __name__ == "__main__":
         cam = cam_lookup.get(iid)
         if cam is None:
             continue
+
+        # ensure map image is present
         pic = f"{cam}_Map.png"
         if not os.path.isfile(pic):
             print(f"Downloading {pic} …")
@@ -337,19 +340,86 @@ if __name__ == "__main__":
             with open(pic,'wb') as f:
                 f.write(r.content)
 
-        for period in periods:
-            print(f"\nPlotting P2V for {iid} {period} …")
-            p2v_df = get_all_conflicts_for_period(iid, 1, period)
-            if not p2v_df.empty:
-                plot_p2v_triple_heatmap(
-                    p2v_df, pic,
-                    f"heatmaps/{iid}_{period}_p2v_triple.png"
-                )
+        # ─── P2V: fetch both periods and compute shared global_max ───
+        p2v_data = {
+            period: get_all_conflicts_for_period(iid, 1, period)
+            for period in periods
+        }
+        def _p2v_hists(df):
+            x = pd.to_numeric(df['conflict_x'], errors='coerce')
+            y = pd.to_numeric(df['conflict_y'], errors='coerce')
+            valid = df.index[~(x.isna()|y.isna())]
+            x = x.loc[valid]
+            y = (960 - y.loc[valid])
+            bins = [np.arange(0,1280+30,30), np.arange(0,960+30,30)]
+            d1   = df['cluster1'].str.findall(r"[A-Z]+").str.join("")
+            d2   = df['cluster2'].str.findall(r"[A-Z]+").str.join("")
+            ped1 = df['cluster1'].str.contains('ped', case=False, na=False)
+            active = d2.where(ped1, other=d1)
+            lm = active.str.endswith("L")
+            tm = active.str.endswith("T")
+            rm = active.str.endswith("R")
+            H_L = np.histogram2d(x[lm.loc[valid]], y[lm.loc[valid]], bins=bins)[0]
+            H_T = np.histogram2d(x[tm.loc[valid]], y[tm.loc[valid]], bins=bins)[0]
+            H_R = np.histogram2d(x[rm.loc[valid]], y[rm.loc[valid]], bins=bins)[0]
+            return H_L, H_T, H_R
 
-            print(f"Plotting V2V for {iid} {period} …")
-            v2v_df = get_all_conflicts_for_period(iid, 0, period)
-            if not v2v_df.empty:
-                plot_v2v_triple_heatmap(
-                    v2v_df, pic,
-                    f"heatmaps/{iid}_{period}_v2v_triple.png"
-                )
+        all_p2v_H = []
+        for df in p2v_data.values():
+            if not df.empty:
+                all_p2v_H.extend(_p2v_hists(df))
+        # Corrected: wrap the generator in a list + ensure at least one element
+        shared_max_p2v = max([H.max() for H in all_p2v_H] + [1e-3])
+
+        for period, df in p2v_data.items():
+            if df.empty:
+                print(f"No P2V data for {iid} {period}; skipping.")
+                continue
+            out = f"heatmaps/{iid}_{period}_p2v_triple.png"
+            plot_p2v_triple_heatmap(
+                df, pic, out,
+                img_extent=(0,1280,0,960),
+                bin_size=30,
+                global_max=shared_max_p2v
+            )
+
+        # ─── V2V: same pattern ───
+        v2v_data = {
+            period: get_all_conflicts_for_period(iid, 0, period)
+            for period in periods
+        }
+        def _v2v_hists(df):
+            x = pd.to_numeric(df['conflict_x'], errors='coerce')
+            y = pd.to_numeric(df['conflict_y'], errors='coerce')
+            valid = df.index[~(x.isna()|y.isna())]
+            x = x.loc[valid]
+            y = (960 - y.loc[valid])
+            bins = [np.arange(0,1280+30,30), np.arange(0,960+30,30)]
+            d1 = df['cluster1'].str.findall(r"[A-Z]+").str.join("")
+            d2 = df['cluster2'].str.findall(r"[A-Z]+").str.join("")
+            e1, e2 = d1.str[-1], d2.str[-1]
+            lot = ((e1=="L") & (e2=="T")) | ((e1=="T") & (e2=="L"))
+            rmt = ((e1=="R") & (e2=="T")) | ((e1=="T") & (e2=="R"))
+            rol = ((e1=="R") & (e2=="L")) | ((e1=="L") & (e2=="R"))
+            H_LOT = np.histogram2d(x[lot.loc[valid]], y[lot.loc[valid]], bins=bins)[0]
+            H_RMT = np.histogram2d(x[rmt.loc[valid]], y[rmt.loc[valid]], bins=bins)[0]
+            H_ROL = np.histogram2d(x[rol.loc[valid]], y[rol.loc[valid]], bins=bins)[0]
+            return H_LOT, H_RMT, H_ROL
+
+        all_v2v_H = []
+        for df in v2v_data.values():
+            if not df.empty:
+                all_v2v_H.extend(_v2v_hists(df))
+        shared_max_v2v = max([H.max() for H in all_v2v_H] + [1e-3])
+
+        for period, df in v2v_data.items():
+            if df.empty:
+                print(f"No V2V data for {iid} {period}; skipping.")
+                continue
+            out = f"heatmaps/{iid}_{period}_v2v_triple.png"
+            plot_v2v_triple_heatmap(
+                df, pic, out,
+                img_extent=(0,1280,0,960),
+                bin_size=30,
+                global_max=shared_max_v2v
+            )
