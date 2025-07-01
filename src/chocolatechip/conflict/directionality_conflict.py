@@ -5,6 +5,7 @@ from yaspin.spinners import Spinners
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+from datetime import datetime
 
 
 
@@ -79,6 +80,21 @@ def get_intersection_data(iid, p2v, period):
     return df.dropna(axis=1, how='all')
 
 
+def get_recorded_days(iid, period):
+    """
+    Sum up the total recording time (in days) for an intersection & period,
+    given that times_dict[iid][period] is a flat list of alternating
+    start/end ISO-strings.
+    """
+    ts_list = times_dict[iid][period]
+    total_seconds = 0.0
+    # take (start, end) in pairs
+    for start_str, end_str in zip(ts_list[0::2], ts_list[1::2]):
+        start = datetime.fromisoformat(start_str)
+        end   = datetime.fromisoformat(end_str)
+        total_seconds += (end - start).total_seconds()
+    return total_seconds / 86400.0  # seconds → days
+
 
 def plot_before_after_counts(counts_b, counts_a, iid: int, p2v_label: str):
     """
@@ -96,17 +112,18 @@ def plot_before_after_counts(counts_b, counts_a, iid: int, p2v_label: str):
     df = df.sort_values('total').drop(columns='total')
 
     # 3) plot
-    plt.figure(figsize=(8,5))
+    plt.figure(figsize=(5,5))
     df.plot(
         kind='bar',
-        figsize=(8,5),
+        figsize=(5,5),
         color=['#1f77b4', '#ff7f0e'],   # or whatever two distinct colors
         width=0.8
     )
     ax = plt.gca()
     # ax.set_title(f"Intersection {iid} — {p2v_label} Conflicts\nBefore vs After", fontsize=16)
     ax.set_xlabel("Direction", fontsize=14)
-    ax.set_ylabel("Number of Conflicts", fontsize=14)
+    ax.set_ylabel("Conflicts per Day", fontsize=14)
+
     ax.tick_params(axis='x', labelsize=12, rotation=45)
     plt.legend(fontsize=12)
     plt.tight_layout()
@@ -167,19 +184,21 @@ for iid in intersection_ids:
         df_a = get_intersection_data(iid, p2v_flag, 'after')
         df_a = df_a[df_a['p2v'] == int(p2v_flag)]
 
-        # count directions
+        # compute how many days of data we actually have…
+        days_b = get_recorded_days(iid, 'before')
+        days_a = get_recorded_days(iid, 'after')
+
+        # count raw conflicts…
         cnt_b = count_conflicts_by_direction(df_b, p2v=(p2v_flag=='1'))
         cnt_a = count_conflicts_by_direction(df_a, p2v=(p2v_flag=='1'))
-        # drop pedestrians in P2V
-        if p2v_flag == '1':
-            cnt_b = cnt_b[~cnt_b.index.str.contains('ped')]
-            cnt_a = cnt_a[~cnt_a.index.str.contains('ped')]
 
-        # skip if absolutely no data
-        if cnt_b.sum()==0 and cnt_a.sum()==0:
-            print(f"→ no {label} data for {iid}, skipping before/after plot")
-        else:
-            plot_before_after_counts(cnt_b, cnt_a, iid, label)
+        # turn those into “per‐day” rates
+        rate_b = cnt_b / days_b
+        rate_a = cnt_a / days_a
+
+        # update your plotting (and axis label) to reflect “per day” instead of total
+        plot_before_after_counts(rate_b, rate_a, iid, label)
+
 
     # 2) now aggregate both periods for your all-intersection stacked bars
     all_v2v = pd.concat([
