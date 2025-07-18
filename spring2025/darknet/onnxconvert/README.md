@@ -7,3 +7,8 @@ specified MODEL_DIR and not nested in any subdirectories.
 
 there should also only be one .cfg file.
 
+NOTE: if your model dir is NOT in the /data dir then you must change
+the docker volume mount in the Makefile! change it from -v /data:/data to
+-v /my/lovely/model/folder:/data
+or whatever your folder is.
+
