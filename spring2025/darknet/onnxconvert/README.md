@@ -1,6 +1,12 @@
-all that is needed to be changed is the convert.sh.
+# Running
 
+To convert your darknet weights file to an onnx model,
+you need Docker installed.
+
+all that is needed to be changed is the convert.sh:
 change the first two variables, MODEL_NAME and MODEL_DIR.
+
+Then run `make` and that is it!
 
 it is expected that the .weights are immediately available in the
 specified MODEL_DIR and not nested in any subdirectories.
