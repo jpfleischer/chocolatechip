@@ -1,5 +1,5 @@
 run: build
-	docker run --gpus all \
+	docker run \
 	-v /data/:/data/ \
 	-v ${CURDIR}/output:/workspace/output \
 	yolo_converter
