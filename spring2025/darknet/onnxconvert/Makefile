@@ -1,6 +1,6 @@
 run: build
 	docker run --gpus all \
-	-v /data/traffic_training_cvat_unzipped/annotations:/data/traffic_training_cvat_unzipped/annotations \
+	-v /data/:/data/ \
 	-v ${CURDIR}/output:/workspace/output \
 	yolo_converter
 
