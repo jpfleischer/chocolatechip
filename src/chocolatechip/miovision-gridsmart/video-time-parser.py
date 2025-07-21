@@ -6,20 +6,36 @@ from tqdm import tqdm
 import matplotlib.ticker as ticker
 import matplotlib.pyplot as plt
 
+import paramiko
+from dotenv import load_dotenv
 
 # === CONFIG ===
 # If you want to test a single camera, you can comment out CAMERA_IDS and uncomment:
 # CAMERA_IDS  = [24]           # ← put your camera number here (the "24_…" prefix)
-CAMERA_IDS = [25, 26]      # ← your camera prefixes
-TIMEFRAME  = "after"      # "before" or "after"
-# TIMEFRAME  = "before"
+CAMERA_IDS = [21, 22]      # ← your camera prefixes
+# TIMEFRAME  = "after"      # "before" or "after"
+TIMEFRAME  = "before"
 TRACKING_DIR = "/mnt/hdd/data/video_pipeline/tracking"
-SSH_ALIAS    = "maltlab"
 
 # cutoff = Oct 1 2024
 CUTOFF_DATE = date(2024,10,1)
 
 OUTPUT_TIMES_PY     = "video_times_output.py"
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+env_path  = os.path.join(script_dir, "../login.env")
+load_dotenv(env_path)
+
+# ── grab SSH details from your .env ──
+SSH_ALIAS = os.getenv("host", "")
+SSH_USER  = os.getenv("SSH_USER", "")
+
+
+ssh = paramiko.SSHClient()
+ssh.load_system_host_keys()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh.connect(SSH_ALIAS, username=SSH_USER, timeout=10)
+
 
 # build a regex that matches any of your camera prefixes
 camera_group = "|".join(str(c) for c in CAMERA_IDS)
@@ -46,7 +62,7 @@ else:
     for cam in CAMERA_IDS:
         remote_pattern = f"{TRACKING_DIR}/{cam}_*.mp4"
         ssh_find = [
-            "ssh", SSH_ALIAS,
+            "ssh", "-l", SSH_USER, SSH_ALIAS,
             "find", TRACKING_DIR,
             "-type", "f",
             "-name", f"{cam}_*.mp4",
@@ -94,38 +110,86 @@ for is_remote, host, path in tqdm(filtered, desc="Probing"):
     fn = os.path.basename(path)
     yr,mo,dy, hh,mm,ss = map(int, FNAME_RE.match(fn).groups()[1:7])
     start_dt = datetime(yr,mo,dy,hh,mm,ss)
-    cmd = (["ssh", host] if is_remote else []) + [
-        "ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", path
-    ]
+
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        dur = float(json.loads(res.stdout)["format"]["duration"])
+        if is_remote:
+            # ---- REMOTE via Paramiko ----
+            # Build the ffprobe command string
+            cmd = f"ffprobe -v quiet -print_format json -show_format {path!r}"
+            # Execute over the already-open SSHClient `ssh`
+            stdin, stdout, stderr = ssh.exec_command(cmd, timeout=20)
+            out = stdout.read().decode('utf-8')
+            err = stderr.read().decode('utf-8')
+            if err:
+                # ffprobe wrote something to stderr — skip this file
+                print(f"⚠️ ffprobe error on {path}: {err.strip()}")
+                continue
+        else:
+            # ---- LOCAL via subprocess ----
+            res = subprocess.run(
+                ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", path],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=20
+            )
+            out = res.stdout
+
+        # parse duration
+        info = json.loads(out)
+        dur = float(info["format"]["duration"])
         if dur <= 0:
             continue
-    except Exception:
+
+    except (subprocess.TimeoutExpired, paramiko.SSHException, json.JSONDecodeError) as e:
+        # either ssh hung, subprocess timed out, or JSON was invalid
+        print(f"⚠️ Skipping {path} due to error: {e}")
         continue
 
+    # accumulate
     total_secs += dur
     end_dt = start_dt + timedelta(seconds=dur)
     s_str = start_dt.strftime("%Y-%m-%d %H:%M:%S") + ".000"
     e_str = end_dt.strftime("%Y-%m-%d %H:%M:%S") + ".000"
     video_times.append((start_dt, end_dt, s_str, e_str))
 
+# once you’re done probing, don’t forget to close:
+ssh.close()
 
-# 4) Dedupe overlapping starts: keep the longest clip for each start_dt
+
+
+
+# 4) Merge any overlapping (or contiguous) clips
+# -----------------------------------------------
+# video_times is a list of (start_dt, end_dt, s_str, e_str)
+# First, sort by start_dt:
 video_times.sort(key=lambda x: x[0])
-best = {}
+
+merged = []
 for s_dt, e_dt, s_str, e_str in video_times:
-    if s_dt not in best or e_dt > best[s_dt][0]:
-        best[s_dt] = (e_dt, s_str, e_str)
+    if not merged:
+        # first interval
+        merged.append([s_dt, e_dt])
+    else:
+        last_s, last_e = merged[-1]
+        if s_dt <= last_e:
+            # overlap (or just touch); extend the end if needed
+            merged[-1][1] = max(last_e, e_dt)
+        else:
+            # no overlap: start a new interval
+            merged.append([s_dt, e_dt])
 
-unique = [(s_dt, v[1], v[2]) for s_dt, v in sorted(best.items())]
+# Now rebuild the string tuples exactly as you want to write them:
+unique = []
+for s_dt, e_dt in merged:
+    s_str = s_dt.strftime("%Y-%m-%d %H:%M:%S") + ".000"
+    e_str = e_dt.strftime("%Y-%m-%d %H:%M:%S") + ".000"
+    unique.append((s_dt, s_str, e_str))
 
-
-# 5) Write to your times file
 with open(OUTPUT_TIMES_PY, "w") as f:
     for _, s_str, e_str in unique:
         f.write(f"'{s_str}','{e_str}',\n")
+
 
 print(f"Saved {len(unique)} ranges; total hours={total_secs/3600:.2f}")
 
