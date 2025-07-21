@@ -296,6 +296,32 @@ class MySQLConnector:
         return df
 
 
+    def countTracks(self,
+                    intersection_id: int,
+                    start: str,
+                    end: str,
+                    class_name: str = None) -> int:
+        """
+        Returns the number of rows in RealTrackProperties for the given intersection
+        and time window, optionally filtered by class (e.g. 'car').
+        """
+        sql = """
+        SELECT COUNT(*) 
+          FROM RealTrackProperties
+         WHERE timestamp BETWEEN %s AND %s
+           AND intersection_id = %s
+           AND isAnomalous     = 0
+        """
+        params = [start, end, intersection_id]
+        if class_name:
+            sql += " AND `class` = %s"
+            params.append(class_name)
+
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                return cur.fetchone()[0] or 0
+
 
         # #
         # # excess, old code that we dont use 
