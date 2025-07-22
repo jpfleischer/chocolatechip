@@ -87,7 +87,7 @@ Commands:
         latency.main()
 
     if args['unflag']:
-        yaml_file = args['<flags.yaml>'] or "flags.yaml"
+        yaml_file = args['<flags.yaml>'] or "sprinkles.yaml"
         from chocolatechip.unflag import main as unflag_main
         unflag_main.main(yaml_file)
 

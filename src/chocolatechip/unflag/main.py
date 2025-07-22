@@ -44,13 +44,13 @@ def unflag_in_db(connection, uniqueID1, uniqueID2, cameraID):
 
 def main(yaml_file=None):
     """
-    Called by `chip unflag [flags.yaml]`. If no yaml_file is passed, defaults to "flags.yaml".
+    Called by `chip unflag [sprinkles.yaml]`. If no yaml_file is passed, defaults to "sprinkles.yaml".
     This version does NOT scan the local folder for .mp4 files; it simply unflags
     any ID that appears in the YAML with label == 'harmless'.
     """
 
     if yaml_file is None:
-        yaml_file = "flags.yaml"
+        yaml_file = "sprinkles.yaml"
 
     if not yaml_file.lower().endswith('.yaml'):
         print("Error: must pass a .yaml file as argument.")
