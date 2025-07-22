@@ -1,7 +1,7 @@
 python video_pipeline_checker.py --dryrun
 
 this will tell you which videos are missing and havent been analyzed/ingested
-into the pipeline yet.
+into the pipeline yet. it also cuts up videos into 15 minute segments
 
 ```bash
 # after changing to the intersection you want and the day of week
