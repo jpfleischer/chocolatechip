@@ -1,6 +1,7 @@
 # cd /mnt/hdd/data/video_pipeline/tracking
 # find "$(pwd)" -type f -ctime -9 \( -path "*tracking/26_*" -o -path "*tracking/25_*" \)
 
+import sys
 
 import subprocess
 import re
@@ -42,40 +43,49 @@ def extract_timestamps(file_paths):
     return date_times
 
 def generate_time_intervals(date_times):
-    """Generates start and end timestamps dynamically for each date based on available files."""
     arguments = []
     for date_str, times in date_times.items():
         start_time = times["earliest"].strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-        end_time = times["latest"].strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-
-        arguments.append(f"'{start_time}'")
-        arguments.append(f"'{end_time}'")
-    
+        end_time   = times["latest"].strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        # → no extra quotes here:
+        arguments.append(start_time)
+        arguments.append(end_time)
     return arguments
 
-if __name__ == "__main__":
-    # ✅ Argument Parser for Dynamic Inputs
-    parser = argparse.ArgumentParser(description="Find video tracking files and generate time intervals.")
-    parser.add_argument("--camera_id", required=True, help="Camera ID (e.g., 07)")
-    parser.add_argument("--year", required=True, help="Year of files to search (e.g., 2022)")
-    parser.add_argument("--days", type=int, default=30, help="Look back this many days (default: 30)")
-    parser.add_argument("--base_path", default="/mnt/hdd/data/video_pipeline/tracking", help="Base directory path")
 
+if __name__ == "__main__":
+
+    # ✅ Argument Parser for Dynamic Inputs
+    parser = argparse.ArgumentParser(
+        description="Find video tracking files and generate time intervals."
+    )
+    parser.add_argument("--camera_id", required=True, help="Camera ID (e.g., 07)")
+    parser.add_argument("--year",      required=True, help="Year of files to search")
+    parser.add_argument("--days",      type=int, default=30,
+                        help="Look back this many days (default: 30)")
+    parser.add_argument("--base_path", default="/mnt/hdd/data/video_pipeline/tracking",
+                        help="Base directory path")
     args = parser.parse_args()
 
-    # ✅ **Run automation**
-    file_paths = get_recent_files(args.base_path, args.camera_id, args.year, args.days)
+    # Run the file‑finder
+    file_paths = get_recent_files(
+        args.base_path, args.camera_id, args.year, args.days
+    )
 
-    if file_paths:
-        date_times = extract_timestamps(file_paths)
-        arguments = generate_time_intervals(date_times)
-
-        # Join arguments into a string
-        arg_list = " ".join(arguments)
-        print(f"Generated Argument List: {arg_list}")
-
-        # ✅ Write output to a file
-        with open("arglist.txt", "w") as file:
-            file.write(arg_list)
-    else:
+    if not file_paths:
         print("No matching files found.")
+        sys.exit(0)
+
+    # Extract earliest/latest per date, then build timestamp list
+    date_times = extract_timestamps(file_paths)
+    timestamps = generate_time_intervals(date_times)
+
+    # Show what we generated
+    print("Generated Argument List:")
+    for ts in timestamps:
+        print("  ", ts)
+
+    # Write one timestamp per line (no extra quotes)
+    with open("arglist.txt", "w") as file:
+        for ts in timestamps:
+            file.write(f"{ts}\n")
