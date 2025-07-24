@@ -21,6 +21,7 @@ WORKDIR /workspace
 
 # Copy conversion files.
 COPY yolo2onnx.py ./
+COPY yolo2onnx.py cfgparser.py ./
 COPY convert.sh ./
 RUN chmod +x convert.sh
 
