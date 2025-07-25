@@ -22,18 +22,32 @@ This python package makes computing at the MALTLab easier. its delicious
 
 ## Installation
 
-sign on to any lab machine and do the following:
+Please ensure your ssh key is set up with GitHub.
+if not, do `ssh-keygen`, and then once done, do 
 
+```bash
+cat ~/.ssh/id_rsa.pub
 ```
-# ls ~/ENV3
-# does it not exist? then do:
-# python3.12 -m venv ~/ENV3
-# if not already activated,
-source ~/ENV3/bin/activate
-pip install chocolatechip
+
+and take that key and put it into your github settings new SSH key.
+
+
+```bash
+git clone git@github.com:jpfleischer/chocolatechip.git
+cd chocolatechip
+make pip
 ```
+
+The `make pip` makes sure that you are in a Python virtual environment.
+It tells you how to make one if you aren't in one. In any case, `make` is
+required-- if you are on Windows, and you don't have `make`, follow
+https://github.com/cybertraining-dsc/reu2022/blob/main/project/windows-configuration.md#install-chocolatey
+then `choco install make -y`
 
 ## Use
+
+
+You can use `chip` now. Try it now!
 
 `chip fastmot` will benchmark fastmot for you
 
