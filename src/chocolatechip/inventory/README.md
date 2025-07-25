@@ -1,3 +1,5 @@
+This program should be used to run videos through the pipeline.
+
 python video_pipeline_checker.py --dryrun
 
 this will tell you which videos are missing and havent been analyzed/ingested
