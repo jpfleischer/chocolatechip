@@ -44,6 +44,27 @@ required-- if you are on Windows, and you don't have `make`, follow
 https://github.com/cybertraining-dsc/reu2022/blob/main/project/windows-configuration.md#install-chocolatey
 then `choco install make -y`
 
+For some of the functionalities, chocolatechip needs to connect to a
+MySQL database specifically configured for the near miss pipeline.
+You need to create a `login.env`.
+
+```bash
+nano src/chocolatechip/login.env
+# 
+# it looks like this
+#
+host=FillMeOut
+user=FillMeOut
+passwd=FillMeOut
+db=FillMeOut
+testdb=FillMeOut
+port=FillMeOut
+SSH_USER=FillMeOut
+#
+# you have to ask someone in the lab for the actual credentials.
+#
+```
+
 ## Use
 
 
