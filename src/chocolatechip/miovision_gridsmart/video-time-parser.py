@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 # === CONFIG ===
 # If you want to test a single camera, you can comment out CAMERA_IDS and uncomment:
 # CAMERA_IDS  = [24]           # ← put your camera number here (the "24_…" prefix)
-CAMERA_IDS = [21, 22]      # ← your camera prefixes
+CAMERA_IDS = [25, 26]      # ← your camera prefixes
 # TIMEFRAME  = "after"      # "before" or "after"
 TIMEFRAME  = "before"
 TRACKING_DIR = "/mnt/hdd/data/video_pipeline/tracking"
@@ -83,22 +83,30 @@ video_files.sort(key=lambda x: os.path.basename(x[2]))
 
 
 # 2) Filter by year and before/after cutoff
+
 filtered = []
+TARGET_2023 = date(2023, 8, 21)
+
 for is_remote, host, path in video_files:
     fn = os.path.basename(path)
-    m = FNAME_RE.match(fn)
-        # pull out only groups 2,3,4
-    yr = int(m.group(2))
-    mo = int(m.group(3))
-    dy = int(m.group(4))
+    m  = FNAME_RE.match(fn)
+    if not m:
+        continue
+
+    yr, mo, dy = map(int, m.groups()[1:4])
+    file_date = date(yr, mo, dy)
 
     if yr == 2023:
-        continue
-    file_date = date(yr,mo,dy)
-    if TIMEFRAME == "before" and file_date >= CUTOFF_DATE:
-        continue
-    if TIMEFRAME == "after"  and file_date <  CUTOFF_DATE:
-        continue
+        # keep only Aug 21, 2023
+        if file_date != TARGET_2023:
+            continue
+    else:
+        # your normal before/after logic for other years
+        if TIMEFRAME == "before" and file_date >= CUTOFF_DATE:
+            continue
+        if TIMEFRAME == "after"  and file_date <  CUTOFF_DATE:
+            continue
+
     filtered.append((is_remote, host, path))
 
 
@@ -137,9 +145,21 @@ for is_remote, host, path in tqdm(filtered, desc="Probing"):
 
         # parse duration
         info = json.loads(out)
-        dur = float(info["format"]["duration"])
+
+        fmt = info.get("format")
+        if fmt is None or "duration" not in fmt:
+            print(f"⚠️ No duration metadata for {path}, skipping")
+            continue
+
+        try:
+            dur = float(fmt["duration"])
+        except (ValueError, TypeError):
+            print(f"⚠️ Bad duration '{fmt['duration']}' for {path}, skipping")
+            continue
+
         if dur <= 0:
             continue
+
 
     except (subprocess.TimeoutExpired, paramiko.SSHException, json.JSONDecodeError) as e:
         # either ssh hung, subprocess timed out, or JSON was invalid
