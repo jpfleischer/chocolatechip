@@ -21,3 +21,10 @@ echo "Conversion complete. ONNX file generated in the output directory."
 
 echo "Listing output directory contents:"
 ls -l output
+
+# --- now parse the cfg for parameters ---
+echo "Parsing cfg for anchors, scales, input shape…"
+python3 cfgparser.py ${MODEL_NAME}.cfg \
+    > output/${MODEL_NAME}_cfg_params.txt
+
+echo "cfg parameters written to output/${MODEL_NAME}_cfg_params.txt"
