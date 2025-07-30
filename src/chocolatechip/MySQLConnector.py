@@ -156,21 +156,21 @@ class MySQLConnector:
         """
         sql = """
         SELECT
-          timestamp,
-          cluster1,
-          cluster2
+        timestamp,
+        unique_ID1,
+        unique_ID2,
+        cluster1,
+        cluster2
         FROM TTCTable
         WHERE intersection_id = %s
-          AND p2v           = %s
-          AND include_flag  = 1
-          AND timestamp BETWEEN %s AND %s
+        AND p2v           = %s
+        AND include_flag  = 1
+        AND timestamp BETWEEN %s AND %s
         """
-        params = (intersec_id, p2v, start, end)
-        # This executes in one shot, which is faster than handleRequest’s fetch‐many loop
-        df = pd.read_sql(sql, con=self._connect(), params=params)
+        df = pd.read_sql(sql, con=self._connect(), params=(intersec_id, p2v, start, end))
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         return df
-    
+
 
     def fetchConflictCoordinates(self, intersec_id: int, p2v: int, start: str, end: str) -> pd.DataFrame:
         """
@@ -227,6 +227,29 @@ class MySQLConnector:
         # Make sure 'date' is a datetime.date and 'hour' is int
         df['date'] = pd.to_datetime(df['date']).dt.date
         df['hour'] = df['hour'].astype(int)
+        return df
+    
+
+    def fetchPedestrianTracks(self, intersection_id: int, cam_id: int, start: str, end: str) -> pd.DataFrame:
+        """
+        Fetch raw pedestrian tracks using RealTrackProperties.unique_ID (not track_id) for a given intersection/camera/time range.
+        Returns a DataFrame with columns ['timestamp', 'unique_ID'].
+        """
+        sql = """
+        SELECT
+          timestamp,
+          unique_ID
+        FROM RealTrackProperties
+        WHERE intersection_id = %s
+          AND camera_id       = %s
+          AND isAnomalous     = 0
+          AND `class`         = 'pedestrian'
+          AND timestamp BETWEEN %s AND %s
+        ORDER BY timestamp;
+        """
+        df = pd.read_sql(sql, con=self._connect(), params=(intersection_id, cam_id, start, end))
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['unique_ID']  = df['unique_ID'].astype(str)
         return df
 
 
