@@ -1,3 +1,10 @@
+> [!IMPORTANT]
+> Conflict unique IDs are prefixed with 1
+> if the unique IDs are coming from a composite camera ID.
+> This is accounted for in the programs but be careful to
+> remember this when writing new code.
+
+
 weeklyp2vtype.py takes the number of days from
 times_config and divides by 7 to get the number
 of weeks.  it also creates plots such as:
