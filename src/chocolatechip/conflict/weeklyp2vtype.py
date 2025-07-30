@@ -2,6 +2,8 @@
 
 from chocolatechip.MySQLConnector import MySQLConnector
 from chocolatechip.times_config import times_dict
+from chocolatechip.intersections import intersection_lookup
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,6 +35,19 @@ def compute_unique_dates_and_weeks(time_windows: list[str]) -> tuple[set[pd.Time
         dates.add(date_only)
     num_days = len(dates)
     return dates, (num_days / 7.0 if num_days > 0 else 0.0)
+
+
+def total_recording_hours(time_windows: list[str]) -> float:
+    """
+    Sum up the total recording time (in hours) from a list of
+    [start1,end1, start2,end2, …] timestamp strings.
+    """
+    hours = 0.0
+    for start_ts, end_ts in zip(time_windows[0::2], time_windows[1::2]):
+        delta = pd.to_datetime(end_ts) - pd.to_datetime(start_ts)
+        hours += delta.total_seconds() / 3600.0
+    return hours
+
 
 # ────────────────────────────────────────────────────────────────────────────────
 # 2) DATA FETCHING & CACHING
@@ -209,7 +224,7 @@ def plot_p2v_bar_chart(
 
     # 4) Auto-scale the y-axis so that small values still fill most of the plot
     top = max(values) * 1.2 if values else 1.0
-    plt.ylim(0, 200)
+    plt.ylim(0, 180)
 
     # 5) Annotate each bar with its numeric value
     for bar, val in zip(bars, values):
@@ -451,6 +466,135 @@ def analyze_v2v_hourly_and_plot(iid: int, p2v_flag: int, period: str):
         avg_hourly = compute_v2v_hourly_averages(conflicts, code, unique_dates)
         plot_v2v_hourly_line(iid, period, code, avg_hourly)
 
+
+def compute_p2v_micro_average(
+    intersections: list[int],
+    period: str = 'before'
+) -> pd.Series:
+    """
+    For each intersection in `intersections`, compute its P2V conflict
+    rate (conflicts per hour), then sum those rates and convert to %
+    so that you get the “micro-average” distribution.
+    """
+    rates = []
+    for iid in intersections:
+        windows = get_time_windows(iid, period)
+        hrs     = total_recording_hours(windows)
+        if hrs <= 0:
+            continue
+        df      = get_all_conflicts_for_period(iid, p2v_flag=1, period=period)
+        counts  = count_p2v_conflicts(df)        # Series: Left, Right, Thru
+        rates.append(counts / hrs)               # conflicts per hour
+
+    # sum up per-hour rates across all intersections
+    total_rate = sum(rates)
+    # convert into percentages
+    return (total_rate / total_rate.sum() * 100).round(1)
+
+
+
+
+def plot_p2v_composition_stacked(
+    intersections: list[int],
+    period: str = 'before',
+    output_dir: str = '.'
+) -> None:
+    """
+    Horizontal 100%-stacked bar chart of P2V composition for each intersection
+    (plus an Overall bar), with each segment labeled by its %.
+    Legend sits above the plot, centered.
+    """
+    # 1) Build per‑intersection proportions and labels
+    records = []
+    labels  = []
+    for iid in intersections:
+        raw   = intersection_lookup.get(iid, str(iid))
+        label = raw.replace("Stirling Road and ", "")
+        for orig, abbr in [
+            (" Avenue", " Ave"),
+            (" Drive",  " Dr"),
+            (" Road",   " Rd"),
+            (" Extension", " Ext")
+        ]:
+            label = label.replace(orig, abbr)
+        labels.append(label)
+
+        windows = get_time_windows(iid, period)
+        hrs     = total_recording_hours(windows)
+        if hrs <= 0:
+            records.append(pd.Series(0, index=[
+                'Left Turning Vehs','Right Turning Vehs','Through Vehs'
+            ]))
+            continue
+
+        df     = get_all_conflicts_for_period(iid, p2v_flag=1, period=period)
+        counts = count_p2v_conflicts(df)
+        rates  = counts / hrs
+        props  = rates / rates.sum()
+        records.append(props)
+
+    prop_df = pd.DataFrame(records, index=labels)
+
+    # 2) Append an "Overall" bar
+    prop_df.loc['Overall\nMicro-Average'] = compute_p2v_micro_average(intersections, period=period) / 100.0
+
+    # 3) Sort: non-Overall by Left prop (least→greatest), then Overall on top
+    left = prop_df.loc[prop_df.index != 'Overall\nMicro-Average', 'Left Turning Vehs']
+    order = list(left.sort_values().index[::-1]) + ['Overall\nMicro-Average']
+    prop_df = prop_df.loc[order]
+
+    # 4) Plot horizontal stacks
+    ax = prop_df.plot(
+        kind='barh',
+        stacked=True,
+        figsize=(9, len(prop_df) * 0.6),
+        edgecolor='black'
+    )
+
+    # 5) Only show the 100% tick on the x-axis
+    ax.set_ylabel('')
+    ax.set_yticklabels(prop_df.index)
+    ax.set_xlabel('')
+    ax.set_xticks([1.0])
+    ax.set_xticklabels(['100%'])
+
+    # 6) Legend above plot
+    ax.legend(
+        title='Involved Vehicle Movement Type',
+        ncol=3,
+        bbox_to_anchor=(0.5, 1.20),
+        loc='upper center'
+    )
+
+    # 7) Annotate each segment with its percentage
+    for i, row in enumerate(prop_df.values):
+        x_offset = 0.0
+        for seg in row:
+            if seg <= 0:
+                continue
+            x = x_offset + seg/2
+            y = i
+            ax.text(
+                x, y,
+                f"{seg*100:.1f}%",
+                ha='center', va='center',
+                color='white',
+                fontsize=9,
+                fontweight='bold'
+            )
+            x_offset += seg
+
+    plt.tight_layout()
+    out = os.path.join(output_dir, 'p2v_composition_stacked.png')
+    plt.savefig(out, dpi=300, bbox_inches='tight')
+    out = os.path.join(output_dir, 'p2v_composition_stacked.pdf')
+    plt.savefig(out, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"  → Saved horizontal P2V composition chart: {out}")
+
+
+
+
 # ────────────────────────────────────────────────────────────────────────────────
 # 8) RUN FOR SELECTED INTERSECTIONS
 # ────────────────────────────────────────────────────────────────────────────────
@@ -469,3 +613,14 @@ if __name__ == "__main__":
 
             # ─── V2V hourly line charts (use p2v_flag = 0) ───
             analyze_v2v_hourly_and_plot(iid, p2v_flag=0, period=period)
+
+    # intersections = [3252, 3334, 3265, 3248, 3287, 3032]
+
+    # # ─── Micro-average P2V across all intersections (before only) ───
+    # micro_pct = compute_p2v_micro_average(intersections, period='before')
+    # print("\n--- Micro-average P2V distribution across all intersections (BEFORE) ---")
+    # for move, pct in micro_pct.items():
+    #     print(f"{move:>20}: {pct:5.1f}%")
+    # # ─── Composition chart ───
+    # plot_p2v_composition_stacked(intersections, period='before')
+
