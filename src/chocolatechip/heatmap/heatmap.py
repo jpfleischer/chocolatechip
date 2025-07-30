@@ -685,136 +685,137 @@ def plot_normalized_conflicts(
     return base64_img
 
 
-##################### main prg #######################
-##
-## first, p2v
-##
-# conflict or track
-# df_type = "track"
-df_type = "conflict"
+if __name__ == "__main__":
+    ##################### main prg #######################
+    ##
+    ## first, p2v
+    ##
+    # conflict or track
+    # df_type = "track"
+    df_type = "conflict"
 
-# mean or sum?
-mean = True
+    # mean or sum?
+    mean = True
 
-p2v = False
-
-
-# conflict_types = ['left turning', 'right turning', 'thru', 'all']
-# for conflict_type in conflict_types:
-    # heatmap_generator(df_type, mean, inter, p2v, conflict_type)
-
-##
-## v2v
-##
-
-# p2v = False
-
-# heatmap_generator(df_type, mean, inter, p2v)
+    p2v = False
 
 
-# df_type = "track"
+    # conflict_types = ['left turning', 'right turning', 'thru', 'all']
+    # for conflict_type in conflict_types:
+        # heatmap_generator(df_type, mean, inter, p2v, conflict_type)
 
-# for inter in [3032, 3265, 3334, 3248, 3287]:
-for inter in [3248, 3287]:
-    for period in ['before', 'after']:
-        print(f"\n=== Processing intersection: {inter} ({period}) ===")
+    ##
+    ## v2v
+    ##
 
-        # # (1) P2V conflict + Ped volume (aggregated)
-        # p2v_conflicts_agg = heatmap_generator(
-        #     df_type="conflict", mean=True,
-        #     intersec_id=inter, period=period,
-        #     p2v=True, conflict_type='all',
-        #     pedestrian_counting=False,
-        #     return_agg=True
-        # )
-        # ped_volume_agg = heatmap_generator(
-        #     df_type="track", mean=True,
-        #     intersec_id=inter, period=period,
-        #     p2v=False, conflict_type=None,
-        #     pedestrian_counting=True,
-        #     return_agg=True
-        # )
+    # p2v = False
 
-        # # (2) Draw the two heatmaps & lineplots for peds & vehs
-        heatmap_generator(
-            df_type="track", mean=True,
-            intersec_id=inter, period=period,
-            p2v=False, conflict_type=None,
-            pedestrian_counting=True,
-            return_agg=False
-        )
-        heatmap_generator(
-            df_type="track", mean=True,
-            intersec_id=inter, period=period,
-            p2v=False, conflict_type=None,
-            pedestrian_counting=False,
-            return_agg=False
-        )
+    # heatmap_generator(df_type, mean, inter, p2v)
 
-        # # (3) Compute P2V per 1k peds
-        # p2v_per_1000_peds = calculate_conflict_rates(
-        #     conflict_counts_df=p2v_conflicts_agg,
-        #     volume_counts_df=ped_volume_agg,
-        #     volume_type='pedestrian'
-        # )
-        # print(f"--- P2V per 1k peds ({period}):")
-        # print(p2v_per_1000_peds)
-        # plot_normalized_conflicts(
-        #     df=p2v_per_1000_peds, day_col="day_of_week",
-        #     rate_col="avg_conflicts_per_1000_pedestrian",
-        #     intersection_id=inter,
-        #     plot_title=f"Intersection {inter}: P2V per 1k peds ({period})",
-        #     output_filename=f"intersection_{inter}_p2v_per_1000_peds_{period}.png"
-        # )
 
-        # # (4) V2V conflict + Veh volume
-        # v2v_conflicts_agg = heatmap_generator(
-        #     df_type="conflict", mean=True,
-        #     intersec_id=inter, period=period,
-        #     p2v=False, conflict_type='all',
-        #     pedestrian_counting=False,
-        #     return_agg=True
-        # )
-        # vehicle_volume_agg = heatmap_generator(
-        #     df_type="track", mean=True,
-        #     intersec_id=inter, period=period,
-        #     p2v=False, conflict_type=None,
-        #     pedestrian_counting=False,
-        #     return_agg=True
-        # )
+    # df_type = "track"
 
-        # # (5) Compute V2V per 1k vehicles
-        # v2v_per_1000_vehicles = calculate_conflict_rates(
-        #     conflict_counts_df=v2v_conflicts_agg,
-        #     volume_counts_df=vehicle_volume_agg,
-        #     volume_type='vehicle'
-        # )
-        # print(f"--- V2V per 1k vehicles ({period}):")
-        # print(v2v_per_1000_vehicles)
-        # plot_normalized_conflicts(
-        #     df=v2v_per_1000_vehicles, day_col="day_of_week",
-        #     rate_col="avg_conflicts_per_1000_vehicle",
-        #     intersection_id=inter,
-        #     plot_title=f"Intersection {inter}: V2V per 1k vehicles ({period})",
-        #     output_filename=f"intersection_{inter}_v2v_per_1000_vehicle_{period}.png"
-        # )
+    # for inter in [3032, 3265, 3334, 3248, 3287]:
+    for inter in [3248, 3287]:
+        for period in ['before', 'after']:
+            print(f"\n=== Processing intersection: {inter} ({period}) ===")
 
-        heatmap_generator(
-            df_type="conflict", mean=True,
-            intersec_id=inter, period=period,
-            p2v=True, conflict_type='all',
-            pedestrian_counting=False,
-            return_agg=False
-        )
+            # # (1) P2V conflict + Ped volume (aggregated)
+            # p2v_conflicts_agg = heatmap_generator(
+            #     df_type="conflict", mean=True,
+            #     intersec_id=inter, period=period,
+            #     p2v=True, conflict_type='all',
+            #     pedestrian_counting=False,
+            #     return_agg=True
+            # )
+            # ped_volume_agg = heatmap_generator(
+            #     df_type="track", mean=True,
+            #     intersec_id=inter, period=period,
+            #     p2v=False, conflict_type=None,
+            #     pedestrian_counting=True,
+            #     return_agg=True
+            # )
 
-        heatmap_generator(
-            df_type="conflict", mean=True,
-            intersec_id=inter, period=period,
-            p2v=False, conflict_type='all',
-            pedestrian_counting=False,
-            return_agg=False
-        )
+            # # (2) Draw the two heatmaps & lineplots for peds & vehs
+            heatmap_generator(
+                df_type="track", mean=True,
+                intersec_id=inter, period=period,
+                p2v=False, conflict_type=None,
+                pedestrian_counting=True,
+                return_agg=False
+            )
+            heatmap_generator(
+                df_type="track", mean=True,
+                intersec_id=inter, period=period,
+                p2v=False, conflict_type=None,
+                pedestrian_counting=False,
+                return_agg=False
+            )
 
-#if the heatmap() does not have return_agg = True, then binary image data should be returned
-#to find changes if you ever want to revert, ctrl f and then look up change. 
-#Remove lines relating to base64 and uncomment other lines
+            # # (3) Compute P2V per 1k peds
+            # p2v_per_1000_peds = calculate_conflict_rates(
+            #     conflict_counts_df=p2v_conflicts_agg,
+            #     volume_counts_df=ped_volume_agg,
+            #     volume_type='pedestrian'
+            # )
+            # print(f"--- P2V per 1k peds ({period}):")
+            # print(p2v_per_1000_peds)
+            # plot_normalized_conflicts(
+            #     df=p2v_per_1000_peds, day_col="day_of_week",
+            #     rate_col="avg_conflicts_per_1000_pedestrian",
+            #     intersection_id=inter,
+            #     plot_title=f"Intersection {inter}: P2V per 1k peds ({period})",
+            #     output_filename=f"intersection_{inter}_p2v_per_1000_peds_{period}.png"
+            # )
+
+            # # (4) V2V conflict + Veh volume
+            # v2v_conflicts_agg = heatmap_generator(
+            #     df_type="conflict", mean=True,
+            #     intersec_id=inter, period=period,
+            #     p2v=False, conflict_type='all',
+            #     pedestrian_counting=False,
+            #     return_agg=True
+            # )
+            # vehicle_volume_agg = heatmap_generator(
+            #     df_type="track", mean=True,
+            #     intersec_id=inter, period=period,
+            #     p2v=False, conflict_type=None,
+            #     pedestrian_counting=False,
+            #     return_agg=True
+            # )
+
+            # # (5) Compute V2V per 1k vehicles
+            # v2v_per_1000_vehicles = calculate_conflict_rates(
+            #     conflict_counts_df=v2v_conflicts_agg,
+            #     volume_counts_df=vehicle_volume_agg,
+            #     volume_type='vehicle'
+            # )
+            # print(f"--- V2V per 1k vehicles ({period}):")
+            # print(v2v_per_1000_vehicles)
+            # plot_normalized_conflicts(
+            #     df=v2v_per_1000_vehicles, day_col="day_of_week",
+            #     rate_col="avg_conflicts_per_1000_vehicle",
+            #     intersection_id=inter,
+            #     plot_title=f"Intersection {inter}: V2V per 1k vehicles ({period})",
+            #     output_filename=f"intersection_{inter}_v2v_per_1000_vehicle_{period}.png"
+            # )
+
+            heatmap_generator(
+                df_type="conflict", mean=True,
+                intersec_id=inter, period=period,
+                p2v=True, conflict_type='all',
+                pedestrian_counting=False,
+                return_agg=False
+            )
+
+            heatmap_generator(
+                df_type="conflict", mean=True,
+                intersec_id=inter, period=period,
+                p2v=False, conflict_type='all',
+                pedestrian_counting=False,
+                return_agg=False
+            )
+
+    #if the heatmap() does not have return_agg = True, then binary image data should be returned
+    #to find changes if you ever want to revert, ctrl f and then look up change. 
+    #Remove lines relating to base64 and uncomment other lines
