@@ -7,3 +7,13 @@ intersection_lookup = {
     3334: "Stirling Road and SW 61st Avenue",
     3252: "Stirling Road and Davie Road Extension"
 }
+
+cam_lookup = {
+    3287: 24,
+    3248: 27,
+    3032: 23,
+    3265: 30,
+    3334: 33,
+    3252: 36,
+    5060: 7
+}
