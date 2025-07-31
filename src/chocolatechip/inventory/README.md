@@ -13,3 +13,6 @@ ssh maltlab
 find /mnt/hdd/data/video_pipeline -type f -ctime -3 -name "*.mp4"
 ```
 
+
+dates_and_daysofweek_counter.py produces a table that looks like:
+
