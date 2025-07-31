@@ -159,128 +159,138 @@ def plot_conflicts(direction_counts: pd.Series, iid: int, period: str, p2v_label
 
 # Visualization: Stacked Bar Chart for p2v == 0
 intersection_lookup = {
-    3287: "Stirling Rd. & N 68th Ave.",
-    3248: "Stirling Rd. & N 66th Ave.",
-    3032: "Stirling Rd. & SR-7",
-    3265: "Stirling Rd. & University Dr.",
-    3334: "Stirling Rd. & Carriage Hills Drive/SW 61st Ave.",
+    3287: "Stirling Road and N 68th Avenue",
+    3248: "Stirling Road and N 66th Avenue",
+    3032: "Stirling Road and SR-7",
+    3265: "Stirling Road and University Drive",
+    3334: "Stirling Road and SW 61st Avenue",
+    3252: "Stirling Road and Davie Road Extension"
 }
 
-# intersection_ids    = [3032,3248,3287,3265,3334]
-intersection_ids = [3248, 3287]
-p2v_labels          = {'0':'V2V','1':'P2V'}
-colors = plt.get_cmap('tab10').colors
 
-# reset your totals
-total_data_v2v = pd.DataFrame()
-total_data_p2v = pd.DataFrame()
+if __name__ == "__main__":
+    intersection_ids = [3032, 3248, 3287, 3265, 3334, 3252]  # adjust as needed
+    p2v_labels       = {'0': 'V2V', '1': 'P2V'}
+    colors           = plt.get_cmap('tab10').colors
+    outdir           = "directionality"
+    os.makedirs(outdir, exist_ok=True)
 
-for iid in intersection_ids:
-    # 1) BEFORE vs AFTER plots, one per conflict type
-    for p2v_flag, label in p2v_labels.items():
-        # fetch both periods
-        df_b = get_intersection_data(iid, p2v_flag, 'before')
-        df_b = df_b[df_b['p2v'] == int(p2v_flag)]
-        df_a = get_intersection_data(iid, p2v_flag, 'after')
-        df_a = df_a[df_a['p2v'] == int(p2v_flag)]
+    # 1) BEFORE/AFTER only for the special pair
+    if intersection_ids == [3248, 3287]:
+        for iid in intersection_ids:
+            for p2v_flag, label in p2v_labels.items():
+                # fetch before
+                df_b = get_intersection_data(iid, p2v_flag, 'before')
+                df_b = df_b[df_b['p2v'] == int(p2v_flag)]
+                # fetch after
+                df_a = get_intersection_data(iid, p2v_flag, 'after')
+                df_a = df_a[df_a['p2v'] == int(p2v_flag)]
 
-        # compute how many days of data we actually have…
-        days_b = get_recorded_days(iid, 'before')
-        days_a = get_recorded_days(iid, 'after')
+                days_b = get_recorded_days(iid, 'before')
+                days_a = get_recorded_days(iid, 'after')
 
-        # count raw conflicts…
-        cnt_b = count_conflicts_by_direction(df_b, p2v=(p2v_flag=='1'))
-        cnt_a = count_conflicts_by_direction(df_a, p2v=(p2v_flag=='1'))
+                cnt_b = count_conflicts_by_direction(df_b, p2v=(p2v_flag=='1'))
+                cnt_a = count_conflicts_by_direction(df_a, p2v=(p2v_flag=='1'))
 
-        # turn those into “per‐day” rates
-        rate_b = cnt_b / days_b
-        rate_a = cnt_a / days_a
+                rate_b = cnt_b / days_b
+                rate_a = cnt_a / days_a
 
-        # update your plotting (and axis label) to reflect “per day” instead of total
-        plot_before_after_counts(rate_b, rate_a, iid, label)
+                plot_before_after_counts(rate_b, rate_a, iid, label)
 
+    # 2) Build the comprehensive BEFORE-only P2V table
+    total_data_p2v = pd.DataFrame()
+    for iid in intersection_ids:
+        df_b = get_intersection_data(iid, '1', 'before')
+        df_b = df_b[df_b['p2v'] == 1]
 
-    # 2) now aggregate both periods for your all-intersection stacked bars
-    all_v2v = pd.concat([
-        get_intersection_data(iid,'0','before'),
-        get_intersection_data(iid,'0','after')
-    ], ignore_index=True)
-    all_p2v = pd.concat([
-        get_intersection_data(iid,'1','before'),
-        get_intersection_data(iid,'1','after')
-    ], ignore_index=True)
+        cnt       = count_conflicts_by_direction(df_b, p2v=True)
+        cnt.name  = intersection_lookup.get(iid, str(iid))
+        total_data_p2v = pd.concat([total_data_p2v, cnt], axis=1)
 
-    vc = all_v2v[all_v2v['p2v']==0]
-    pc = all_p2v[all_p2v['p2v']==1]
-    cnt_v2v = count_conflicts_by_direction(vc);  cnt_v2v.name = intersection_lookup[iid]
-    cnt_p2v = count_conflicts_by_direction(pc);  cnt_p2v.name = intersection_lookup[iid]
+    total_data_p2v = total_data_p2v[~total_data_p2v.index.str.contains('ped', case=False)]
+    total_data_p2v = total_data_p2v.fillna(0)
 
-    total_data_v2v = pd.concat([total_data_v2v, cnt_v2v], axis=1, sort=False)
-    total_data_p2v = pd.concat([total_data_p2v, cnt_p2v], axis=1, sort=False)
+    # 3) Build the comprehensive BEFORE-only V2V table
+    total_data_v2v = pd.DataFrame()
+    for iid in intersection_ids:
+        df_v = get_intersection_data(iid, '0', 'before')
+        df_v = df_v[df_v['p2v'] == 0]
 
-# drop the peds and sort as before
-total_data_p2v = total_data_p2v[~total_data_p2v.index.str.contains('ped')]
-total_data_v2v['total'] = total_data_v2v.sum(axis=1)
-total_data_p2v['total'] = total_data_p2v.sum(axis=1)
-total_data_v2v = total_data_v2v.sort_values('total').drop(columns='total')
-total_data_p2v = total_data_p2v.sort_values('total').drop(columns='total')
+        cnt_v     = count_conflicts_by_direction(df_v, p2v=False)
+        cnt_v.name = intersection_lookup.get(iid, str(iid))
+        total_data_v2v = pd.concat([total_data_v2v, cnt_v], axis=1)
 
-# Adjust these font sizes as needed
-title_fontsize = 16
-label_fontsize = 14
-tick_labelsize = 14
-legend_fontsize = 10
+    total_data_v2v = total_data_v2v[~total_data_v2v.index.str.contains('ped', case=False)]
+    total_data_v2v = total_data_v2v.fillna(0)
 
-# Plot the stacked bar chart for V2V
-fig_v2v, ax_v2v = plt.subplots(figsize=(6, 5))
-total_data_v2v.plot(kind='bar', stacked=True, color=colors, ax=ax_v2v)
-ax_v2v.set_title('Number of V2V Conflicts by Directionality\nAcross All Intersections', fontsize=title_fontsize)
-ax_v2v.set_xlabel('Direction', fontsize=label_fontsize)
-ax_v2v.set_ylabel('Number of Conflicts', fontsize=label_fontsize)
-ax_v2v.tick_params(axis='x', labelsize=tick_labelsize)
-ax_v2v.tick_params(axis='y', labelsize=tick_labelsize)
-ax_v2v.set_xticklabels([label.get_text()[:-1] if label.get_text().endswith('1') else label.get_text() for label in ax_v2v.get_xticklabels()], fontsize=tick_labelsize)
+    # 4) If NOT the special pair, plot the comprehensive V2V stacked bar (before only)
+    if intersection_ids != [3248, 3287]:
+        # clean direction labels
+        clean_labels_v2v = [
+            lbl[:-1] if lbl.endswith('1') else lbl
+            for lbl in total_data_v2v.index
+        ]
 
-legend = ax_v2v.legend(title='Intersection', labels=[intersection_lookup[iid] for iid in intersection_ids])
-plt.setp(legend.get_texts(), fontsize=legend_fontsize)
-plt.setp(legend.get_title(), fontsize=legend_fontsize)
-plt.ylim(0, 1200)
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.grid(alpha=0.3)
+        fig_v2v, ax_v2v = plt.subplots(figsize=(10, 5))
+        total_data_v2v.plot(
+            kind='bar',
+            stacked=True,
+            color=colors[:len(intersection_ids)],
+            width=0.7,
+            ax=ax_v2v
+        )
+        ax_v2v.set_xticklabels(clean_labels_v2v, rotation=45)
+        ax_v2v.grid(axis='y', linestyle='--', alpha=0.6)
+        ax_v2v.set_xlabel("Movement of Involved Vehicle")
+        ax_v2v.set_ylabel("Number of Conflicts")
+        legend_v2v = ax_v2v.legend(title="Intersection")
+        plt.tight_layout()
 
-# ensure our output folder exists
-outdir = "directionality"
-os.makedirs(outdir, exist_ok=True)
-
-# save the V2V stacked‐bar
-v2v_fn = os.path.join(outdir, 'v2v_approach_all_intersections.png')
-fig_v2v.savefig(v2v_fn, dpi=300, bbox_inches='tight')
-print(f"→ Saved {v2v_fn}")
+        fn_v2v_png = os.path.join(outdir, 'v2v_all_intersections_directionality_before.png')
+        fig_v2v.savefig(fn_v2v_png, dpi=300, bbox_inches='tight')
+        fn_v2v_pdf = os.path.join(outdir, 'v2v_all_intersections_directionality_before.pdf')
+        fig_v2v.savefig(fn_v2v_pdf, dpi=300, bbox_inches='tight')
+        plt.close(fig_v2v)
+        print(f"→ Saved comprehensive V2V (before-only) plot: {fn_v2v_pdf}")
 
 
+    # 5) If NOT the special pair, plot the comprehensive P2V stacked bar (before only),
+    #    sorted by total conflicts descending and with cleaned labels.
+    if intersection_ids != [3248, 3287]:
+        # 1) Sort movements by total conflicts (sum across intersections)
+        movement_order = (
+            total_data_p2v
+              .sum(axis=1)
+              .sort_values(ascending=False)
+              .index
+        )
+        total_data_p2v = total_data_p2v.loc[movement_order]
 
-# Plot the stacked bar chart for P2V
-fig_p2v, ax_p2v = plt.subplots(figsize=(6, 5))
-total_data_p2v.plot(kind='bar', stacked=True, color=colors, ax=ax_p2v)
-ax_p2v.set_title('Number of P2V Conflicts by Directionality\nAcross All Intersections', fontsize=title_fontsize)
-ax_p2v.set_xlabel('Direction', fontsize=label_fontsize)
-ax_p2v.set_ylabel('Number of Conflicts', fontsize=label_fontsize)
-ax_p2v.tick_params(axis='x', labelsize=tick_labelsize)
-ax_p2v.tick_params(axis='y', labelsize=tick_labelsize)
-ax_p2v.set_xticklabels([label.get_text()[:-1] if label.get_text().endswith('1') else label.get_text() for label in ax_p2v.get_xticklabels()], fontsize=tick_labelsize)
+        # 2) Clean labels (drop trailing '1' if present)
+        clean_labels = [
+            lbl[:-1] if lbl.endswith('1') else lbl
+            for lbl in total_data_p2v.index
+        ]
 
-legend = ax_p2v.legend(title='Intersection', labels=[intersection_lookup[iid] for iid in intersection_ids])
-plt.setp(legend.get_texts(), fontsize=legend_fontsize)
-plt.setp(legend.get_title(), fontsize=legend_fontsize)
-plt.ylim(0, 1200)
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.grid(alpha=0.3)
-# save the P2V stacked‐bar
-p2v_fn = os.path.join(outdir, 'p2v_approach_all_intersections.png')
-fig_p2v.savefig(p2v_fn, dpi=300, bbox_inches='tight')
-print(f"→ Saved {p2v_fn}")
+        # 3) Plot
+        fig, ax = plt.subplots(figsize=(10, 5))
+        total_data_p2v.plot(
+            kind='bar',
+            stacked=True,
+            color=colors[:len(intersection_ids)],
+            width=0.7,
+            ax=ax
+        )
+        ax.set_xticklabels(clean_labels, rotation=45)
+        ax.grid(axis='y', linestyle='--', alpha=0.6)
+        ax.set_xlabel("Movement of Involved Vehicle")
+        ax.set_ylabel("Number of P2V Conflicts")
+        ax.legend(title="Intersection", fontsize=9)
 
-
-
+        # 4) Save outputs
+        fn_png = os.path.join(outdir, 'p2v_all_intersections_directionality_before_stacked_sorted.png')
+        fig.savefig(fn_png, dpi=300, bbox_inches='tight')
+        fn_pdf = fn_png.replace('.png', '.pdf')
+        fig.savefig(fn_pdf, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        print(f"→ Saved sorted stacked P2V plot: {fn_pdf}")
