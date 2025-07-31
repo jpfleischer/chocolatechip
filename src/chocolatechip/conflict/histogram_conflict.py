@@ -321,54 +321,103 @@ def plot_v2v_triple_heatmap(df, img_path, out_path,
     print(f"→ Saved V2V: {out_path}")
 
 
-
 if __name__ == "__main__":
-    intersections = [3287, 3248]
-    periods      = ['before', 'after']
-    cam_lookup   = {3287:24, 3248:27, 3032:23, 3265:30, 3334:33, 5060:7}
+    # list of intersections to process
+    intersections = [3287, 3248, 3032, 3265, 3334, 3252]
+    default_intersections = [3287, 3248]
 
+    # camera lookup map
+    cam_lookup = {
+        3287: 24,
+        3248: 27,
+        3032: 21,
+        3265: 30,
+        3334: 33,
+        3252: 36,
+    }
+
+    # Build the list of expected map filenames
+    map_pics = [f"{cam}_Map.png" for cam in cam_lookup.values()]
+    for picture in map_pics:
+        if not os.path.isfile(picture):
+            print(f"Downloading {picture} …")
+            url = f"http://maltlab.cise.ufl.edu:30101/api/image/{picture}"
+            resp = requests.get(url)
+            # guard against HTML error pages
+            if resp.status_code == 200 and 'png' in resp.headers.get('Content-Type',''):
+                with open(picture, 'wb') as f:
+                    f.write(resp.content)
+            else:
+                print(f"  → Failed to fetch a valid PNG for {picture} (status={resp.status_code})")
+    # ─────────────────────────────────
+
+
+    # helper: build P2V histograms exactly as before
+    def _p2v_hists(df):
+        x = pd.to_numeric(df['conflict_x'], errors='coerce')
+        y = pd.to_numeric(df['conflict_y'], errors='coerce')
+        valid = df.index[~(x.isna() | y.isna())]
+        x = x.loc[valid]
+        y = (960 - y.loc[valid])
+        bins = [np.arange(0, 1280+30, 30), np.arange(0, 960+30, 30)]
+        d1 = df['cluster1'].str.findall(r"[A-Z]+").str.join("")
+        d2 = df['cluster2'].str.findall(r"[A-Z]+").str.join("")
+        ped1 = df['cluster1'].str.contains('ped', case=False, na=False)
+        active = d2.where(ped1, other=d1)
+        lm = active.str.endswith("L")
+        tm = active.str.endswith("T")
+        rm = active.str.endswith("R")
+        H_L = np.histogram2d(x[lm.loc[valid]], y[lm.loc[valid]], bins=bins)[0]
+        H_T = np.histogram2d(x[tm.loc[valid]], y[tm.loc[valid]], bins=bins)[0]
+        H_R = np.histogram2d(x[rm.loc[valid]], y[rm.loc[valid]], bins=bins)[0]
+        return H_L, H_T, H_R
+
+    # helper: build V2V histograms exactly as before
+    def _v2v_hists(df):
+        x = pd.to_numeric(df['conflict_x'], errors='coerce')
+        y = pd.to_numeric(df['conflict_y'], errors='coerce')
+        valid = df.index[~(x.isna() | y.isna())]
+        x = x.loc[valid]
+        y = (960 - y.loc[valid])
+        bins = [np.arange(0, 1280+30, 30), np.arange(0, 960+30, 30)]
+        d1 = df['cluster1'].str.findall(r"[A-Z]+").str.join("")
+        d2 = df['cluster2'].str.findall(r"[A-Z]+").str.join("")
+        e1, e2 = d1.str[-1], d2.str[-1]
+        lot = ((e1 == "L") & (e2 == "T")) | ((e1 == "T") & (e2 == "L"))
+        rmt = ((e1 == "R") & (e2 == "T")) | ((e1 == "T") & (e2 == "R"))
+        rol = ((e1 == "R") & (e2 == "L")) | ((e1 == "L") & (e2 == "R"))
+        H_LOT = np.histogram2d(x[lot.loc[valid]], y[lot.loc[valid]], bins=bins)[0]
+        H_RMT = np.histogram2d(x[rmt.loc[valid]], y[rmt.loc[valid]], bins=bins)[0]
+        H_ROL = np.histogram2d(x[rol.loc[valid]], y[rol.loc[valid]], bins=bins)[0]
+        return H_LOT, H_RMT, H_ROL
+
+    # main loop
     for iid in intersections:
         cam = cam_lookup.get(iid)
         if cam is None:
             continue
+
+        # ← this is the one change: pick both periods only for the default list
+        if intersections == default_intersections:
+            periods = ['before', 'after']
+        else:
+            periods = ['before']
 
         # ensure map image is present
         pic = f"{cam}_Map.png"
         if not os.path.isfile(pic):
             print(f"Downloading {pic} …")
             r = requests.get(f"http://maltlab.cise.ufl.edu:30101/api/image/{pic}")
-            with open(pic,'wb') as f:
+            with open(pic, 'wb') as f:
                 f.write(r.content)
 
-        # ─── P2V: fetch both periods and compute shared global_max ───
-        p2v_data = {
-            period: get_all_conflicts_for_period(iid, 1, period)
-            for period in periods
-        }
-        def _p2v_hists(df):
-            x = pd.to_numeric(df['conflict_x'], errors='coerce')
-            y = pd.to_numeric(df['conflict_y'], errors='coerce')
-            valid = df.index[~(x.isna()|y.isna())]
-            x = x.loc[valid]
-            y = (960 - y.loc[valid])
-            bins = [np.arange(0,1280+30,30), np.arange(0,960+30,30)]
-            d1   = df['cluster1'].str.findall(r"[A-Z]+").str.join("")
-            d2   = df['cluster2'].str.findall(r"[A-Z]+").str.join("")
-            ped1 = df['cluster1'].str.contains('ped', case=False, na=False)
-            active = d2.where(ped1, other=d1)
-            lm = active.str.endswith("L")
-            tm = active.str.endswith("T")
-            rm = active.str.endswith("R")
-            H_L = np.histogram2d(x[lm.loc[valid]], y[lm.loc[valid]], bins=bins)[0]
-            H_T = np.histogram2d(x[tm.loc[valid]], y[tm.loc[valid]], bins=bins)[0]
-            H_R = np.histogram2d(x[rm.loc[valid]], y[rm.loc[valid]], bins=bins)[0]
-            return H_L, H_T, H_R
-
+        # ─── P2V ───
+        p2v_data = {period: get_all_conflicts_for_period(iid, 1, period)
+                    for period in periods}
         all_p2v_H = []
         for df in p2v_data.values():
             if not df.empty:
                 all_p2v_H.extend(_p2v_hists(df))
-        # Corrected: wrap the generator in a list + ensure at least one element
         shared_max_p2v = max([H.max() for H in all_p2v_H] + [1e-3])
 
         for period, df in p2v_data.items():
@@ -383,29 +432,9 @@ if __name__ == "__main__":
                 global_max=shared_max_p2v
             )
 
-        # ─── V2V: same pattern ───
-        v2v_data = {
-            period: get_all_conflicts_for_period(iid, 0, period)
-            for period in periods
-        }
-        def _v2v_hists(df):
-            x = pd.to_numeric(df['conflict_x'], errors='coerce')
-            y = pd.to_numeric(df['conflict_y'], errors='coerce')
-            valid = df.index[~(x.isna()|y.isna())]
-            x = x.loc[valid]
-            y = (960 - y.loc[valid])
-            bins = [np.arange(0,1280+30,30), np.arange(0,960+30,30)]
-            d1 = df['cluster1'].str.findall(r"[A-Z]+").str.join("")
-            d2 = df['cluster2'].str.findall(r"[A-Z]+").str.join("")
-            e1, e2 = d1.str[-1], d2.str[-1]
-            lot = ((e1=="L") & (e2=="T")) | ((e1=="T") & (e2=="L"))
-            rmt = ((e1=="R") & (e2=="T")) | ((e1=="T") & (e2=="R"))
-            rol = ((e1=="R") & (e2=="L")) | ((e1=="L") & (e2=="R"))
-            H_LOT = np.histogram2d(x[lot.loc[valid]], y[lot.loc[valid]], bins=bins)[0]
-            H_RMT = np.histogram2d(x[rmt.loc[valid]], y[rmt.loc[valid]], bins=bins)[0]
-            H_ROL = np.histogram2d(x[rol.loc[valid]], y[rol.loc[valid]], bins=bins)[0]
-            return H_LOT, H_RMT, H_ROL
-
+        # ─── V2V ───
+        v2v_data = {period: get_all_conflicts_for_period(iid, 0, period)
+                    for period in periods}
         all_v2v_H = []
         for df in v2v_data.values():
             if not df.empty:
