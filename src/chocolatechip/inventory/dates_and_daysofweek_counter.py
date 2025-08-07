@@ -4,6 +4,8 @@ from chocolatechip.intersections import intersection_lookup
 from datetime import datetime, timedelta
 from collections import Counter
 import sys
+import pandas as pd
+from collections import defaultdict
 
 # Full weekday names and abbreviations
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -137,8 +139,73 @@ def analyze_times(times_dict):
     print(r"\end{table}")
 
 
+
+def _get_date_set(ts_list):
+    dates = set()
+    for start_s, end_s in zip(ts_list[0::2], ts_list[1::2]):
+        start = datetime.fromisoformat(start_s).date()
+        end   = datetime.fromisoformat(end_s).date()
+        cur = start
+        while cur <= end:
+            dates.add(cur)
+            cur += timedelta(days=1)
+    return dates
+
+def _compress_days(days):
+    if not days:
+        return ""
+    days = sorted(days)
+    ranges = []
+    start = prev = days[0]
+    for d in days[1:]:
+        if d == prev + 1:
+            prev = d
+        else:
+            ranges.append(f"{start}" if start == prev else f"{start}–{prev}")
+            start = prev = d
+    ranges.append(f"{start}" if start == prev else f"{start}–{prev}")
+    return ", ".join(ranges)
+
+def monthly_dates_df(iids, times_dict, intersection_lookup):
+    rows = []
+    for iid in iids:
+        raw_name = intersection_lookup.get(iid, str(iid))
+        name     = abbreviate_name(raw_name)
+        before = _get_date_set(times_dict[iid].get("before", []))
+        after  = _get_date_set(times_dict[iid].get("after", []))
+
+        mb = defaultdict(list)
+        ma = defaultdict(list)
+        for d in before:
+            mb[d.strftime("%b %Y")].append(d.day)
+        for d in after:
+            ma[d.strftime("%b %Y")].append(d.day)
+
+        months = sorted(set(mb) | set(ma),
+                        key=lambda m: datetime.strptime(m, "%b %Y"))
+
+        for mon in months:
+            rows.append({
+                "Intersection": name,
+                "Month":        mon,
+                "Before (dates)": _compress_days(mb[mon]) or "—",
+                "After (dates)":  _compress_days(ma[mon]) or "—",
+            })
+
+    df = pd.DataFrame(rows, columns=["Intersection","Month","Before (dates)","After (dates)"])
+    return df
+
+
 if __name__ == "__main__":
     if not times_dict:
         print("No data found in times_dict!", file=sys.stderr)
         sys.exit(1)
     analyze_times(times_dict)
+    print('\n\n')
+    df = monthly_dates_df([3248, 3287], times_dict, intersection_lookup)
+    print(df.to_latex(index=False,
+                      longtable=True,
+                      caption="Data collection dates by month for each intersection.",
+                      label="tab:monthly_dates",
+                      na_rep="—"))
+    
