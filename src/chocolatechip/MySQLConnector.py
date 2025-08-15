@@ -170,6 +170,36 @@ class MySQLConnector:
         df = pd.read_sql(sql, con=self._connect(), params=(intersec_id, p2v, start, end))
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         return df
+    
+    
+    def fetchConflictRecordsWithCoordsAndTypeTime(self, intersec_id: int, p2v: int, start: str, end: str) -> pd.DataFrame:
+        """
+        Like fetchConflictRecordsWithCoords, but also returns 'type' and 'time'.
+        Renames 'type' to 'conflict_type' and maps 1->'TTC', 0->'PET'.
+        """
+        sql = """
+        SELECT
+            timestamp,
+            unique_ID1,
+            unique_ID2,
+            cluster1,
+            cluster2,
+            conflict_x,
+            conflict_y,
+            type,
+            time
+        FROM TTCTable
+        WHERE intersection_id = %s
+        AND p2v           = %s
+        AND include_flag  = 1
+        AND timestamp BETWEEN %s AND %s
+        """
+        df = pd.read_sql(sql, con=self._connect(), params=(intersec_id, p2v, start, end))
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        if 'type' in df.columns:
+            df = df.rename(columns={'type': 'conflict_type'})
+            df['conflict_type'] = df['conflict_type'].map({1: 'TTC', 0: 'PET'}).fillna(df['conflict_type'])
+        return df
 
 
     def fetchConflictCoordinates(self, intersec_id: int, p2v: int, start: str, end: str) -> pd.DataFrame:
