@@ -20,6 +20,15 @@ YAW_DEG = 125
 ROLL_DEG = 0
 
 
+def _cv_to_qpixmap(img_bgr: np.ndarray) -> QtGui.QPixmap:
+    if img_bgr is None:
+        return QtGui.QPixmap()
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    h, w = img_rgb.shape[:2]
+    qimg = QtGui.QImage(img_rgb.data, w, h, img_rgb.strides[0], QtGui.QImage.Format.Format_RGB888)
+    return QtGui.QPixmap.fromImage(qimg.copy())
+
+
 def rotation_matrix(axis, theta):
     axis = np.asarray(axis)
     axis = axis / (math.sqrt(np.dot(axis, axis)) + 1e-12)
@@ -34,7 +43,14 @@ def rotation_matrix(axis, theta):
     ])
 
 
-def run_legacy_pipeline(raw_path: str, map_path: str, tps_out_path: str, out_dir: str|None=None, log=lambda *_: None) -> str:
+def run_legacy_pipeline(raw_path: str, map_path: str, tps_out_path: str,
+                        out_dir: str|None=None, log=lambda *_: None):
+    """
+    Runs the legacy pipeline unchanged and returns:
+      out_map_path, previews_dict
+    where previews_dict contains BGR images:
+      {'out_image', 'tps_img', 'overlay', 'scale_img', 'boundary_img'}
+    """
     # --------- Setup / I/O ----------
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
@@ -117,7 +133,7 @@ def run_legacy_pipeline(raw_path: str, map_path: str, tps_out_path: str, out_dir
     )
     Maper = np.concatenate((A, B), 1)
 
-    # --------- Create unwarped composite (preview parity, not saved) ----------
+    # --------- Create unwarped composite (preview parity) ----------
     log("Compositing unwarped preview…")
     Out_image = np.zeros((height, width, 3), dtype=np.float32)
     for i in range(len(indices)):
@@ -150,6 +166,15 @@ def run_legacy_pipeline(raw_path: str, map_path: str, tps_out_path: str, out_dir
     # Legacy directions:
     tps.estimateTransformation(tshape, sshape, matches)
     tps2.estimateTransformation(sshape, tshape, matches)
+
+    TPS_img = tps.warpImage(Out_image)
+    # --- TPS warp using .out (already computed) ---
+    TPS_img = tps.warpImage(Out_image)
+
+    # Convert to uint8 before blending (Map is uint8 from imread)
+    TPS_u8 = np.uint8(np.clip(TPS_img, 0, 255))
+    overlay = cv2.addWeighted(Map, 0.6, TPS_u8, 0.4, 0)
+
 
     # --------- Dense mapping via TPS (legacy) ----------
     log("Building dense TPS map…")
@@ -232,6 +257,29 @@ def run_legacy_pipeline(raw_path: str, map_path: str, tps_out_path: str, out_dir
                 scale = (sumd2 / sumd1) if sumd1 else 0.0
                 Maper3[args[0], 2] = scale
 
+    # Visualize scale (grayscale heat)
+    scale_img = np.zeros((height, width, 3), np.uint8)
+    if Maper3.shape[0] > 0 and np.max(Maper3[:, 2]) > 0:
+        fac = 255.0 / max(1e-6, Maper3[:, 2].max())
+        for i in range(Maper3.shape[0]):
+            r = int(Maper3[i, 1]); c = int(Maper3[i, 0])
+            if 0 <= r < height and 0 <= c < width:
+                val = int(fac * Maper3[i, 2])
+                scale_img[r, c] = (val, val, val)
+
+    # Boundary polygon preview
+    polygon = []
+    for i in range(height):
+        if np.all(lr[i]):
+            bl, br = plr[i]; polygon.append([int(bl), i])
+    for i in range(height - 1, -1, -1):
+        if np.all(lr[i]):
+            bl, br = plr[i]; polygon.append([int(br), i])
+    polygon = np.array(polygon, dtype=np.int32)
+    boundary_img = np.zeros((height, width, 3), np.uint8)
+    if polygon.size:
+        boundary_img = cv2.polylines(boundary_img, [polygon], True, (255, 255, 255), 3)
+
     # --------- Save final .map exactly like legacy ----------
     Maper3 = np.around(Maper3, 2)
     out_map_path = os.path.join(out_dir, "finalmap.map")
@@ -240,13 +288,21 @@ def run_legacy_pipeline(raw_path: str, map_path: str, tps_out_path: str, out_dir
             print(Maper3[i][0], Maper3[i][1], Maper3[i][2], Maper3[i][3], Maper3[i][4], Maper3[i][5], file=pts_map)
 
     log(f"✔ Done. Wrote {out_map_path}")
-    return out_map_path
+
+    previews = {
+        "out_image": np.uint8(np.clip(Out_image, 0, 255)),
+        "tps_img":   TPS_u8,                 # use the uint8 version
+        "overlay":   np.uint8(np.clip(overlay, 0, 255)),
+        "scale_img": scale_img,
+        "boundary_img": boundary_img
+    }
+
+    return out_map_path, previews
 
 
 class MapperWidget(QtWidgets.QWidget):
     """
-    Minimal GUI wrapper around the legacy pipeline.
-    Select raw fisheye (1280x960), map (1280x960), and TPS .out; then Run.
+    Minimal GUI wrapper around the legacy pipeline with visual sanity previews.
     """
     mapReady = QtCore.Signal(str)  # emits path to .map file
 
@@ -260,6 +316,7 @@ class MapperWidget(QtWidgets.QWidget):
         self.tps_path: str|None = None
         self.out_dir:  str|None = None
         self.last_map_file: str|None = None
+        self._previews: dict[str, np.ndarray] | None = None
 
         # Inputs
         self.ed_raw = QtWidgets.QLineEdit(); self.ed_raw.setReadOnly(True)
@@ -274,6 +331,27 @@ class MapperWidget(QtWidgets.QWidget):
         self.btn_run = QtWidgets.QPushButton("Run")
         self.btn_run.setStyleSheet("font-weight:600;")
 
+        # Preview widgets
+        self.alpha = QtWidgets.QDoubleSpinBox(); self.alpha.setRange(0.0,1.0); self.alpha.setSingleStep(0.05); self.alpha.setValue(0.6)
+        self.btn_save_prev = QtWidgets.QPushButton("Save previews")
+        self.btn_save_prev.setEnabled(False)
+
+        self.tabs = QtWidgets.QTabWidget()
+        self.lbl_out   = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
+        self.lbl_tps   = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
+        self.lbl_ol    = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
+        self.lbl_scale = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
+        self.lbl_poly  = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
+        for lab in (self.lbl_out, self.lbl_tps, self.lbl_ol, self.lbl_scale, self.lbl_poly):
+            lab.setMinimumSize(480, 320)
+            lab.setStyleSheet("QLabel { background:#111; border:1px solid #333; }")
+
+        self.tabs.addTab(self.lbl_out,   "Unwarped")
+        self.tabs.addTab(self.lbl_tps,   "TPS result")
+        self.tabs.addTab(self.lbl_ol,    "Overlay")
+        self.tabs.addTab(self.lbl_scale, "Scale heat")
+        self.tabs.addTab(self.lbl_poly,  "Boundary")
+
         # Log
         self.log = QtWidgets.QPlainTextEdit(); self.log.setReadOnly(True)
         self.log.setStyleSheet("QPlainTextEdit { background:#111; color:#ddd; }")
@@ -285,10 +363,23 @@ class MapperWidget(QtWidgets.QWidget):
         form.addRow(b_out, self.ed_out)
         form.addRow(b_dir, self.ed_dir)
 
-        v = QtWidgets.QVBoxLayout(self)
-        v.addLayout(form)
-        v.addWidget(self.btn_run)
-        v.addWidget(self.log, 1)
+        h = QtWidgets.QHBoxLayout()
+        h.addWidget(QtWidgets.QLabel("Overlay α:"))
+        h.addWidget(self.alpha)
+        h.addStretch(1)
+        h.addWidget(self.btn_save_prev)
+
+        left = QtWidgets.QVBoxLayout()
+        left.addLayout(form)
+        left.addWidget(self.btn_run)
+        left.addLayout(h)
+        left.addWidget(self.log, 1)
+
+        lay = QtWidgets.QHBoxLayout(self)
+        box = QtWidgets.QGroupBox("Inputs / Actions")
+        box.setLayout(left)
+        lay.addWidget(box, 0)
+        lay.addWidget(self.tabs, 1)
 
         # Signals
         b_raw.clicked.connect(self._pick_raw)
@@ -296,6 +387,8 @@ class MapperWidget(QtWidgets.QWidget):
         b_out.clicked.connect(self._pick_out)
         b_dir.clicked.connect(self._pick_dir)
         self.btn_run.clicked.connect(self._run)
+        self.btn_save_prev.clicked.connect(self._save_previews)
+        self.alpha.valueChanged.connect(self._refresh_overlay)
 
         # Drag & drop
         self.setAcceptDrops(True)
@@ -315,7 +408,7 @@ class MapperWidget(QtWidgets.QWidget):
             p = url.toLocalFile()
             ext = Path(p).suffix.lower()
             if ext in (".png",".jpg",".jpeg",".bmp"):
-                # crude heuristic: "map" in name = map; else assume raw
+                # heuristic: "map" in name = map; else assume raw
                 if "map" in Path(p).stem.lower():
                     self._set_map(p)
                 else:
@@ -358,9 +451,20 @@ class MapperWidget(QtWidgets.QWidget):
             return
         self.btn_run.setEnabled(False)
         try:
-            out_map = run_legacy_pipeline(self.raw_path, self.map_path, self.tps_path, self.out_dir, log=self._append_log)
+            out_map, previews = run_legacy_pipeline(self.raw_path, self.map_path, self.tps_path,
+                                                    self.out_dir, log=self._append_log)
             self.last_map_file = out_map
+            self._previews = previews
             self.mapReady.emit(out_map)
+
+            # Show previews
+            self._set_preview(self.lbl_out,   previews.get("out_image"))
+            self._set_preview(self.lbl_tps,   previews.get("tps_img"))
+            self._set_preview(self.lbl_scale, previews.get("scale_img"))
+            self._set_preview(self.lbl_poly,  previews.get("boundary_img"))
+            self._refresh_overlay()
+            self.btn_save_prev.setEnabled(True)
+
             QtWidgets.QMessageBox.information(self, "Done", f"Wrote:\n{out_map}")
         except Exception as e:
             tb = traceback.format_exc()
@@ -368,3 +472,52 @@ class MapperWidget(QtWidgets.QWidget):
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
         finally:
             self.btn_run.setEnabled(True)
+
+    def _refresh_overlay(self):
+        if not self._previews: return
+        tps = self._previews.get("tps_img")
+        if tps is None: return
+        Map = cv2.imread(self.map_path) if self.map_path else None
+        if Map is None: return
+        a = float(np.clip(self.alpha.value(), 0.0, 1.0))
+        overlay = cv2.addWeighted(Map, a, tps, 1 - a, 0)
+        self._set_preview(self.lbl_ol, overlay)
+        self._previews["overlay"] = overlay  # cache for saving
+
+    def _set_preview(self, label: QtWidgets.QLabel, img_bgr: np.ndarray | None):
+        if img_bgr is None:
+            label.clear(); return
+        pm = _cv_to_qpixmap(img_bgr)
+        label.setPixmap(pm.scaled(label.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+
+    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(e)
+        # Rescale on resize
+        for lab, key in ((self.lbl_out,"out_image"), (self.lbl_tps,"tps_img"),
+                         (self.lbl_ol,"overlay"), (self.lbl_scale,"scale_img"),
+                         (self.lbl_poly,"boundary_img")):
+            if self._previews and self._previews.get(key) is not None:
+                self._set_preview(lab, self._previews[key])
+
+    def _save_previews(self):
+        if not self._previews:
+            return
+        base_dir = self.out_dir or (self.raw_path and os.path.dirname(self.raw_path)) or "."
+        stem = Path(self.raw_path).stem if self.raw_path else "frame"
+        outs = {
+            "unwarped.png": self._previews.get("out_image"),
+            "tps.png":      self._previews.get("tps_img"),
+            "overlay.png":  self._previews.get("overlay"),
+            "scale.png":    self._previews.get("scale_img"),
+            "boundary.png": self._previews.get("boundary_img"),
+        }
+        ok_all = True
+        for name, img in outs.items():
+            if img is None: continue
+            p = os.path.join(base_dir, name)
+            ok = cv2.imwrite(p, img)
+            ok_all = ok_all and ok
+        if ok_all:
+            QtWidgets.QMessageBox.information(self, "Saved", f"Previews saved to:\n{base_dir}")
+        else:
+            QtWidgets.QMessageBox.warning(self, "Partial save", f"Some previews could not be saved to:\n{base_dir}")

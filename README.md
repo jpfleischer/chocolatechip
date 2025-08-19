@@ -70,6 +70,19 @@ SSH_USER=FillMeOut
 
 You can use `chip` now. Try it now!
 
+
+Generally this is meant for use in a data pipeline that
+analyses videos from signalized intersections. If you would
+like to add a new intersection to analyse, you need footage
+from that intersection.
+
+Take one video that you have saved from that intersection, and
+take a snapshot (if you can, get one snapshot with no vehicles
+in sight). Then, you get a top-down Google Maps view of that same
+intersection. This way, you can rectify the fisheye distortion
+of the videos using thin-plate spline. This can be done in the
+src/chocolatechip/lanes folder.
+
 `chip fastmot` will benchmark fastmot for you
 
 ```bash
