@@ -14,7 +14,7 @@ import glob
 class SwissKnife(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("ChocolateChip — Swiss Army Knife")
+        self.setWindowTitle("ChocolateChip — Intersection Configurator")
         self.resize(1500, 950)
 
         self.tabs = QtWidgets.QTabWidget()
@@ -95,8 +95,8 @@ class SwissKnife(QtWidgets.QMainWindow):
 
         cam = int(cam_id)
 
-        # Rectified (unwarped) guess via glob: e.g., "24*unwarped.png"
-        rect_matches = sorted(glob.glob(f"{cam}*unwarped.png"))
+        # Rectified (unwarped) guess via glob: e.g., "24*raw.png"
+        rect_matches = sorted(glob.glob(f"{cam}*raw.png"))
         rectified = rect_matches[0] if rect_matches else ""
 
         # TPS OUT guess via glob: e.g., "24*tps.out"

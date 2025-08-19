@@ -1,443 +1,370 @@
 # chocolatechip/lanes/mapper.py
 from __future__ import annotations
 
+import os, math, pickle, traceback
 from pathlib import Path
 import numpy as np
+import numpy.ma as ma
 import cv2
-import math
-
+from scipy.spatial import KDTree
+from sklearn.neighbors import NearestNeighbors
 from PySide6 import QtCore, QtGui, QtWidgets
 
 
-def _cv_to_qpixmap(img_bgr: np.ndarray) -> QtGui.QPixmap:
-    if img_bgr is None:
-        return QtGui.QPixmap()
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    h, w, ch = img_rgb.shape
-    bytes_per_line = img_rgb.strides[0]
-    qimg = QtGui.QImage(img_rgb.data, w, h, bytes_per_line, QtGui.QImage.Format.Format_RGB888)
-    return QtGui.QPixmap.fromImage(qimg.copy())
+# ---------- Legacy constants (unchanged) ----------
+WIDTH  = 1280
+HEIGHT = 960
+F      = 355           # focal length (px)
+Z_COORD = -80          # ground plane z
+YAW_DEG = 125
+ROLL_DEG = 0
 
 
-def _load_tps_pairs(path: Path) -> tuple[np.ndarray, np.ndarray]:
-    with path.open("r") as f:
-        n = int(f.readline().strip())
-        s_list, t_list = [], []
-        for _ in range(n):
-            sx, sy, tx, ty = map(float, f.readline().split())
-            s_list.append([sx, sy])
-            t_list.append([tx, ty])
-    sshape = np.array(s_list, dtype=np.float32).reshape(1, -1, 2)
-    tshape = np.array(t_list, dtype=np.float32).reshape(1, -1, 2)
-    return sshape, tshape
+def rotation_matrix(axis, theta):
+    axis = np.asarray(axis)
+    axis = axis / (math.sqrt(np.dot(axis, axis)) + 1e-12)
+    a = math.cos(theta / 2.0)
+    b, c, d = -axis * math.sin(theta / 2.0)
+    aa, bb, cc, dd = a*a, b*b, c*c, d*d
+    bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
+    return np.array([
+        [aa + bb - cc - dd, 2*(bc + ad),     2*(bd - ac)],
+        [2*(bc - ad),       aa + cc - bb - dd, 2*(cd + ab)],
+        [2*(bd + ac),       2*(cd - ab),     aa + dd - bb - cc]
+    ])
+
+
+def run_legacy_pipeline(raw_path: str, map_path: str, tps_out_path: str, out_dir: str|None=None, log=lambda *_: None) -> str:
+    # --------- Setup / I/O ----------
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+        out_files_dir = os.path.join(out_dir, "output_files")
+    else:
+        out_files_dir = os.path.join(os.path.dirname(raw_path), "output_files")
+        out_dir = os.path.dirname(raw_path)
+    os.makedirs(out_files_dir, exist_ok=True)
+
+    width, height = WIDTH, HEIGHT
+    width_half, height_half = width // 2, height // 2
+
+    frame = cv2.imread(raw_path)
+    if frame is None:
+        raise FileNotFoundError(f"Could not read raw fisheye still: {raw_path}")
+    if frame.shape[1] != width or frame.shape[0] != height:
+        raise ValueError(f"RAW must be exactly {WIDTH}x{HEIGHT}. Got {frame.shape[1]}x{frame.shape[0]}.")
+
+    Map = cv2.imread(map_path)
+    if Map is None:
+        raise FileNotFoundError(f"Could not read map image: {map_path}")
+    if Map.shape[1] != width or Map.shape[0] != height:
+        raise ValueError(f"MAP must be exactly {WIDTH}x{HEIGHT}. Got {Map.shape[1]}x{Map.shape[0]}.")
+
+    if not os.path.isfile(tps_out_path):
+        raise FileNotFoundError(f"TPS pairs file not found: {tps_out_path}")
+
+    # --------- Build unit direction map (equisolid) ----------
+    log("Creating DIR_map…")
+    radius = min(width, height) // 2
+    All = [[x - width_half, y - height_half] for x in range(width) for y in range(height)]
+
+    DIR_map = []
+    for a0, a1 in All:
+        if a0 == 0 and a1 == 0:
+            DIR_map.append([0, 0, 0, 0, -1]); continue
+        r = math.hypot(a0, a1)
+        if r > radius: continue
+        if r / (2 * F) >= 1: continue
+        theta = 2 * math.asin(r / (2 * F))
+        z = [0, 0, -1]
+        v2 = np.cross([a0, a1, 0], z)
+        Rm = rotation_matrix(v2, math.radians(90) - theta)
+        Dir = np.dot(Rm, np.asarray([a0, a1, 0]))
+        Dir_n = Dir / (np.linalg.norm(Dir) + 1e-12)
+        if np.isnan(Dir_n).any(): continue
+        DIR_map.append([a0, a1, Dir_n[0], Dir_n[1], Dir_n[2]])
+
+    DIR_map = np.array(DIR_map)
+    X = np.float64(DIR_map[:, 2:5])
+    nbrs = NearestNeighbors(n_neighbors=4, algorithm='ball_tree').fit(X)
+
+    # Optional: save pickles (exactly like legacy)
+    with open(os.path.join(out_files_dir, 'equisolid_DIR_map'), 'wb') as f:
+        pickle.dump(DIR_map, f)
+    with open(os.path.join(out_files_dir, 'equisolid_nbrs'), 'wb') as f:
+        pickle.dump(nbrs, f)
+
+    # --------- Template creation & orientation ----------
+    log("Creating template…")
+    grnd_vw = [[x - height_half, y - width_half, Z_COORD] for x in np.arange(0, height) for y in np.arange(0, width)]
+    v2 = [0, 0, 1]
+    R_matrix = rotation_matrix(v2, math.radians(YAW_DEG))
+    pt2 = [np.dot(R_matrix, np.asarray(gv)) for gv in grnd_vw]
+    v3 = np.dot(R_matrix, np.asarray([0, 1, 0]))
+    R_matrix = rotation_matrix(v3, math.radians(ROLL_DEG))
+    pt3 = [list(np.dot(R_matrix, np.asarray(gv))) for gv in pt2]
+    pt3 = np.array(pt3)
+    Template_u = [p / (np.linalg.norm(p) + 1e-12) for p in pt3]
+
+    # --------- NN mapping ----------
+    log("Mapping fisheye → map…")
+    _, indices = nbrs.kneighbors(Template_u)
+
+    grnd_vw_out = [[x, y] for x in np.arange(0, height) for y in np.arange(0, width)]
+    A = np.array(grnd_vw_out)
+    B = np.add(
+        DIR_map[:, 0:2][indices].reshape(len(indices), 8),
+        [width_half, height_half, width_half, height_half, width_half, height_half, width_half, height_half]
+    )
+    Maper = np.concatenate((A, B), 1)
+
+    # --------- Create unwarped composite (preview parity, not saved) ----------
+    log("Compositing unwarped preview…")
+    Out_image = np.zeros((height, width, 3), dtype=np.float32)
+    for i in range(len(indices)):
+        r_out = int(Maper[i][0]); c_out = int(Maper[i][1])
+        x0, y0, x1, y1, x2, y2, x3, y3 = Maper[i][2:10]
+        x0 = np.clip(int(x0), 0, width - 1);  y0 = np.clip(int(y0), 0, height - 1)
+        x1 = np.clip(int(x1), 0, width - 1);  y1 = np.clip(int(y1), 0, height - 1)
+        x2 = np.clip(int(x2), 0, width - 1);  y2 = np.clip(int(y2), 0, height - 1)
+        x3 = np.clip(int(x3), 0, width - 1);  y3 = np.clip(int(y3), 0, height - 1)
+        Out_image[r_out, c_out] = np.mean([
+            frame[y0, x0], frame[y1, x1], frame[y2, x2], frame[y3, x3]
+        ], axis=0)
+
+    # --------- TPS warp using .out ----------
+    log(f"Reading TPS pairs: {tps_out_path}")
+    tps = cv2.createThinPlateSplineShapeTransformer(0)
+    tps2 = cv2.createThinPlateSplineShapeTransformer(0)
+
+    sshape, tshape, matches = [], [], []
+    with open(tps_out_path, 'r') as pfile:
+        n = int(pfile.readline())
+        for i in range(n):
+            point = np.float32(pfile.readline().split(' '))
+            sshape.append(point[0:2])
+            tshape.append(point[2:4])
+            matches.append(cv2.DMatch(i, i, 0))
+    sshape = np.array(sshape).reshape(1, -1, 2)
+    tshape = np.array(tshape).reshape(1, -1, 2)
+
+    # Legacy directions:
+    tps.estimateTransformation(tshape, sshape, matches)
+    tps2.estimateTransformation(sshape, tshape, matches)
+
+    # --------- Dense mapping via TPS (legacy) ----------
+    log("Building dense TPS map…")
+    Maper = Maper[:, :4]
+    pts = np.fliplr(Maper[:, :2])  # (x, y)
+    Maper1 = np.concatenate((Maper[:, 2:4], pts), 1)
+    pts_f32 = pts.astype(np.float32).reshape(1, -1, 2)
+    _, output = tps2.applyTransformation(pts_f32)
+    output = output.reshape(Maper1.shape[0], -1)
+    Maper1 = np.concatenate((Maper1, output), 1)
+
+    Tm = np.zeros((width, height, 2))
+    lr = np.zeros((height, 2))
+    Maper2 = np.rint(Maper1).astype(np.int32)
+
+    for i in range(len(pts)):
+        y_out = Maper2[i][0]
+        x_out = Maper2[i][1]
+        tx = Maper1[i][4]; ty = Maper1[i][5]
+        if -50 < ty < height + 50 and -50 < tx < width + 50:
+            Tm[y_out, x_out] = tx, ty
+
+    for i in range(height):
+        for j in range(width):
+            if np.all(Tm[j, i]): lr[i, 0] = j; break
+        for j in range(width - 1, -1, -1):
+            if np.all(Tm[j, i]): lr[i, 1] = j; break
+
+    ll = int(np.argmin(ma.masked_where(lr[:, 0] == 0, lr[:, 0])))
+    rr = int(np.argmax(lr[:, 1]))
+    plr = np.copy(lr)
+
+    for i in range(1, ll, 1):
+        if lr[i - 1, 0] == 0: continue
+        if plr[i, 0] > plr[i - 1, 0]: plr[i, 0] = plr[i - 1, 0]
+    for i in range(height - 2, ll, -1):
+        if lr[i + 1, 0] == 0: continue
+        if plr[i, 0] > plr[i + 1, 0]: plr[i, 0] = plr[i + 1, 0]
+    for i in range(1, rr, 1):
+        if lr[i - 1, 1] == 0: continue
+        if plr[i, 1] < plr[i - 1, 1]: plr[i, 1] = plr[i - 1, 1]
+    for i in range(height - 2, rr, -1):
+        if lr[i + 1, 1] == 0: continue
+        if plr[i, 1] < plr[i + 1, 1]: plr[i, 1] = plr[i + 1, 1]
+
+    pts_valid = []
+    for i in range(len(pts)):
+        if -50 < Maper1[i][5] < height + 50 and -50 < Maper1[i][4] < width + 50:
+            pts_valid.append(Maper1[i])
+    pts_valid = np.array(pts_valid)
+    kd = KDTree(np.array(pts_valid[:, :2]))
+
+    log("Interpolating field…")
+    ntm = Tm.copy()
+    rows = []
+    for i in range(height):
+        if np.all(lr[i]):
+            bl, br = int(plr[i, 0]), int(plr[i, 1])
+            for j in range(bl, br):
+                if ntm[j, i, 0] == 0 and ntm[j, i, 1] == 0:
+                    d, pos = kd.query([j, i], k=4)
+                    w = 1 / np.maximum(d, 1e-12)
+                    w = w / np.sum(w)
+                    for k in range(4):
+                        ntm[j, i] = ntm[j, i] + pts_valid[pos, 4:6][k] * w[k]
+                rows.append([j, i, 0, 0, ntm[j, i, 0], ntm[j, i, 1]])
+
+    Maper3 = np.array(rows)
+    kd2 = KDTree(Maper3[:, :2])
+
+    log("Estimating local scale…")
+    for i in range(height):
+        if np.all(lr[i]):
+            bl, br = int(plr[i, 0]), int(plr[i, 1])
+            for j in range(bl, br):
+                d, args = kd2.query([j, i], k=min(21, len(Maper3)))
+                neigh = Maper3[args[1:], 4:6] - Maper3[args[0], 4:6]
+                sumd1 = d.sum() if np.ndim(d) else float(d)
+                sumd2 = (np.sqrt((neigh ** 2).sum(1))).sum() if len(neigh) else 0.0
+                scale = (sumd2 / sumd1) if sumd1 else 0.0
+                Maper3[args[0], 2] = scale
+
+    # --------- Save final .map exactly like legacy ----------
+    Maper3 = np.around(Maper3, 2)
+    out_map_path = os.path.join(out_dir, "finalmap.map")
+    with open(out_map_path, "w") as pts_map:
+        for i in range(Maper3.shape[0]):
+            print(Maper3[i][0], Maper3[i][1], Maper3[i][2], Maper3[i][3], Maper3[i][4], Maper3[i][5], file=pts_map)
+
+    log(f"✔ Done. Wrote {out_map_path}")
+    return out_map_path
 
 
 class MapperWidget(QtWidgets.QWidget):
     """
-    GUI to:
-      - take rectified (unwarped) image, target map image, TPS pairs .out
-      - compute homography prewarp + TPS
-      - export legacy .map file  'x y scale 0 map_x map_y'
-      - save overlays + H.npy
+    Minimal GUI wrapper around the legacy pipeline.
+    Select raw fisheye (1280x960), map (1280x960), and TPS .out; then Run.
     """
     mapReady = QtCore.Signal(str)  # emits path to .map file
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("LegacyTPSMapper")
+
+        # State
+        self.raw_path: str|None = None
+        self.map_path: str|None = None
+        self.tps_path: str|None = None
+        self.out_dir:  str|None = None
+        self.last_map_file: str|None = None
 
         # Inputs
-        self.rectified_path: Path | None = None
-        self.map_path: Path | None = None
-        self.tps_path: Path | None = None
+        self.ed_raw = QtWidgets.QLineEdit(); self.ed_raw.setReadOnly(True)
+        self.ed_map = QtWidgets.QLineEdit(); self.ed_map.setReadOnly(True)
+        self.ed_out = QtWidgets.QLineEdit(); self.ed_out.setReadOnly(True)
+        self.ed_dir = QtWidgets.QLineEdit(); self.ed_dir.setReadOnly(True)
 
-        self.rectified_img: np.ndarray | None = None
-        self.map_img: np.ndarray | None = None
-        self.prewarp_img: np.ndarray | None = None
-        self.tps_img: np.ndarray | None = None
-        self.H: np.ndarray | None = None
-        self.overlay_pre: np.ndarray | None = None
-        self.overlay_tps: np.ndarray | None = None
-        self.out_dir: Path | None = None
-        self.last_map_file: Path | None = None
+        b_raw = QtWidgets.QPushButton("Raw fisheye…")
+        b_map = QtWidgets.QPushButton("Google Map…")
+        b_out = QtWidgets.QPushButton("TPS .out…")
+        b_dir = QtWidgets.QPushButton("Output dir…")
+        self.btn_run = QtWidgets.QPushButton("Run")
+        self.btn_run.setStyleSheet("font-weight:600;")
 
-        self._last_inliers = 0
-        self._last_total   = 0
-        self._last_rmse    = 0.0
-
-
-        # Left controls
-        self.btn_rect = QtWidgets.QPushButton("Rectified…")
-        self.ed_rect  = QtWidgets.QLineEdit(); self.ed_rect.setReadOnly(True)
-        self.btn_map  = QtWidgets.QPushButton("Map…")
-        self.ed_map   = QtWidgets.QLineEdit(); self.ed_map.setReadOnly(True)
-        self.btn_tps  = QtWidgets.QPushButton("TPS .out…")
-        self.ed_tps   = QtWidgets.QLineEdit(); self.ed_tps.setReadOnly(True)
-        self.btn_outd = QtWidgets.QPushButton("Output dir…")
-        self.ed_outd  = QtWidgets.QLineEdit(); self.ed_outd.setReadOnly(True)
-
-        self.alpha = QtWidgets.QDoubleSpinBox(); self.alpha.setRange(0.0,1.0); self.alpha.setSingleStep(0.05); self.alpha.setValue(0.6)
-        self.ransac = QtWidgets.QDoubleSpinBox(); self.ransac.setRange(0.1,100.0); self.ransac.setSingleStep(0.5); self.ransac.setValue(3.0)
-
-        self.btn_run  = QtWidgets.QPushButton("Run & Export .map")
-        self.lbl_info = QtWidgets.QLabel("Ready.")
-        self.lbl_info.setWordWrap(True)
-
-        form = QtWidgets.QFormLayout()
-        form.addRow(self.btn_rect, self.ed_rect)
-        form.addRow(self.btn_map,  self.ed_map)
-        form.addRow(self.btn_tps,  self.ed_tps)
-        form.addRow(self.btn_outd, self.ed_outd)
-        form.addRow("Overlay α:", self.alpha)
-        form.addRow("RANSAC thresh (px):", self.ransac)
-        form_box = QtWidgets.QGroupBox("Inputs / Settings")
-        v = QtWidgets.QVBoxLayout(); v.addLayout(form); v.addWidget(self.btn_run); v.addWidget(self.lbl_info)
-        form_box.setLayout(v)
-
-        # Right previews (tabs)
-        self.prev_tabs = QtWidgets.QTabWidget()
-        self.lbl_prewarp  = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
-        self.lbl_tps      = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
-        self.lbl_ol_pre   = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
-        self.lbl_ol_tps   = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
-        for lab in (self.lbl_prewarp, self.lbl_tps, self.lbl_ol_pre, self.lbl_ol_tps):
-            lab.setMinimumSize(480, 320)
-            lab.setStyleSheet("QLabel { background: #111; border: 1px solid #333; }")
-        self.prev_tabs.addTab(self.lbl_prewarp, "Prewarp")
-        self.prev_tabs.addTab(self.lbl_tps,     "TPS")
-        self.prev_tabs.addTab(self.lbl_ol_pre,  "Overlay (Prewarp)")
-        self.prev_tabs.addTab(self.lbl_ol_tps,  "Overlay (TPS)")
+        # Log
+        self.log = QtWidgets.QPlainTextEdit(); self.log.setReadOnly(True)
+        self.log.setStyleSheet("QPlainTextEdit { background:#111; color:#ddd; }")
 
         # Layout
-        lay = QtWidgets.QHBoxLayout(self)
-        lay.addWidget(form_box, 0)
-        lay.addWidget(self.prev_tabs, 1)
+        form = QtWidgets.QFormLayout()
+        form.addRow(b_raw, self.ed_raw)
+        form.addRow(b_map, self.ed_map)
+        form.addRow(b_out, self.ed_out)
+        form.addRow(b_dir, self.ed_dir)
+
+        v = QtWidgets.QVBoxLayout(self)
+        v.addLayout(form)
+        v.addWidget(self.btn_run)
+        v.addWidget(self.log, 1)
 
         # Signals
-        self.btn_rect.clicked.connect(self._pick_rectified)
-        self.btn_map.clicked.connect(self._pick_map)
-        self.btn_tps.clicked.connect(self._pick_tps)
-        self.btn_outd.clicked.connect(self._pick_outdir)
+        b_raw.clicked.connect(self._pick_raw)
+        b_map.clicked.connect(self._pick_map)
+        b_out.clicked.connect(self._pick_out)
+        b_dir.clicked.connect(self._pick_dir)
         self.btn_run.clicked.connect(self._run)
 
+        # Drag & drop
         self.setAcceptDrops(True)
 
-    # Drag & drop
+    # Public helper (optional)
+    def suggest_files(self, raw: str|Path|None, map_img: str|Path|None, tps_out: str|Path|None, out_dir: str|Path|None=None):
+        if raw:     self._set_raw(str(raw))
+        if map_img: self._set_map(str(map_img))
+        if tps_out: self._set_out(str(tps_out))
+        if out_dir: self._set_dir(str(out_dir))
+
+    # DnD
     def dragEnterEvent(self, e: QtGui.QDragEnterEvent) -> None:
-        if e.mimeData().hasUrls():
-            e.acceptProposedAction()
+        if e.mimeData().hasUrls(): e.acceptProposedAction()
     def dropEvent(self, e: QtGui.QDropEvent) -> None:
         for url in e.mimeData().urls():
-            p = Path(url.toLocalFile())
-            ext = p.suffix.lower()
+            p = url.toLocalFile()
+            ext = Path(p).suffix.lower()
             if ext in (".png",".jpg",".jpeg",".bmp"):
-                if "unwarped" in p.stem.lower():
-                    self._set_rectified(p)
-                elif "map" in p.stem.lower():
+                # crude heuristic: "map" in name = map; else assume raw
+                if "map" in Path(p).stem.lower():
                     self._set_map(p)
+                else:
+                    self._set_raw(p)
             elif ext == ".out":
-                self._set_tps(p)
+                self._set_out(p)
 
-    # File pickers
-    def _pick_rectified(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Rectified image", "", "Images (*.png *.jpg *.jpeg *.bmp)")
-        if path: self._set_rectified(Path(path))
+    # Pickers
+    def _pick_raw(self):
+        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Raw fisheye (1280x960)", "", "Images (*.png *.jpg *.jpeg *.bmp)")
+        if p: self._set_raw(p)
     def _pick_map(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Map image", "", "Images (*.png *.jpg *.jpeg *.bmp)")
-        if path: self._set_map(Path(path))
-    def _pick_tps(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "TPS pairs (.out)", "", "Point Pairs (*.out)")
-        if path: self._set_tps(Path(path))
-    def _pick_outdir(self):
-        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Output directory")
-        if path:
-            self.out_dir = Path(path)
-            self.ed_outd.setText(str(self.out_dir))
+        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Google Map (1280x960)", "", "Images (*.png *.jpg *.jpeg *.bmp)")
+        if p: self._set_map(p)
+    def _pick_out(self):
+        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, "TPS pairs (.out)", "", "Point Pairs (*.out)")
+        if p: self._set_out(p)
+    def _pick_dir(self):
+        p = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output directory")
+        if p: self._set_dir(p)
 
     # Setters
-    def _set_rectified(self, p: Path):
-        img = cv2.imread(str(p), cv2.IMREAD_COLOR)
-        if img is None:
-            QtWidgets.QMessageBox.critical(self, "Load failed", f"Could not read: {p}"); return
-        self.rectified_path, self.rectified_img = p, img
-        self.ed_rect.setText(str(p))
-    def _set_map(self, p: Path):
-        img = cv2.imread(str(p), cv2.IMREAD_COLOR)
-        if img is None:
-            QtWidgets.QMessageBox.critical(self, "Load failed", f"Could not read: {p}"); return
-        self.map_path, self.map_img = p, img
-        self.ed_map.setText(str(p))
-    def _set_tps(self, p: Path):
-        self.tps_path = p
-        self.ed_tps.setText(str(p))
+    def _set_raw(self, p: str):
+        self.raw_path = p; self.ed_raw.setText(p)
+    def _set_map(self, p: str):
+        self.map_path = p; self.ed_map.setText(p)
+    def _set_out(self, p: str):
+        self.tps_path = p; self.ed_out.setText(p)
+    def _set_dir(self, p: str):
+        self.out_dir = p; self.ed_dir.setText(p)
 
-    # External seeding (optional)
-    def suggest_files(self, rectified: str|Path|None, map_img: str|Path|None, tps_out: str|Path|None, out_dir: str|Path|None=None):
-        if rectified: self._set_rectified(Path(rectified))
-        if map_img:   self._set_map(Path(map_img))
-        if tps_out:   self._set_tps(Path(tps_out))
-        if out_dir:
-            self.out_dir = Path(out_dir); self.ed_outd.setText(str(self.out_dir))
+    def _append_log(self, msg: str):
+        self.log.appendPlainText(msg)
+        self.log.verticalScrollBar().setValue(self.log.verticalScrollBar().maximum())
+        QtWidgets.QApplication.processEvents(QtCore.QEventLoop.AllEvents, 1)
 
     def _run(self):
+        if not (self.raw_path and self.map_path and self.tps_path):
+            QtWidgets.QMessageBox.information(self, "Missing input", "Please choose raw fisheye, map image, and TPS .out.")
+            return
+        self.btn_run.setEnabled(False)
         try:
-            self._do_process()
+            out_map = run_legacy_pipeline(self.raw_path, self.map_path, self.tps_path, self.out_dir, log=self._append_log)
+            self.last_map_file = out_map
+            self.mapReady.emit(out_map)
+            QtWidgets.QMessageBox.information(self, "Done", f"Wrote:\n{out_map}")
         except Exception as e:
+            tb = traceback.format_exc()
+            self._append_log(tb)
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
-
-    def _do_process(self):
-        if self.rectified_img is None or self.map_img is None or self.tps_path is None:
-            raise RuntimeError("Please choose rectified image, map image, and TPS .out first.")
-        out_dir = self.out_dir or (self.rectified_path.parent / "output_align")
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        rect = self.rectified_img
-        target = self.map_img
-        sshape, tshape = _load_tps_pairs(self.tps_path)
-        if sshape.shape[1] < 4:
-            raise ValueError("Need at least 4 pairs for a robust homography prewarp.")
-
-        # --- Homography prewarp (RANSAC)
-        H, mask = cv2.findHomography(sshape.reshape(-1,2), tshape.reshape(-1,2),
-                                    method=cv2.RANSAC, ransacReprojThreshold=float(self.ransac.value()))
-        if H is None:
-            raise RuntimeError("Homography estimation failed; check spread/quality of points.")
-        self.H = H
-        inliers = mask.ravel().astype(bool)
-        s_in = sshape[:, inliers, :]
-        t_in = tshape[:, inliers, :]
-
-        proj = cv2.perspectiveTransform(s_in.astype(np.float32), H)
-        res = (t_in - proj).reshape(-1, 2)
-        rmse = float(np.sqrt((res**2).sum(axis=1).mean()))
-
-        # Save for later + show interim
-        self._last_inliers = int(inliers.sum())
-        self._last_total   = int(len(inliers))
-        self._last_rmse    = rmse
-        self.lbl_info.setText(f"Homography inliers {self._last_inliers}/{self._last_total} "
-                            f"({self._last_inliers / max(self._last_total,1):.0%}), RMSE={rmse:.2f}px")
-
-
-        # Prewarp to map frame
-        self.prewarp_img = cv2.warpPerspective(rect, H, (target.shape[1], target.shape[0]))
-
-        # Transform inlier source points into prewarp frame
-        s_pre = cv2.perspectiveTransform(s_in, H)
-
-        # --- TPS refinement (prewarp → map)
-        tps = cv2.createThinPlateSplineShapeTransformer(0)
-        matches = [cv2.DMatch(i, i, 0) for i in range(s_pre.shape[1])]
-        tps.estimateTransformation(t_in, s_pre, matches)
-        self.tps_img = tps.warpImage(self.prewarp_img)
-
-        # --- Direct TPS map export (rectified → map)
-        tps2 = cv2.createThinPlateSplineShapeTransformer(0)
-        matches_all = [cv2.DMatch(i, i, 0) for i in range(sshape.shape[1])]
-        tps2.estimateTransformation(sshape, tshape, matches_all)
-
-        Hh, Ww = target.shape[:2]
-        Hr, Wr = rect.shape[:2]
-
-        xx, yy = np.meshgrid(np.arange(Wr, dtype=np.float32),
-                             np.arange(Hr, dtype=np.float32))
-        pts_rect = np.stack([xx.ravel(), yy.ravel()], axis=1).reshape(1, -1, 2)
-
-        _, pts_map = tps2.applyTransformation(pts_rect)
-        pts_map = pts_map.reshape(-1, 2)
-
-        base = np.column_stack([
-            xx.ravel(), yy.ravel(),
-            np.zeros(xx.size, np.float32),
-            np.zeros(xx.size, np.float32),
-            pts_map[:, 0], pts_map[:, 1]
-        ]).astype(np.float32)
-
-        # Sparse table Tm + LR bounds
-        # Build sparse table from rect→map samples (width-major: [x, y])
-
-        Tm = np.zeros((Wr, Hr, 2), dtype=np.float32)
-        lr = np.zeros((Hr, 2), dtype=np.float32)
-        base_i = np.rint(base).astype(np.int32)
-
-        # accept if within an expanded window (old program used [-50, W+50] etc.)
-        for i in range(base.shape[0]):
-            mx, my = base[i, 4], base[i, 5]
-            if (-50 < my < Hh + 50) and (-50 < mx < Ww + 50):
-                x, y = base_i[i, 0], base_i[i, 1]
-                if 0 <= x < Wr and 0 <= y < Hr:
-                    Tm[x, y] = mx, my
-
-        # Left/right per scanline (y = 0..Hr-1)
-        for i in range(Hr):
-            # leftmost
-            for j in range(Wr):
-                if np.all(Tm[j, i]):   # instead of (Tm[j,i,0] != 0 or Tm[j,i,1] != 0)
-                    lr[i, 0] = j; break
-            # rightmost
-            for j in range(Wr - 1, -1, -1):
-                if np.all(Tm[j, i]):
-                    lr[i, 1] = j; break
-
-
-        # Old-style monotonic smoothing of LR envelope
-        plr = lr.copy()
-
-        # Find rows that actually have samples
-        rows_left  = np.where(lr[:, 0] > 0)[0]
-        rows_right = np.where(lr[:, 1] > 0)[0]
-        if rows_left.size == 0 or rows_right.size == 0:
-            raise RuntimeError("No valid rows found to build envelope; check TPS pairs / coverage.")
-
-        # indices delimiting the useful band (like old ll/rr)
-        ll = int(rows_left[np.argmin(lr[rows_left, 0])])
-        rr = int(rows_right[np.argmax(lr[rows_right, 1])])
-
-
-        # Left edge should not expand outward
-        for i in range(1, ll, 1):
-            if lr[i-1, 0] == 0: 
-                continue
-            if plr[i, 0] > plr[i-1, 0]:
-                plr[i, 0] = plr[i-1, 0]
-        for i in range(Hr - 2, ll, -1):
-            if lr[i+1, 0] == 0:
-                continue
-            if plr[i, 0] > plr[i+1, 0]:
-                plr[i, 0] = plr[i+1, 0]
-
-        # Right edge should not shrink inward
-        for i in range(1, rr, 1):
-            if lr[i-1, 1] == 0:
-                continue
-            if plr[i, 1] < plr[i-1, 1]:
-                plr[i, 1] = plr[i-1, 1]
-        for i in range(Hr - 2, rr, -1):
-            if lr[i+1, 1] == 0:
-                continue
-            if plr[i, 1] < plr[i+1, 1]:
-                plr[i, 1] = plr[i+1, 1]
-
-
-        # KD interpolation (prefer SciPy; fall back to simple 4-NN via numpy if missing)
-        try:
-            from scipy.spatial import KDTree  # type: ignore
-            use_scipy = True
-        except Exception:
-            use_scipy = False
-
-        valid = []
-        for i in range(base.shape[0]):
-            mx, my = base[i, 4], base[i, 5]
-            if -50 < my < Hh + 50 and -50 < mx < Ww + 50:
-                valid.append(base[i])
-        valid = np.array(valid, dtype=np.float32)
-        if valid.size == 0:
-            raise RuntimeError("No valid samples found to build map. Check pairs / frames.")
-
-        ntm = Tm.copy()
-        rows = []
-        if use_scipy:
-            kd = KDTree(valid[:, :2])
-            for i in range(Hr):
-                if plr[i,0] == 0 and plr[i,1] == 0:
-                    continue
-                bl, br = int(plr[i, 0]), int(plr[i, 1])
-                if br <= bl:
-                    br = min(bl + 2, Wr)  # tiny span to avoid zero-width band
-
-                for j in range(bl, br):
-                    if ntm[j, i, 0] == 0 and ntm[j, i, 1] == 0:
-                        d, pos = kd.query([j, i], k=min(4, len(valid)))
-                        d = np.atleast_1d(d); pos = np.atleast_1d(pos)
-                        w = (1.0 / np.maximum(d, 1e-6)); w /= w.sum()
-                        ntm[j, i] = (valid[pos, 4:6] * w[:,None]).sum(axis=0)
-                    rows.append([j, i, 0, 0, ntm[j, i, 0], ntm[j, i, 1]])
-        else:
-            # crude 4-NN using numpy distance
-            pts = valid[:, :2]
-            for i in range(Hr):
-                if plr[i,0] == 0 and plr[i,1] == 0:
-                    continue
-                bl, br = int(plr[i,0]), int(plr[i,1])
-                grid_y = i
-                for j in range(bl, br):
-                    if ntm[j, i, 0] == 0 and ntm[j, i, 1] == 0:
-                        q = np.array([j, grid_y], dtype=np.float32)
-                        d = np.linalg.norm(pts - q, axis=1)
-                        idx = np.argpartition(d, min(3, len(d)-1))[:4]
-                        dd = np.maximum(d[idx], 1e-6)
-                        w = (1.0 / dd); w /= w.sum()
-                        ntm[j, i] = (valid[idx, 4:6] * w[:,None]).sum(axis=0)
-                    rows.append([j, i, 0, 0, ntm[j, i, 0], ntm[j, i, 1]])
-
-        Maper3 = np.array(rows, dtype=np.float32)
-
-        # Local 'scale' (K=21) — optional
-        if Maper3.shape[0] >= 22:
-            try:
-                if use_scipy:
-                    kd2 = KDTree(Maper3[:, :2])
-                    for i in range(Hr):
-                        if plr[i,0] == 0 and plr[i,1] == 0: continue
-                        bl, br = int(plr[i,0]), int(plr[i,1])
-                        for j in range(bl, br):
-                            d, idx = kd2.query([j, i], k=min(21, len(Maper3)))
-                            if np.isscalar(idx): continue
-                            pts = Maper3[idx[1:], 4:6] - Maper3[idx[0], 4:6]
-                            s1 = np.sum(d) if np.ndim(d) else float(d)
-                            s2 = float(np.sqrt((pts**2).sum(1)).sum())
-                            Maper3[idx[0], 2] = (s2 / s1) if s1 != 0 else 0.0
-            except Exception:
-                pass  # non-fatal
-
-        # Save outputs
-        stem = (self.rectified_path.stem.replace("_unwarped", "") if self.rectified_path else "frame")
-        pre_path = out_dir / f"{stem}_prewarp.png"
-        tps_path = out_dir / f"{stem}_TPS.png"
-        H_path   = out_dir / f"{stem}_H.npy"
-
-        cv2.imwrite(str(pre_path), self.prewarp_img)
-        cv2.imwrite(str(tps_path), self.tps_img)
-        np.save(H_path, self.H)
-
-        a = float(np.clip(self.alpha.value(), 0.0, 1.0))
-        self.overlay_pre = cv2.addWeighted(self.map_img, a, self.prewarp_img, 1 - a, 0)
-        self.overlay_tps = cv2.addWeighted(self.map_img, a, self.tps_img, 1 - a, 0)
-
-        ol_pre_path = out_dir / f"{stem}_overlay_prewarp.png"
-        ol_tps_path = out_dir / f"{stem}_overlay_tps.png"
-        cv2.imwrite(str(ol_pre_path), self.overlay_pre)
-        cv2.imwrite(str(ol_tps_path), self.overlay_tps)
-
-        map_path = out_dir / f"{stem}_tps_b_{rect.shape[1]}.map"
-        np.savetxt(map_path, np.round(Maper3, 2), fmt="%.2f %.2f %.2f %.2f %.2f %.2f")
-        self.last_map_file = map_path
-
-        # Previews
-        self._set_preview(self.lbl_prewarp, self.prewarp_img)
-        self._set_preview(self.lbl_tps, self.tps_img)
-        self._set_preview(self.lbl_ol_pre, self.overlay_pre)
-        self._set_preview(self.lbl_ol_tps, self.overlay_tps)
-
-        self.lbl_info.setText(
-            f"✔ Wrote .map: {map_path.name}\n"
-            f"Inliers: {self._last_inliers}/{self._last_total} "
-            f"({self._last_inliers / max(self._last_total,1):.0%}) • RMSE={self._last_rmse:.2f}px"
-        )
-
-        self.mapReady.emit(str(map_path))
-
-    def _set_preview(self, label: QtWidgets.QLabel, img_bgr: np.ndarray | None):
-        if img_bgr is None:
-            label.clear(); return
-        pm = _cv_to_qpixmap(img_bgr)
-        label.setPixmap(pm.scaled(label.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-
-    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
-        super().resizeEvent(e)
-        for lab, img in ((self.lbl_prewarp, self.prewarp_img),
-                         (self.lbl_tps, self.tps_img),
-                         (self.lbl_ol_pre, self.overlay_pre),
-                         (self.lbl_ol_tps, self.overlay_tps)):
-            if img is not None:
-                self._set_preview(lab, img)
+        finally:
+            self.btn_run.setEnabled(True)
