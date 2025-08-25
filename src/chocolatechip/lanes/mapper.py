@@ -167,7 +167,6 @@ def run_legacy_pipeline(raw_path: str, map_path: str, tps_out_path: str,
     tps.estimateTransformation(tshape, sshape, matches)
     tps2.estimateTransformation(sshape, tshape, matches)
 
-    TPS_img = tps.warpImage(Out_image)
     # --- TPS warp using .out (already computed) ---
     TPS_img = tps.warpImage(Out_image)
 
