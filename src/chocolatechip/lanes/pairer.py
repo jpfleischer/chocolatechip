@@ -1,8 +1,8 @@
 """
 Point Pairer — Manual control-point collector (with 90° rotate, .out export, and pipeline run)
 --------------------------------------------------------------------------------------------
-- Unwarped and MAP MUST be 1280x960 (enforced on open).
-- Click Unwarped, then MAP to create a pair. Color-coded across panes & table.
+- Unwarped and Google Maps MUST be 1280x960 (enforced on open).
+- Click Unwarped, then Google Maps to create a pair. Color-coded across panes & table.
 - Export legacy .out format: first line N, then "unwarped_x unwarped_y map_x map_y".
 
 Run standalone:
@@ -81,7 +81,7 @@ def parse_legacy_out_pairs(path: str):
 
 
 class TpsMapperCanvas(FigureCanvas):
-    """Unwarped (left) and MAP (right). 90° visual rotations; clicks mapped back to original coords."""
+    """Unwarped (left) and Google Maps (right). 90° visual rotations; clicks mapped back to original coords."""
     PENDING_COLOR = "#000000"
 
     def __init__(self, parent=None):
@@ -113,7 +113,7 @@ class TpsMapperCanvas(FigureCanvas):
         self.map_flip_y = False
 
         self._dragging_idx = None    # index of point being dragged
-        self._dragging_side = None   # "unwarped" or "map"
+        self._dragging_side = None   # "unwarped" or "Google Maps"
 
         self._cid_click   = self.mpl_connect("button_press_event",   self._on_click)
         self._cid_motion  = self.mpl_connect("motion_notify_event",  self._on_motion)
@@ -154,7 +154,7 @@ class TpsMapperCanvas(FigureCanvas):
             if d[ir] <= tol_px:
                 return "unwarped", ir
 
-        # MAP
+        # Google Maps
         if map_pts.size:
             map_disp = MT.transform(map_pts)
             d = np.linalg.norm(map_disp - np.array([xdisp, ydisp]), axis=1)
@@ -314,14 +314,14 @@ class TpsMapperCanvas(FigureCanvas):
         else:
             self.ax_unwarped.text(0.5, 0.5, "No Unwarped image", ha="center", va="center", transform=self.ax_unwarped.transAxes)
 
-        # MAP
+        # Google Maps
         if self.map_image is not None:
             w, h = self._map_size()
             T = self._map_transform()
             self.ax_map.imshow(self.map_image, origin="upper", transform=T + self.ax_map.transData)
             self._set_axes_limits_to_fit(self.ax_map, T, w, h)
         else:
-            self.ax_map.text(0.5, 0.5, "No MAP image", ha="center", va="center", transform=self.ax_map.transAxes)
+            self.ax_map.text(0.5, 0.5, "No Google Maps image", ha="center", va="center", transform=self.ax_map.transAxes)
 
         # Pairs
         RT = self._unwarped_transform(); MT = self._map_transform()
@@ -352,8 +352,8 @@ class PairerWidget(QtWidgets.QWidget):
         self.canvas = TpsMapperCanvas()
 
         # File & pair controls
-        self.btn_open_unwarped = QtWidgets.QPushButton("Open Unwarped…")
-        self.btn_open_map = QtWidgets.QPushButton("Open MAP…")
+        self.btn_open_unwarped = QtWidgets.QPushButton("Open Unwarped Image…")
+        self.btn_open_map = QtWidgets.QPushButton("Open Google Maps Image…")
         self.btn_export_out = QtWidgets.QPushButton("Export .out")
         self.btn_save = QtWidgets.QPushButton("Save Pairs…")
         self.btn_load = QtWidgets.QPushButton("Load Pairs…")
@@ -363,26 +363,26 @@ class PairerWidget(QtWidgets.QWidget):
         # Camera ID
         self.txt_cam = QtWidgets.QLineEdit()
         self.txt_cam.setPlaceholderText("Camera ID (e.g., 27)")
-        self.lbl_status = QtWidgets.QLabel("Click Unwarped, then MAP to create a pair. Images must be 1280x960.")
+        self.lbl_status = QtWidgets.QLabel("Click Unwarped, then Google Maps to create a pair. Images must be 1280x960.")
         self.lbl_status.setStyleSheet("color: #555;")
 
         # Rotation buttons
         self.btn_unwarped_ccw = QtWidgets.QPushButton("Unwarped ⟲ 90°")
         self.btn_unwarped_cw  = QtWidgets.QPushButton("Unwarped ⟳ 90°")
         self.btn_unwarped_reset = QtWidgets.QPushButton("Reset Unwarped")
-        self.btn_map_ccw = QtWidgets.QPushButton("MAP ⟲ 90°")
-        self.btn_map_cw  = QtWidgets.QPushButton("MAP ⟳ 90°")
-        self.btn_map_reset = QtWidgets.QPushButton("Reset MAP")
+        self.btn_map_ccw = QtWidgets.QPushButton("Google Maps ⟲ 90°")
+        self.btn_map_cw  = QtWidgets.QPushButton("Google Maps ⟳ 90°")
+        self.btn_map_reset = QtWidgets.QPushButton("Reset Google Maps")
 
         self.chk_unwarped_flip_x = QtWidgets.QCheckBox("Flip Unwarped ↔")
         self.chk_unwarped_flip_y = QtWidgets.QCheckBox("Flip Unwarped ↕")
-        self.chk_map_flip_x = QtWidgets.QCheckBox("Flip MAP ↔")
-        self.chk_map_flip_y = QtWidgets.QCheckBox("Flip MAP ↕")
+        self.chk_map_flip_x = QtWidgets.QCheckBox("Flip Google Maps ↔")
+        self.chk_map_flip_y = QtWidgets.QCheckBox("Flip Google Maps ↕")
 
 
         # Table
         self.table = QtWidgets.QTableWidget(0, 6)
-        self.table.setHorizontalHeaderLabels(["#", "Unwarped x", "Unwarped y", "MAP x", "MAP y", ""])
+        self.table.setHorizontalHeaderLabels(["#", "Unwarped x", "Unwarped y", "Google Maps x", "Google Maps y", ""])
         for col in range(6):
             self.table.horizontalHeader().setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeToContents)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -491,17 +491,17 @@ class PairerWidget(QtWidgets.QWidget):
                 QtWidgets.QMessageBox.critical(self, "Unwarped error", str(e))
 
     def _open_map(self):
-        fn, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open MAP image", ".", "Images (*.png *.jpg *.jpeg)")
+        fn, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open Google Maps image", ".", "Images (*.png *.jpg *.jpeg)")
         if fn:
             try:
                 with Image.open(fn) as im:
                     w, h = im.size
                 if (w, h) != (REQUIRED_W, REQUIRED_H):
-                    raise ValueError(f"MAP must be {REQUIRED_W}x{REQUIRED_H}, got {w}x{h}.")
+                    raise ValueError(f"Google Maps must be {REQUIRED_W}x{REQUIRED_H}, got {w}x{h}.")
                 self.canvas.load_images(self.canvas.unwarped_path, fn)
                 self._guess_cam_from_filenames()
             except Exception as e:
-                QtWidgets.QMessageBox.critical(self, "MAP error", str(e))
+                QtWidgets.QMessageBox.critical(self, "Google Maps error", str(e))
 
     def _guess_cam_from_filenames(self):
         # try to infer an integer from either filename
@@ -514,7 +514,7 @@ class PairerWidget(QtWidgets.QWidget):
 
     def _save_pairs_json(self):
         if not self.canvas.unwarped_image or not self.canvas.map_image:
-            QtWidgets.QMessageBox.warning(self, "No images", "Open Unwarped and MAP images first.")
+            QtWidgets.QMessageBox.warning(self, "No images", "Open Unwarped and Google Maps images first.")
             return
         pairs = self.canvas.get_pairs()
         data = {
@@ -595,10 +595,10 @@ class PairerWidget(QtWidgets.QWidget):
     def _export_out(self):
         # Validate
         if not self.canvas.unwarped_image or not self.canvas.map_image:
-            QtWidgets.QMessageBox.warning(self, "No images", "Open Unwarped and MAP images first.")
+            QtWidgets.QMessageBox.warning(self, "No images", "Open Unwarped and Google Maps images first.")
             return
         if self.canvas.unwarped_image.size != (REQUIRED_W, REQUIRED_H) or self.canvas.map_image.size != (REQUIRED_W, REQUIRED_H):
-            QtWidgets.QMessageBox.critical(self, "Size error", "Unwarped and MAP must be exactly 1280x960.")
+            QtWidgets.QMessageBox.critical(self, "Size error", "Unwarped and Google Maps must be exactly 1280x960.")
             return
         cam_id = self.txt_cam.text().strip()
         if not cam_id.isdigit():

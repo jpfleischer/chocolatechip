@@ -82,10 +82,9 @@ else:
 video_files.sort(key=lambda x: os.path.basename(x[2]))
 
 
-# 2) Filter by year and before/after cutoff
+# 2) Filter by before/after cutoff
 
 filtered = []
-TARGET_2023 = date(2023, 8, 21)
 
 for is_remote, host, path in video_files:
     fn = os.path.basename(path)
@@ -96,16 +95,11 @@ for is_remote, host, path in video_files:
     yr, mo, dy = map(int, m.groups()[1:4])
     file_date = date(yr, mo, dy)
 
-    if yr == 2023:
-        # keep only Aug 21, 2023
-        if file_date != TARGET_2023:
-            continue
-    else:
-        # your normal before/after logic for other years
-        if TIMEFRAME == "before" and file_date >= CUTOFF_DATE:
-            continue
-        if TIMEFRAME == "after"  and file_date <  CUTOFF_DATE:
-            continue
+    if TIMEFRAME == "before" and file_date >= CUTOFF_DATE:
+        continue
+    if TIMEFRAME == "after" and file_date <  CUTOFF_DATE:
+        continue
+    # if TIMEFRAME is something else, include all
 
     filtered.append((is_remote, host, path))
 
