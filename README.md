@@ -127,10 +127,31 @@ Fan Speed - NVIDIA TITAN RTX #1
 stream.py does mem usage over time for num streams, not resolution related.
 jsut change the parameter to gpu plotter.
 
-## Long paths
+## Miscellaneous Notes
 
 This may be necessary
 
 ```bash
 git config --global core.longpaths true
+```
+
+
+Wonderful cure to the problem of rewriting history but, 
+did you think you had to reclone all clones of the repo? 
+No, you can do this:
+
+
+```bash
+# 0) Make a safety branch and stash everything (including new files)
+git switch -c backup-pre-rewrite
+git stash push -u -m "WIP before resetting to rewritten history"
+
+# 1) Sync and reset your main to the rewritten remote
+git fetch --all --prune --tags
+git switch main
+git reset --hard origin/main
+
+# 2) Reapply your work as unstaged changes
+git stash pop
+# resolve any conflicts, then continue working
 ```
