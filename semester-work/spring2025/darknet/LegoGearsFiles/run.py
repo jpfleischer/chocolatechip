@@ -249,7 +249,7 @@ if __name__ == "__main__":
     # Step 5: Run benchmark (this will create files in the current working directory)
     StopWatch.start("benchmark")
     subprocess.call(
-        f"{darknetloc} detector -map -dont_show -verbose -nocolor -gpus {gpus_str} train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log",
+        f"{darknetloc} detector -map -dont_show -nocolor -gpus {gpus_str} train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log",
         shell=True)
     StopWatch.stop("benchmark")
     benchmark_result = StopWatch.get_benchmark()

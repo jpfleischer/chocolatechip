@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     # Run benchmark
     StopWatch.start("benchmark")
-    command = f"{darknetloc} detector -map -dont_show -verbose -nocolor -gpus {gpus_str} train /workspace/cars.data /workspace/cars.cfg 2>&1 | tee training_output.log"
+    command = f"{darknetloc} detector -map -dont_show -nocolor -gpus {gpus_str} train /workspace/cars.data /workspace/cars.cfg 2>&1 | tee training_output.log"
     print("#" * 80)
     print(command)
     print("#" * 80)
