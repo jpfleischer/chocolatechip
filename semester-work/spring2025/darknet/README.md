@@ -12,7 +12,7 @@ and take that key and put it into your github settings new SSH key.
 
 ```bash
 git clone git@github.com:jpfleischer/chocolatechip.git
-cd chocolatechip/spring2025/darknet
+cd chocolatechip/semester-work/spring2025/darknet
 ```
 To run with gpu on HPC with slurm
 
@@ -101,7 +101,7 @@ Ran the following code to train LegoGears_v2:
 ```
 # must clone the repo first
 # git clone git@github.com:jpfleischer/chocolatechip.git
-# cd chocolatechip/spring2025/darknet
+# cd chocolatechip/semester-work/spring2025/darknet
 make
 ```
 
