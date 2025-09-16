@@ -44,3 +44,5 @@ the mysql database. you have to go to mysqlconnector and
 adjust the logic to stop using YAML and start using env.
 
 Pass in ENV variables directly into the docker container    [FINISHED]
+
+test
