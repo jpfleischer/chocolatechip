@@ -15,6 +15,7 @@ import unicodedata
 
 from pathlib import Path
 import zipfile
+from hw_info import summarize_env
 
 
 uva_running = os.environ.get("UVA_VIRGINIA_RUNNING", "false").lower() == "true"
@@ -345,6 +346,9 @@ if __name__ == "__main__":
     print("Running disk speed test")
     dd_write_speed, dd_read_speed = run_fio_speed_test()
 
+    # Gather CUDA/cuDNN/GPU info
+    env = summarize_env(indices=indices, training_log_path=os.path.join(output_dir, "training_output.log"))
+
     data = {
         "Benchmark Time (s)": benchmark["time"],
         "CPU Name": sysinfo["cpu"],
@@ -360,6 +364,10 @@ if __name__ == "__main__":
         "Write Speed": dd_write_speed,
         "Read Speed": dd_read_speed,
         "Working Dir": os.getenv("ACTUAL_PWD", "N/A"),
+        "CUDA Version": env["cuda_version"],
+        "cuDNN Version": env["cudnn_version"],
+        "GPUs Used": env["num_gpus_used"],
+        "Compute Capability": env["compute_caps_str"],
     }
 
     # Step 7: Create a unique CSV filename in the current (output) directory
