@@ -11,6 +11,7 @@ import shutil
 import re
 import json
 from threading import Thread, Event
+import unicodedata
 
 from pathlib import Path
 import zipfile
@@ -183,6 +184,21 @@ def run_fio_speed_test(test_file="fio_test_file", block_size="1M", runtime=20, s
     return write_speed, read_speed
 
 
+def slugify(text: str, allowed: str = "-_.") -> str:
+    """
+    Make a filesystem-friendly string:
+    - ASCII only (strip accents)
+    - Replace spaces with underscores
+    - Any char not alnum or in `allowed` -> underscore
+    - Collapse multiple underscores and trim punctuation
+    """
+    s = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode("ascii")
+    s = s.replace(" ", "_")
+    s = re.sub(fr"[^A-Za-z0-9{re.escape(allowed)}]+", "_", s)
+    s = re.sub(r"_+", "_", s).strip("._-")
+    return s[:180]  # keep it reasonable
+
+
 if __name__ == "__main__":
     username = getpass.getuser()
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -229,7 +245,7 @@ if __name__ == "__main__":
         gpus_str = ""
 
     # Create safe strings for filenames
-    gpu_name_safe = gpu_name.replace(" ", "_").replace(",", "-")
+    gpu_name_safe = slugify(gpu_name.replace(",", "-"))  # turn commas into a separator, then slugify
     # We'll set cpu_name_safe later after we obtain sysinfo
 
     # Step 3: If running in Apptainer, create an output folder and change into it.
@@ -319,7 +335,7 @@ if __name__ == "__main__":
     benchmark = benchmark_result["benchmark"]["benchmark"]
 
     # Now that we have sysinfo, create a safe CPU name string.
-    cpu_name_safe = sysinfo["cpu"].replace(" ", "_")
+    cpu_name_safe = slugify(sysinfo["cpu"])
 
     # Get disk information using lsblk.
     print("Getting disk information")
@@ -347,13 +363,13 @@ if __name__ == "__main__":
     }
 
     # Step 7: Create a unique CSV filename in the current (output) directory
-    filename = f"benchmark__{username}__{gpu_name_safe}__{cpu_name_safe}__{now}.csv"
-    with open(filename, mode="w", newline="") as file:
+    csv_name = f"benchmark__{username}__{gpu_name_safe}__{cpu_name_safe}__{now}.csv"
+    csv_path = os.path.join(output_dir, csv_name)
+    with open(csv_path, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=data.keys())
         writer.writeheader()
         writer.writerow(data)
-
-    print(f"Benchmark results saved to {filename}")
+    print(f"Benchmark results saved to {csv_path}")
 
     
     # Move all files matching "*weights" from /workspace/LegoGears_v2/ to /outputs
@@ -361,16 +377,17 @@ if __name__ == "__main__":
         shutil.move(file, output_dir)
 
 
-    # --- bundle all outputs into a zip (non-destructive) ---
     bundle_name = f"benchmark_bundle__{username}__{gpu_name_safe}__{cpu_name_safe}__{now}.zip"
     bundle_path = Path(output_dir) / bundle_name
 
-    # Create the zip; include everything in output_dir except the zip itself
     with zipfile.ZipFile(bundle_path, mode="w", compression=zipfile.ZIP_DEFLATED) as z:
         for p in Path(output_dir).rglob("*"):
-            if p.is_file() and p.name != bundle_name:
-                # store paths relative to output_dir so the zip has a clean structure
-                z.write(p, arcname=p.relative_to(output_dir))
+            if not p.is_file():
+                continue
+            if p.name == bundle_name:
+                continue  # don't include the zip itself
+            if p.name.lower().endswith(".weights"):
+                continue  # exclude Darknet weight files
+            z.write(p, arcname=p.relative_to(output_dir))
 
     print(f"Zipped outputs to: {bundle_path}")
-    # --- end bundle ---
