@@ -10,6 +10,11 @@ import glob
 import shutil
 import re
 import json
+from threading import Thread, Event
+
+from pathlib import Path
+import zipfile
+
 
 uva_running = os.environ.get("UVA_VIRGINIA_RUNNING", "false").lower() == "true"
 
@@ -244,14 +249,69 @@ if __name__ == "__main__":
     print(f"Changed directory to output folder: {output_dir}")
     darknetloc = '/host_workspace/darknet/build/src-cli/darknet'
 
+    
+    # --- start GPU watcher (background thread) ---
+    gpu_watch_thread = None
+    watch_log = os.path.join(output_dir, "mylogfile.log")
+    watch_stop = Event()
+
+    try:
+        if gpu.count > 0:
+            gpu_watch_thread = Thread(target=gpu.watch, kwargs={
+                "logfile": watch_log,
+                "delay": 1.0,
+                "dense": True,
+                # monitor the GPUs you've selected; None means "all visible"
+                "gpu": indices if indices else None,
+                "install_signal_handler": False,   # important in threads
+                "stop_event": watch_stop,          # allows clean shutdown
+            })
+            gpu_watch_thread.daemon = True
+            gpu_watch_thread.start()
+            print(f"GPU watcher logging to {watch_log}")
+        else:
+            print("No GPUs detected; skipping GPU watch.")
+    except Exception as e:
+        print(f"Skipping GPU watch: {e}")
+    # --- end GPU watcher start ---
+
+    # Decide which GPU indices Darknet should see
+    cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
+    if indices:
+        if cuda_visible:
+            # indices are relative to the visible set
+            gpus_str = ",".join(str(i) for i in range(len(indices)))
+        else:
+            # use absolute indices
+            gpus_str = ",".join(str(i) for i in indices)
+    else:
+        gpus_str = ""  # fallback: let Darknet decide / single GPU
+
+    try:
+        # Step 5: Run benchmark / training
+        StopWatch.start("benchmark")
+        cmd = (
+            f"{darknetloc} detector -map -dont_show -nocolor "
+            + (f"-gpus {gpus_str} " if gpus_str else "")
+            + "train /workspace/LegoGears_v2/LegoGears.data "
+            "/workspace/LegoGears_v2/LegoGears.cfg "
+            "2>&1 | tee training_output.log"
+        )
+        subprocess.call(cmd, shell=True)
+        StopWatch.stop("benchmark")
+    finally:
+        # --- stop GPU watcher ---
+        if gpu_watch_thread is not None:
+            try:
+                watch_stop.set()     # tell watch() to exit
+                gpu.running = False  # belt & suspenders
+                gpu_watch_thread.join(timeout=3)
+                print(f"GPU watcher stopped; log at {watch_log}")
+            except Exception as e:
+                print(f"Error stopping GPU watcher: {e}")
+        # --- end stop ---
 
 
-    # Step 5: Run benchmark (this will create files in the current working directory)
-    StopWatch.start("benchmark")
-    subprocess.call(
-        f"{darknetloc} detector -map -dont_show -nocolor -gpus {gpus_str} train /workspace/LegoGears_v2/LegoGears.data /workspace/LegoGears_v2/LegoGears.cfg 2>&1 | tee training_output.log",
-        shell=True)
-    StopWatch.stop("benchmark")
     benchmark_result = StopWatch.get_benchmark()
 
     # Step 6: Extract sysinfo and benchmark results
@@ -299,3 +359,18 @@ if __name__ == "__main__":
     # Move all files matching "*weights" from /workspace/LegoGears_v2/ to /outputs
     for file in glob.glob("/workspace/LegoGears_v2/*weights"):
         shutil.move(file, output_dir)
+
+
+    # --- bundle all outputs into a zip (non-destructive) ---
+    bundle_name = f"benchmark_bundle__{username}__{gpu_name_safe}__{cpu_name_safe}__{now}.zip"
+    bundle_path = Path(output_dir) / bundle_name
+
+    # Create the zip; include everything in output_dir except the zip itself
+    with zipfile.ZipFile(bundle_path, mode="w", compression=zipfile.ZIP_DEFLATED) as z:
+        for p in Path(output_dir).rglob("*"):
+            if p.is_file() and p.name != bundle_name:
+                # store paths relative to output_dir so the zip has a clean structure
+                z.write(p, arcname=p.relative_to(output_dir))
+
+    print(f"Zipped outputs to: {bundle_path}")
+    # --- end bundle ---

@@ -1,35 +1,36 @@
 # Use NVIDIA's CUDA base image
 FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 
-# Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/usr/local/cuda/bin:${PATH}"
-ENV LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 
-# Install dependencies
-RUN apt-get update
-RUN apt-get install -y build-essential git libopencv-dev file python3-pip python3-venv fio
+# Noninteractive apt + paths
+ENV DEBIAN_FRONTEND=noninteractive \
+    PATH="/usr/local/cuda/bin:/opt/venv/bin:${PATH}" \
+    LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 
+# Base deps (update+install together) — avoids stale apt indexes
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      build-essential git libopencv-dev file python3-venv python3-pip fio \
+      ca-certificates wget gnupg lsb-release pkg-config; \
+    rm -rf /var/lib/apt/lists/*
 
+# Newer CMake from Kitware (no deprecated apt-key)
+RUN set -eux; \
+    wget -qO- https://apt.kitware.com/keys/kitware-archive-latest.asc \
+      | gpg --dearmor -o /etc/apt/trusted.gpg.d/kitware.gpg; \
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/kitware.gpg] https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" \
+      > /etc/apt/sources.list.d/kitware.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends cmake; \
+    rm -rf /var/lib/apt/lists/*
 
-RUN apt install -y software-properties-common lsb-release && \
-apt clean all
-
-RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
-
-RUN apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
-
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 16FAAD7AF99A65E2
-
-RUN apt update
-RUN apt install cmake -y
-
-RUN python3 -m venv /opt/venv
-# Activate the virtual environment and upgrade pip
-RUN . /opt/venv/bin/activate
-RUN pip install --upgrade pip
-RUN pip install cloudmesh-common
-RUN pip install git+https://github.com/cloudmesh/cloudmesh-gpu.git
+# Python venv (no activate needed in Docker)
+RUN python3 -m venv /opt/venv \
+ && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+ && /opt/venv/bin/pip install --no-cache-dir \
+      cloudmesh-common \
+      git+https://github.com/cloudmesh/cloudmesh-gpu.git
 
 WORKDIR /workspace
 
