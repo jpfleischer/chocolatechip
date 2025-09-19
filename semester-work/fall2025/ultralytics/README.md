@@ -30,3 +30,7 @@ sept 18th
         - you can also use lego gears 2, put in LegoGears_v2
         - made makefile that volume mounts this folder (might be useful for training)  
         - tried to make the yaml file, but having some problems with getting the dataset directory
+        
+        - attempted to change makefile to not require volume mounting of legogear1 2 and yaml but it didnt work (might try again later)
+        - tried to run with model = yolov4.pt and didnt work, might have to load
+        - got the error in latest_error.txt. It looks like it requires a cuda reinstallation on the docker image, which i dont know hwo to do
