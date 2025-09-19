@@ -8,6 +8,6 @@ yolo-ultra:
 		${CONTAINER_NAME} /bin/bash -c "ls && \
 		exec /bin/bash"
 
-		# yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=100 imgsz=640 (comment)
+		# yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=1 
 
 		
