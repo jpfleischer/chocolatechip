@@ -76,7 +76,7 @@ check-dataset:
 	fi
 
 copy-lego-files:
-	cp $(EXTRAFILES_DIR)/LegoGears.cfg $(DATASET_DIR)/LegoGears.cfg; \
+	cp $(EXTRAFILES_DIR)/legogearsv7tiny.cfg $(DATASET_DIR)/LegoGears.cfg; \
 	cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
 	cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
 	cp $(EXTRAFILES_DIR)/run.py docker/run.py; \
