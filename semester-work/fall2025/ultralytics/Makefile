@@ -22,6 +22,6 @@ yolo-ultra: check-dataset
 		python3 train_setup.py &&\
 		exec /bin/bash"
 
-		# yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=1
+		# yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=1 batch=-1
 
 		
