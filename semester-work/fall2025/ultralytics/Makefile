@@ -11,9 +11,9 @@ check-dataset:
 		rm LegoGears_v2/LegoGears.cfg && rm LegoGears_v2/LegoGears.data; \
 	fi
 
-yolo-ultra: check-dataset
+ultra: check-dataset
 	docker pull ultralytics/ultralytics:latest
-	docker run -it --shm-size=2gb --gpus all \
+	docker run -it --shm-size=4gb --gpus all \
 		-v $(CURDIR)/LegoGears_v2:/ultralytics/LegoGears_v2 \
 		-v $(CURDIR)/LG_v2.yaml:/ultralytics/LG_v2.yaml \
 		-v $(CURDIR)/train_setup.py:/ultralytics/train_setup.py \
@@ -22,6 +22,6 @@ yolo-ultra: check-dataset
 		python3 train_setup.py &&\
 		exec /bin/bash"
 
-		# yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=1 batch=-1
+		# yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=2134 batch=64
 
 		
