@@ -11,6 +11,7 @@ SIF_NAME       := my_darknet_container.sif
 DARKNET_WORKSPACE := $(CURDIR)/darknet_workspace
 # Bind mount option stored in a variable
 BIND_OPT := -B $(DARKNET_WORKSPACE):/host_workspace:rw
+YOLO_TEMPLATES ?= all   # values: all | yolov4-tiny | yolov7-tiny
 
 # Determine if we're on a Virginia host.
 UVA_VIRGINIA_RUNNING := $(shell \
@@ -56,6 +57,7 @@ run: check-dataset copy-lego-files build stop
 		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
 		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) $(DOCKER_UVA_ENV) \
 		--env ACTUAL_PWD=$(ACTUAL_PWD) \
+    	--env YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
 		darknet-container
 	make logs
 
@@ -76,9 +78,10 @@ check-dataset:
 	fi
 
 copy-lego-files:
-	cp $(EXTRAFILES_DIR)/legogearsv7tiny.cfg $(DATASET_DIR)/LegoGears.cfg; \
+	cp $(EXTRAFILES_DIR)/LegoGears.cfg $(DATASET_DIR)/LegoGears.cfg; \
 	cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
 	cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
+	cp $(EXTRAFILES_DIR)/cfg_maker.py docker/cfg_maker.py; \
 	cp $(EXTRAFILES_DIR)/run.py docker/run.py; \
 	cp $(EXTRAFILES_DIR)/script.sh docker/script.sh; \
 	cp $(EXTRAFILES_DIR)/hw_info.py docker/hw_info.py
@@ -123,7 +126,7 @@ delete:
 arun: check-dataset copy-lego-files apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
 arun-command:
-	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) \
+	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) SINGULARITYENV_YOLO_TEMPLATES=$(YOLO_TEMPLATES) \		apptainer run --nv --fakeroot \
 		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/docker:/workspace \
