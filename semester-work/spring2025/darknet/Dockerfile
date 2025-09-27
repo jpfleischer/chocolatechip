@@ -35,6 +35,10 @@ RUN python3 -m venv /opt/venv \
 WORKDIR /workspace
 
 # Build Darknet
-CMD ["/bin/bash", "-c", "chmod +x script.sh; ./script.sh; cms gpu watch --gpu=`nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd,` --delay=1 --dense --logfile=mylogfile.log & WATCH_PID=$!; python3 run.py; kill $WATCH_PID; target=$(ls -td /outputs/*/ | head -1); mv mylogfile.log \"$target\""]
+# CMD ["sleep", "infinity"]
+
+CMD ["bash", "-lc", "chmod +x script.sh; ./script.sh; python3 run.py"]
+
+# CMD ["/bin/bash", "-c", "chmod +x script.sh; ./script.sh; cms gpu watch --gpu=`nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd,` --delay=1 --dense --logfile=mylogfile.log & WATCH_PID=$!; python3 run.py; kill $WATCH_PID; target=$(ls -td /outputs/*/ | head -1); mv mylogfile.log \"$target\""]
 # CMD ["/bin/bash", "-c", "chmod +x script.sh; ./script.sh; cms gpu watch --gpu=`nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd,` --delay=1 --dense --logfile=mylogfile.log & python3 run.py"]
 # CMD ["/bin/bash", "-c", "cms gpu watch --gpu=`nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd,` --delay=1 --dense --logfile=mylogfile.log & sleep 25"]
