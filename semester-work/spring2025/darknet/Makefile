@@ -85,7 +85,6 @@ copy-lego-files:
 	cp $(EXTRAFILES_DIR)/LegoGears.cfg $(DATASET_DIR)/LegoGears.cfg; \
 	cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
 	cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
-	cp $(EXTRAFILES_DIR)/cfg_maker.py docker/cfg_maker.py; \
 	cp $(EXTRAFILES_DIR)/script.sh docker/script.sh
 
 

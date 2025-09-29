@@ -4,14 +4,7 @@ FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 ARG APP_DIR=/opt/app
 WORKDIR $APP_DIR
 
-# Bring in your Python package from the build context (repo root)
-COPY src/ ./src/
-
-# Make the package importable
-ENV PYTHONPATH=$APP_DIR/src
-
-
-# Noninteractive apt + paths
+# System deps (rarely change)  ✅ stays cached
 ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/usr/local/cuda/bin:/opt/venv/bin:${PATH}" \
     LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
@@ -40,6 +33,10 @@ RUN python3 -m venv /opt/venv \
  && /opt/venv/bin/pip install --no-cache-dir \
       cloudmesh-common \
       git+https://github.com/cloudmesh/cloudmesh-gpu.git
+
+
+COPY src/ ./src/
+ENV PYTHONPATH=$APP_DIR/src
 
 WORKDIR /workspace
 
