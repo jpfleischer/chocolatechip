@@ -429,6 +429,76 @@ def transform_cfg_from_text(template_text: str, *,
     print(f"[class balance] counters_per_class = {counters_per_class}")
     return lines
 
+
+def generate_cfg_file(
+    *,
+    template: str,
+    data_path: str,
+    out_path: str,
+    width: int = 416,
+    height: int = 416,
+    batch_size: int = 64,
+    subdivisions: int = 2,
+    iterations: int = 20000,
+    learning_rate: float = 0.001,
+    saturation: float = 1.5,
+    exposure: float = 1.5,
+    hue: float = 0.1,
+    flip: int = 0,
+    angle: int = 0,
+    mosaic: int = 0,
+    cutmix: int = 0,
+    mixup: int = 0,
+    write_counters_per_class: bool = False,
+    anchor_clusters: int | None = None,
+) -> str:
+    """Programmatic wrapper that mirrors the CLI behavior."""
+    # Resolve template text
+    template_text = fetch_template_text(pick_template_url(template))
+
+    # Default k per template if not provided
+    if anchor_clusters is None:
+        if template == "yolov7-tiny":
+            anchor_clusters = 9
+        elif template in ("yolov4-tiny", "yolov3-tiny"):
+            anchor_clusters = 6
+
+    # Parse .data and gather boxes
+    data_path_p = Path(data_path)
+    data_cfg = parse_data_file(data_path_p)
+    classes = int(data_cfg["classes"])
+
+    train_list_path = Path(data_cfg["train"])
+    if not train_list_path.exists():
+        sys.exit(f"train list not found: {train_list_path}")
+    img_paths = read_train_list(train_list_path)
+    if not img_paths:
+        sys.exit("No images found in train list from .data.")
+
+    anchors_wh, counters_per_class, _ = load_wh_from_labels(
+        img_paths, width, height, classes
+    )
+
+    # Transform and write
+    cfg_lines = transform_cfg_from_text(
+        template_text,
+        template_name=template,
+        classes=classes,
+        width=width, height=height,
+        batch_size=batch_size, subdivisions=subdivisions,
+        iterations=iterations, learning_rate=learning_rate,
+        saturation=saturation, exposure=exposure, hue=hue,
+        flip=flip, angle=angle, mosaic=mosaic, cutmix=cutmix, mixup=mixup,
+        write_counters_per_class=write_counters_per_class,
+        anchors_wh=anchors_wh, counters_per_class=counters_per_class,
+    )
+
+    out_p = Path(out_path)
+    write_lines(out_p, cfg_lines)
+    print(f"Wrote: {out_p}")
+    return str(out_p)
+
+
 # -------------------- CLI --------------------
 
 def main():

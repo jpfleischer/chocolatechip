@@ -11,6 +11,8 @@ from chocolatechip.model_training.hw_info import (
     summarize_env, resolve_gpu_selection, fio_seq_rw, get_disk_info
 )
 
+from chocolatechip.model_training.cfg_maker import generate_cfg_file
+
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
     s = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode("ascii")
@@ -54,19 +56,19 @@ def darknet_path() -> str:
     return "darknet"
 
 # ---------- cfg generation for Darknet ----------
+
 def generate_cfg(template: str) -> None:
-    cmd = [
-        "python3", "/workspace/cfg_maker.py",
-        "--template", template,
-        "--data", "/workspace/LegoGears_v2/LegoGears.data",
-        "--out",  "/workspace/LegoGears_v2/LegoGears.cfg",
-        "--width", "224", "--height", "160",
-        "--batch-size", "64", "--subdivisions", "8",
-        "--iterations", "3000", "--learning-rate", "0.00261",
-        "--anchor-clusters", "9",
-    ]
-    print(f"[cfg] {' '.join(cmd)}")
-    subprocess.check_call(cmd)
+    # Let cfg_maker pick the right anchor count per template
+    print(f"[cfg] template={template} -> /workspace/LegoGears_v2/LegoGears.cfg")
+    generate_cfg_file(
+        template=template,
+        data_path="/workspace/LegoGears_v2/LegoGears.data",
+        out_path="/workspace/LegoGears_v2/LegoGears.cfg",
+        width=224, height=160,
+        batch_size=64, subdivisions=8,
+        iterations=3000, learning_rate=0.00261,
+        anchor_clusters=None,  # default per template
+    )
 
 # ---------- command builders ----------
 def build_darknet_cmd(gpus_str: str) -> str:
@@ -158,6 +160,7 @@ def run_once(*, template: str | None, out_root: str) -> None:
     disk_info = get_disk_info()
     print("[disk] fio…")
     dd_w, dd_r = fio_seq_rw()
+    print(f"[disk] write={dd_w} read={dd_r}")
 
     env = summarize_env(indices=indices, training_log_path=os.path.join(output_dir, "training_output.log"))
 
