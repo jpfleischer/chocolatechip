@@ -1,0 +1,81 @@
+Creating new Ultralytics Settings v0.0.6 file ✅ 
+View Ultralytics Settings with 'yolo settings' or at '/root/.config/Ultralytics/settings.json'
+Update Settings with 'yolo settings key=value', i.e. 'yolo settings runs_dir=path/to/dir'. For help see https://docs.ultralytics.com/quickstart/#ultralytics-settings.
+[KDownloading https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt to 'yolo11n.pt': 100% ━━━━━━━━━━━━ 5.4MB 53.7MB/s 0.1s[KDownloading https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt to 'yolo11n.pt': 100% ━━━━━━━━━━━━ 5.4MB 53.6MB/s 0.1s
+Ultralytics 8.3.203 🚀 Python-3.11.13 torch-2.8.0+cu128 CUDA:0 (NVIDIA RTX A6000, 48676MiB)
+                                                       CUDA:1 (NVIDIA RTX A6000, 48677MiB)
+[34m[1mengine/trainer: [0magnostic_nms=False, amp=True, augment=False, auto_augment=randaugment, batch=64, bgr=0.0, box=7.5, cache=False, cfg=None, classes=None, close_mosaic=10, cls=0.5, compile=False, conf=None, copy_paste=0.0, copy_paste_mode=flip, cos_lr=False, cutmix=0.0, data=LG_v2.yaml, degrees=0.0, deterministic=True, device=0,1, dfl=1.5, dnn=False, dropout=0.0, dynamic=False, embed=None, epochs=1, erasing=0.4, exist_ok=False, fliplr=0.5, flipud=0.0, format=torchscript, fraction=1.0, freeze=None, half=False, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, imgsz=640, int8=False, iou=0.7, keras=False, kobj=1.0, line_width=None, lr0=0.01, lrf=0.01, mask_ratio=4, max_det=300, mixup=0.0, mode=train, model=yolo11n.pt, momentum=0.937, mosaic=1.0, multi_scale=False, name=train, nbs=64, nms=False, opset=None, optimize=False, optimizer=auto, overlap_mask=True, patience=100, perspective=0.0, plots=True, pose=12.0, pretrained=True, profile=False, project=None, rect=False, resume=False, retina_masks=False, save=True, save_conf=False, save_crop=False, save_dir=/ultralytics/runs/detect/train, save_frames=False, save_json=False, save_period=-1, save_txt=False, scale=0.5, seed=0, shear=0.0, show=False, show_boxes=True, show_conf=True, show_labels=True, simplify=True, single_cls=False, source=None, split=val, stream_buffer=False, task=detect, time=None, tracker=botsort.yaml, translate=0.1, val=True, verbose=True, vid_stride=1, visualize=False, warmup_bias_lr=0.1, warmup_epochs=3.0, warmup_momentum=0.8, weight_decay=0.0005, workers=8, workspace=None
+Overriding model.yaml nc=80 with nc=5
+
+                   from  n    params  module                                       arguments                     
+  0                  -1  1       464  ultralytics.nn.modules.conv.Conv             [3, 16, 3, 2]                 
+  1                  -1  1      4672  ultralytics.nn.modules.conv.Conv             [16, 32, 3, 2]                
+  2                  -1  1      6640  ultralytics.nn.modules.block.C3k2            [32, 64, 1, False, 0.25]      
+  3                  -1  1     36992  ultralytics.nn.modules.conv.Conv             [64, 64, 3, 2]                
+  4                  -1  1     26080  ultralytics.nn.modules.block.C3k2            [64, 128, 1, False, 0.25]     
+  5                  -1  1    147712  ultralytics.nn.modules.conv.Conv             [128, 128, 3, 2]              
+  6                  -1  1     87040  ultralytics.nn.modules.block.C3k2            [128, 128, 1, True]           
+  7                  -1  1    295424  ultralytics.nn.modules.conv.Conv             [128, 256, 3, 2]              
+  8                  -1  1    346112  ultralytics.nn.modules.block.C3k2            [256, 256, 1, True]           
+  9                  -1  1    164608  ultralytics.nn.modules.block.SPPF            [256, 256, 5]                 
+ 10                  -1  1    249728  ultralytics.nn.modules.block.C2PSA           [256, 256, 1]                 
+ 11                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']          
+ 12             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 13                  -1  1    111296  ultralytics.nn.modules.block.C3k2            [384, 128, 1, False]          
+ 14                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']          
+ 15             [-1, 4]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 16                  -1  1     32096  ultralytics.nn.modules.block.C3k2            [256, 64, 1, False]           
+ 17                  -1  1     36992  ultralytics.nn.modules.conv.Conv             [64, 64, 3, 2]                
+ 18            [-1, 13]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 19                  -1  1     86720  ultralytics.nn.modules.block.C3k2            [192, 128, 1, False]          
+ 20                  -1  1    147712  ultralytics.nn.modules.conv.Conv             [128, 128, 3, 2]              
+ 21            [-1, 10]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 22                  -1  1    378880  ultralytics.nn.modules.block.C3k2            [384, 256, 1, True]           
+ 23        [16, 19, 22]  1    431647  ultralytics.nn.modules.head.Detect           [5, [64, 128, 256]]           
+YOLO11n summary: 181 layers, 2,590,815 parameters, 2,590,799 gradients, 6.4 GFLOPs
+
+Transferred 448/499 items from pretrained weights
+[34m[1mDDP:[0m debug command /opt/conda/bin/python -m torch.distributed.run --nproc_per_node 2 --master_port 45703 /root/.config/Ultralytics/DDP/_temp_trfrfepi139916884051984.py
+Ultralytics 8.3.203 🚀 Python-3.11.13 torch-2.8.0+cu128 CUDA:0 (NVIDIA RTX A6000, 48676MiB)
+                                                       CUDA:1 (NVIDIA RTX A6000, 48677MiB)
+Overriding model.yaml nc=80 with nc=5
+Transferred 448/499 items from pretrained weights
+Freezing layer 'model.23.dfl.conv.weight'
+[34m[1mAMP: [0mrunning Automatic Mixed Precision (AMP) checks...
+[34m[1mAMP: [0mchecks passed ✅
+[34m[1mtrain: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 1198.1±201.6 MB/s, size: 45.9 KB)
+[K[34m[1mtrain: [0mScanning /ultralytics/LegoGears_v2/set_01.cache... 90 images, 50 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 90/90 7.7Mit/s 0.0s[K[34m[1mtrain: [0mScanning /ultralytics/LegoGears_v2/set_01.cache... 90 images, 50 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 90/90 1.2Mit/s 0.0s
+[34m[1malbumentations: [0mBlur(p=0.01, blur_limit=(3, 7)), MedianBlur(p=0.01, blur_limit=(3, 7)), ToGray(p=0.01, method='weighted_average', num_output_channels=3), CLAHE(p=0.01, clip_limit=(1.0, 4.0), tile_grid_size=(8, 8))
+[34m[1mval: [0mFast image access ✅ (ping: 0.0±0.0 ms, read: 1195.3±580.9 MB/s, size: 45.6 KB)
+[K[34m[1mval: [0mScanning /ultralytics/LegoGears_v2/set_01.cache... 90 images, 50 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 90/90 6.9Mit/s 0.0s[K[34m[1mval: [0mScanning /ultralytics/LegoGears_v2/set_01.cache... 90 images, 50 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 90/90 1.0Mit/s 0.0s
+Plotting labels to /ultralytics/runs/detect/train/labels.jpg... 
+[34m[1moptimizer:[0m 'optimizer=auto' found, ignoring 'lr0=0.01' and 'momentum=0.937' and determining best 'optimizer', 'lr0' and 'momentum' automatically... 
+[34m[1moptimizer:[0m AdamW(lr=0.001111, momentum=0.9) with parameter groups 81 weight(decay=0.0), 88 weight(decay=0.0005), 87 bias(decay=0.0)
+Image sizes 640 train, 640 val
+Using 16 dataloader workers
+Logging results to [1m/ultralytics/runs/detect/train[0m
+Starting training for 1 epochs...
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+[K        1/1      4.19G      1.427      3.976      1.342        115        640: 0% ──────────── 0/2  9.1s[K        1/1      4.22G      1.531      4.081      1.338         44        640: 50% ━━━━━━────── 1/2 0.0it/s 16.8s<25.7s[K        1/1      4.22G      1.531      4.081      1.338         44        640: 100% ━━━━━━━━━━━━ 2/2 0.1it/s 16.8s[K        1/1      4.22G      1.531      4.081      1.338         44        640: 100% ━━━━━━━━━━━━ 2/2 0.1it/s 16.8s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 1/2 0.1it/s 3.0s<9.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 2/2 0.4it/s 5.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 2/2 0.4it/s 5.4s
+                   all         90        175    0.00132      0.212     0.0313     0.0192
+
+1 epochs completed in 0.007 hours.
+Optimizer stripped from /ultralytics/runs/detect/train/weights/last.pt, 5.5MB
+Optimizer stripped from /ultralytics/runs/detect/train/weights/best.pt, 5.5MB
+
+Validating /ultralytics/runs/detect/train/weights/best.pt...
+Ultralytics 8.3.203 🚀 Python-3.11.13 torch-2.8.0+cu128 CUDA:0 (NVIDIA RTX A6000, 48676MiB)
+                                                       CUDA:1 (NVIDIA RTX A6000, 48677MiB)
+YOLO11n summary (fused): 100 layers, 2,583,127 parameters, 0 gradients, 6.3 GFLOPs
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% ━━━━━━────── 1/2 2.2it/s 0.1s<0.4s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 2/2 7.4it/s 0.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 2/2 7.4it/s 0.3s
+                   all         90        175    0.00132      0.212     0.0302     0.0179
+             red light         29         29          0          0          0          0
+                   pin         33         33          0          0          0          0
+                center         40         40          0          0          0          0
+            small gear         33         33   0.000749     0.0606   0.000418   6.19e-05
+           medium gear         40         40    0.00584          1       0.15     0.0897
+Speed: 0.1ms preprocess, 0.5ms inference, 0.0ms loss, 0.7ms postprocess per image
+Results saved to [1m/ultralytics/runs/detect/train[0m
+💡 Learn more at https://docs.ultralytics.com/modes/train

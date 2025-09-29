@@ -38,8 +38,6 @@ sept 18th
 
 # sep 26
 
-
-
 the objective is to make sure that the training is equivalent
 between ultralytics and darknet. this is done now that we know
 we have 2134 epochs.
@@ -65,7 +63,10 @@ incorporate this into a class or a chocolatechip import.)
 so run ultralytics benchmark after copying the code from run.py (darknet),
 and give us your benchmark file that is produced from ultralytics training.
 
-
+progress
+    - adjusted command
+    - volume mount outputs to get outputs
+    - error with cloudmesh when running
 ## extra: not necessary, but nice.
 
 ideally, we need a python file that reads a Darknet cfg file.
