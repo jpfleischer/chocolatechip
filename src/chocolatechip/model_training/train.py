@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-import os, re, csv, glob, shutil, getpass, subprocess, zipfile, unicodedata
+from __future__ import annotations
+import os, re, csv, glob, shutil, getpass, subprocess, zipfile, unicodedata, argparse
 from pathlib import Path
 from datetime import datetime
 from threading import Thread, Event
+from typing import Optional
 
 from cloudmesh.common.StopWatch import StopWatch
 from cloudmesh.gpu.gpu import Gpu
@@ -10,8 +12,8 @@ from cloudmesh.gpu.gpu import Gpu
 from chocolatechip.model_training.hw_info import (
     summarize_env, resolve_gpu_selection, fio_seq_rw, get_disk_info
 )
-
 from chocolatechip.model_training.cfg_maker import generate_cfg_file
+from chocolatechip.model_training.profiles import TrainProfile, get_profile
 
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
@@ -35,63 +37,43 @@ def effective_username() -> str:
             return os.environ[key]
     return getpass.getuser()
 
-# ---------- config ----------
-ALLOWED_TEMPLATES = ["yolov3-tiny", "yolov4-tiny", "yolov7-tiny", "yolov4-tiny-3l"]
-
-def parse_templates_from_env() -> list[str]:
-    raw = os.environ.get("YOLO_TEMPLATES", "all").strip().lower()
-    if raw in ("", "all"):
-        return ALLOWED_TEMPLATES
-    parts = re.split(r"[,\s]+", raw)
-    chosen = [p for p in parts if p in ALLOWED_TEMPLATES]
-    return chosen or ALLOWED_TEMPLATES
-
-def backend() -> str:
-    # BACKEND=darknet | ultralytics (default: darknet)
-    return os.environ.get("BACKEND", "darknet").strip().lower()
-
 def darknet_path() -> str:
     if "APPTAINER_ENVIRONMENT" in os.environ or os.path.exists("/.dockerenv"):
         return "/host_workspace/darknet/build/src-cli/darknet"
     return "darknet"
 
-# ---------- cfg generation for Darknet ----------
-
-def generate_cfg(template: str) -> None:
-    # Let cfg_maker pick the right anchor count per template
-    print(f"[cfg] template={template} -> /workspace/LegoGears_v2/LegoGears.cfg")
+# ---------- cfg generation (darknet) ----------
+def generate_cfg(p: TrainProfile, template: str) -> None:
+    print(f"[cfg] template={template} -> {p.cfg_out}")
     generate_cfg_file(
         template=template,
-        data_path="/workspace/LegoGears_v2/LegoGears.data",
-        out_path="/workspace/LegoGears_v2/LegoGears.cfg",
-        width=224, height=160,
-        batch_size=64, subdivisions=8,
-        iterations=3000, learning_rate=0.00261,
-        anchor_clusters=None,  # default per template
+        data_path=p.data_path,
+        out_path=p.cfg_out,
+        width=p.width, height=p.height,
+        batch_size=p.batch_size, subdivisions=p.subdivisions,
+        iterations=p.iterations, learning_rate=p.learning_rate,
+        anchor_clusters=None,  # template default (6 for v3/v4-tiny, 9 for v7/v4-3l)
     )
 
 # ---------- command builders ----------
-def build_darknet_cmd(gpus_str: str) -> str:
+def build_darknet_cmd(p: TrainProfile, gpus_str: str) -> str:
     dk = darknet_path()
     return (
         f"{dk} detector -map -dont_show -nocolor "
         + (f"-gpus {gpus_str} " if gpus_str else "")
-        + "train /workspace/LegoGears_v2/LegoGears.data "
-          "/workspace/LegoGears_v2/LegoGears.cfg "
+        + f"train {p.data_path} {p.cfg_out} 2>&1 | tee training_output.log"
+    )
+
+def build_ultralytics_cmd(p: TrainProfile, device_indices: list[int]) -> str:
+    device_str = ",".join(str(i) for i in device_indices) if device_indices else ""
+    return (
+        f"yolo {p.ultra_args} "
+        + (f"device={device_str} " if device_str else "")
         + "2>&1 | tee training_output.log"
     )
 
-def build_ultralytics_cmd(device_indices: list[int]) -> str:
-    # override via ULTRA_ARGS (e.g., "task=detect mode=train data=LG_v2.yaml model=yolo11n.pt epochs=200 imgsz=640 batch=16")
-    ultra_args = os.environ.get(
-        "ULTRA_ARGS",
-        "task=detect mode=train data=LG_v2.yaml model=yolo11n.pt epochs=2134 batch=64"
-    )
-    device_str = ",".join(str(i) for i in device_indices) if device_indices else ""
-    return f"yolo {ultra_args} " + (f"device={device_str} " if device_str else "") + "2>&1 | tee training_output.log"
-
 # ---------- one run ----------
-def run_once(*, template: str | None, out_root: str) -> None:
+def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None:
     user = effective_username()
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -103,15 +85,15 @@ def run_once(*, template: str | None, out_root: str) -> None:
     vram = ", ".join(sel["selected_vram"]) if sel["selected_vram"] else "N/A"
     gpu_name_safe = slugify(gpu_name.replace(",", "-"))
 
-    tag = template if template else "ultralytics"
+    tag = template if (p.backend == "darknet" and template) else "ultralytics"
     output_dir = os.path.join(out_root, f"benchmark__{user}__{gpu_name_safe}__{tag}__{now}")
     os.makedirs(output_dir, exist_ok=True)
     os.chdir(output_dir)
     print(f"[out] {output_dir}")
 
-    if backend() == "darknet":
-        assert template, "template required for darknet backend"
-        generate_cfg(template)
+    if p.backend == "darknet":
+        assert template, "template required for darknet"
+        generate_cfg(p, template)
 
     # GPU watcher
     watch_log = os.path.join(output_dir, "mylogfile.log")
@@ -134,10 +116,10 @@ def run_once(*, template: str | None, out_root: str) -> None:
     # Train
     try:
         StopWatch.start("benchmark")
-        if backend() == "darknet":
-            cmd = build_darknet_cmd(gpus_str)
+        if p.backend == "darknet":
+            cmd = build_darknet_cmd(p, gpus_str)
         else:
-            cmd = build_ultralytics_cmd(indices)
+            cmd = build_ultralytics_cmd(p, indices)
         print(f"[train] {cmd}")
         subprocess.call(cmd, shell=True)
         StopWatch.stop("benchmark")
@@ -165,8 +147,9 @@ def run_once(*, template: str | None, out_root: str) -> None:
     env = summarize_env(indices=indices, training_log_path=os.path.join(output_dir, "training_output.log"))
 
     row = {
-        "Backend": backend(),
-        "YOLO Template": template or "",
+        "Backend": p.backend,
+        "Profile": p.name,
+        "YOLO Template": template if (p.backend == "darknet" and template) else "",
         "Benchmark Time (s)": b["time"],
         "CPU Name": sysinfo["cpu"],
         "CPU Threads": sysinfo["cpu_threads"],
@@ -193,28 +176,42 @@ def run_once(*, template: str | None, out_root: str) -> None:
     print(f"[csv] {csv_name}")
 
     # Move any Darknet weights (if present)
-    for f in glob.glob("/workspace/LegoGears_v2/*weights"):
-        shutil.move(f, output_dir)
+    cfg_dir = os.path.dirname(p.cfg_out)
+    for f in glob.glob(os.path.join(cfg_dir, "*weights")):
+        try:
+            shutil.move(f, output_dir)
+        except Exception:
+            pass
 
     # Zip (exclude .weights)
     bundle = f"benchmark_bundle__{user}__{gpu_name_safe}__{cpu_name_safe}__{tag}__{now}.zip"
     bundle_path = Path(output_dir) / bundle
     with zipfile.ZipFile(bundle_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
-        for p in Path(output_dir).rglob("*"):
-            if not p.is_file(): continue
-            if p.name == bundle: continue
-            if p.suffix.lower() == ".weights": continue
-            z.write(p, arcname=p.relative_to(output_dir))
+        for q in Path(output_dir).rglob("*"):
+            if not q.is_file(): continue
+            if q.name == bundle: continue
+            if q.suffix.lower() == ".weights": continue
+            z.write(q, arcname=q.relative_to(output_dir))
     print(f"[zip] {bundle_path}")
 
 # ---------- main ----------
 if __name__ == "__main__":
-    out_root = "/outputs" if backend() == "darknet" else "/ultralytics/outputs"
+    ap = argparse.ArgumentParser(description="Train with a named profile (profiles may contain multiple templates).")
+    ap.add_argument("--profile", default="LegoGears", help="Profile name in profiles.PROFILES")
+    args = ap.parse_args()
+
+    p = get_profile(args.profile)
+    out_root = "/outputs" if p.backend == "darknet" else "/ultralytics/outputs"
     os.makedirs(out_root, exist_ok=True)
 
-    if backend() == "darknet":
-        for t in parse_templates_from_env():
-            print(f"\n=== {t} ===")
-            run_once(template=t, out_root=out_root)
+    if p.backend == "darknet":
+        # Option 2: if profile defines multiple templates, benchmark them sequentially
+        if getattr(p, "templates", tuple()):
+            for t in p.templates:
+                print(f"\n=== {t} ===")
+                run_once(p=p, template=t, out_root=out_root)
+        else:
+            # single-template profile
+            run_once(p=p, template=p.template, out_root=out_root)
     else:
-        run_once(template=None, out_root=out_root)
+        run_once(p=p, template=None, out_root=out_root)
