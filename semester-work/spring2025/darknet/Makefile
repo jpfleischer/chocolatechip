@@ -11,6 +11,9 @@ SIF_NAME       := my_darknet_container.sif
 DARKNET_WORKSPACE := $(CURDIR)/darknet_workspace
 # Bind mount option stored in a variable
 BIND_OPT := -B $(DARKNET_WORKSPACE):/host_workspace:rw
+
+PROJ_ROOT := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
+
 YOLO_TEMPLATES ?= all   # values: all | yolov4-tiny | yolov7-tiny
 
 # Determine if we're on a Virginia host.
@@ -58,6 +61,7 @@ run: check-dataset copy-lego-files build stop
 		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) $(DOCKER_UVA_ENV) \
 		--env ACTUAL_PWD=$(ACTUAL_PWD) \
     	--env YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
+		--env BACKEND=darknet \
 		darknet-container
 	make logs
 
@@ -82,9 +86,7 @@ copy-lego-files:
 	cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
 	cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
 	cp $(EXTRAFILES_DIR)/cfg_maker.py docker/cfg_maker.py; \
-	cp $(EXTRAFILES_DIR)/run.py docker/run.py; \
-	cp $(EXTRAFILES_DIR)/script.sh docker/script.sh; \
-	cp $(EXTRAFILES_DIR)/hw_info.py docker/hw_info.py
+	cp $(EXTRAFILES_DIR)/script.sh docker/script.sh
 
 
 check-dataset-collab:
@@ -96,7 +98,7 @@ check-dataset-collab:
 	cp $(COLLABFILES_DIR)/script.sh $(COLLAB_DIR)/script.sh;
 
 build:
-	@docker build -t darknet-container .
+	@docker build -t darknet-container -f $(CURDIR)/Dockerfile $(PROJ_ROOT)
 
 shell:
 	@docker exec -it $(CONTAINER_NAME) /bin/bash
