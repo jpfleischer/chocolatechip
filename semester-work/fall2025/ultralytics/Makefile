@@ -28,6 +28,7 @@ ultra: check-dataset
 benchmark-ultra benchmark: check-dataset
 	docker pull ultralytics/ultralytics:latest
 	docker run -it --shm-size=4gb --gpus all \
+		--env BACKEND=ultralytics \
 		-v $(CURDIR)/LegoGears_v2:/ultralytics/LegoGears_v2 \
 		-v $(CURDIR)/LG_v2.yaml:/ultralytics/LG_v2.yaml \
 		-v $(CURDIR)/train_setup.py:/ultralytics/train_setup.py \

@@ -1,6 +1,15 @@
 # Use NVIDIA's CUDA base image
 FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 
+ARG APP_DIR=/opt/app
+WORKDIR $APP_DIR
+
+# Bring in your Python package from the build context (repo root)
+COPY src/ ./src/
+
+# Make the package importable
+ENV PYTHONPATH=$APP_DIR/src
+
 
 # Noninteractive apt + paths
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -37,7 +46,7 @@ WORKDIR /workspace
 # Build Darknet
 # CMD ["sleep", "infinity"]
 
-CMD ["bash", "-lc", "chmod +x script.sh; ./script.sh; python3 -u run.py"]
+CMD ["bash", "-lc", "chmod +x script.sh; ./script.sh; python -u -m chocolatechip.model_training.train"]
 
 # CMD ["/bin/bash", "-c", "chmod +x script.sh; ./script.sh; cms gpu watch --gpu=`nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd,` --delay=1 --dense --logfile=mylogfile.log & WATCH_PID=$!; python3 run.py; kill $WATCH_PID; target=$(ls -td /outputs/*/ | head -1); mv mylogfile.log \"$target\""]
 # CMD ["/bin/bash", "-c", "chmod +x script.sh; ./script.sh; cms gpu watch --gpu=`nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd,` --delay=1 --dense --logfile=mylogfile.log & python3 run.py"]
