@@ -7,50 +7,50 @@ class TrainProfile:
     name: str
     backend: str              # "darknet" or "ultralytics"
 
-    # dataset-specific (darknet)
+    # dataset-specific (darknet; ignored by ultralytics)
     data_path: str
     cfg_out: str
 
-    # training knobs
+    # training knobs (ultralytics ignores subdivisions/cfg_out/data_path)
     width: int
     height: int
     batch_size: int
     subdivisions: int
-    iterations: int
+    iterations: int           # Darknet max_batches; used to derive Ultralytics epochs
     learning_rate: float
 
-    # choose ONE of the following per run mode:
-    template: str | None = None           # single-template mode
-    templates: Tuple[str, ...] = tuple()  # multi-template mode
+    # choose ONE in darknet mode
+    template: str | None = None
+    templates: Tuple[str, ...] = tuple()
 
-    # ultralytics (ignored for darknet)
-    ultra_args: str = "task=detect mode=train data=LG_v2.yaml model=yolo11n.pt epochs=200 imgsz=640 batch=16"
+    # ultralytics only (no ultra_args)
+    epochs: int | None = None          # if None, auto-derived from iterations+dataset size
+    ultra_data: str = "LG_v2.yaml"
+    ultra_model: str = "yolo11n.pt"
 
 PROFILES = {
-    "LegoGears": TrainProfile(
-        name="LegoGears",
+    "LegoGearsDarknet": TrainProfile(
+        name="LegoGearsDarknet",
         backend="darknet",
         data_path="/workspace/LegoGears_v2/LegoGears.data",
         cfg_out="/workspace/LegoGears_v2/LegoGears.cfg",
         width=224, height=160,
         batch_size=64, subdivisions=8,
         iterations=3000, learning_rate=0.00261,
-        # run both templates in one go:
         templates=("yolov4-tiny", "yolov7-tiny"),
     ),
-    "LegoGears": TrainProfile(
-        name="LegoGears",
+    "LegoGearsUltra": TrainProfile(
+        name="LegoGearsUltra",
         backend="ultralytics",
-        data_path="/ultralytics/LegoGears_v2/LegoGears.data",
-        cfg_out="/ultralytics/LegoGears_v2/LegoGears.cfg",
+        data_path="", cfg_out="",
         width=224, height=160,
         batch_size=64, subdivisions=8,
         iterations=3000, learning_rate=0.00261,
-        templates=("yolov11n"),
+        templates=(),
+        epochs=None,               # auto-derive from iterations and dataset size
+        ultra_data="LG_v2.yaml",
+        ultra_model="yolo11n.pt",
     ),
-    # If you want single-template profiles too, you can add:
-    # "LegoGears_v4tiny": TrainProfile(..., template="yolov4-tiny"),
-    # "LegoGears_v7tiny": TrainProfile(..., template="yolov7-tiny"),
 }
 
 def get_profile(key: str) -> TrainProfile:
