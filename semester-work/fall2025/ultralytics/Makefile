@@ -30,22 +30,6 @@ ultra: check-dataset
 		python3 train_setup.py &&\
 		exec /bin/bash"
 
-benchmark: check-dataset
-	docker pull ultralytics/ultralytics:latest
-	docker run -it --shm-size=4gb --gpus all \
-		--env BACKEND=ultralytics \
-		-v $(CURDIR)/LegoGears_v2:/ultralytics/LegoGears_v2 \
-		-v $(CURDIR)/LG_v2.yaml:/ultralytics/LG_v2.yaml \
-		-v $(CURDIR)/train_setup.py:/ultralytics/train_setup.py \
-		-v $(CURDIR)/outputs:/ultralytics/outputs \
-		ultralytics/ultralytics:latest \
-		${CONTAINER_NAME} /bin/bash -c "ls && \
-		python3 train_setup.py && \
-		pip install --no-cache-dir cloudmesh-common git+https://github.com/cloudmesh/cloudmesh-gpu.git &&\
-		git clone https://github.com/jpfleischer/chocolatechip.git && \
-		chmod +x script.sh; ./script.sh; python -u -m chocolatechip.model_training.train &&\
-		exec /bin/bash"
-
 
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=2134 batch=64
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=1 batch=64
