@@ -84,17 +84,15 @@ check-dataset:
 copy-lego-files:
 	cp $(EXTRAFILES_DIR)/LegoGears.cfg $(DATASET_DIR)/LegoGears.cfg; \
 	cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
-	cp $(EXTRAFILES_DIR)/train_setup.py docker/train_setup.py; \
-	cp $(EXTRAFILES_DIR)/script.sh docker/script.sh
+	cp $(EXTRAFILES_DIR)/build_darknet.sh docker/build_darknet.sh
 
 
 check-dataset-collab:
 	cp $(COLLABFILES_DIR)/cars.cfg $(COLLAB_DIR)/cars.cfg;
 	cp $(COLLABFILES_DIR)/cars.data $(COLLAB_DIR)/cars.data;
 	cp $(COLLABFILES_DIR)/cars.names $(COLLAB_DIR)/cars.names;
-	cp $(COLLABFILES_DIR)/train_setup.py $(COLLAB_DIR)/train_setup.py;
 	cp $(COLLABFILES_DIR)/run.py $(COLLAB_DIR)/run.py;
-	cp $(COLLABFILES_DIR)/script.sh $(COLLAB_DIR)/script.sh;
+	cp $(COLLABFILES_DIR)/build_darknet.sh $(COLLAB_DIR)/build_darknet.sh;
 
 build:
 	@docker build -t darknet-container -f $(CURDIR)/Dockerfile $(PROJ_ROOT)
