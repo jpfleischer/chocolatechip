@@ -1,8 +1,10 @@
 # Use NVIDIA's CUDA base image
 FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 
+ARG APP_DIR=/opt/app
+WORKDIR $APP_DIR
 
-# Noninteractive apt + paths
+# System deps (rarely change)  ✅ stays cached
 ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/usr/local/cuda/bin:/opt/venv/bin:${PATH}" \
     LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
@@ -32,12 +34,16 @@ RUN python3 -m venv /opt/venv \
       cloudmesh-common \
       git+https://github.com/cloudmesh/cloudmesh-gpu.git
 
+
+COPY src/ ./src/
+ENV PYTHONPATH=$APP_DIR/src
+
 WORKDIR /workspace
 
 # Build Darknet
 # CMD ["sleep", "infinity"]
 
-CMD ["bash", "-lc", "chmod +x script.sh; ./script.sh; python3 run.py"]
+CMD ["bash", "-lc", "chmod +x script.sh; ./script.sh; python -u -m chocolatechip.model_training.train"]
 
 # CMD ["/bin/bash", "-c", "chmod +x script.sh; ./script.sh; cms gpu watch --gpu=`nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd,` --delay=1 --dense --logfile=mylogfile.log & WATCH_PID=$!; python3 run.py; kill $WATCH_PID; target=$(ls -td /outputs/*/ | head -1); mv mylogfile.log \"$target\""]
 # CMD ["/bin/bash", "-c", "chmod +x script.sh; ./script.sh; cms gpu watch --gpu=`nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd,` --delay=1 --dense --logfile=mylogfile.log & python3 run.py"]
