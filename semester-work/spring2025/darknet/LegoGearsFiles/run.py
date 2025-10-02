@@ -59,7 +59,7 @@ def effective_username() -> str:
 
 if __name__ == "__main__":
 
-    ALLOWED_TEMPLATES = ["yolov4-tiny", "yolov7-tiny"]
+    ALLOWED_TEMPLATES = ["yolov3-tiny", "yolov4-tiny", "yolov7-tiny"]
 
     def parse_templates_from_env() -> list[str]:
         raw = os.environ.get("YOLO_TEMPLATES", "all").strip().lower()
