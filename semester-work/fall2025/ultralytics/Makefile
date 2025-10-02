@@ -24,8 +24,6 @@ ultra: check-dataset
 		-v $(CURDIR)/LegoGears_v2:/ultralytics/LegoGears_v2 \
 		-v $(CURDIR)/LG_v2.yaml:/ultralytics/LG_v2.yaml \
 		-v $(CURDIR)/train_setup.py:/ultralytics/train_setup.py \
-		-v $(CURDIR)/run.py:/ultralytics/run.py \
-		-v $(CURDIR)/hw_info.py:/ultralytics/hw_info.py \
 		-v $(CURDIR)/outputs:/ultralytics/outputs \
 		ultralytics/ultralytics:latest \
 		${CONTAINER_NAME} /bin/bash -c "ls && \
