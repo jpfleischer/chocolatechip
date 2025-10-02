@@ -6,11 +6,12 @@ From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
     # Include CUDA binaries, system binaries, and the virtual environment's binaries
     export PATH="/usr/local/cuda/bin:/usr/local/bin:/opt/venv/bin:${PATH}"
     export LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
+    export PYTHONPATH="/opt/app/src:${PYTHONPATH}"
 
 %files
-    LegoGearsFiles/script.sh /usr/local/bin/script.sh
-    LegoGearsFiles/run.py    /workspace/run.py
-    LegoGearsFiles/train_setup.py    /workspace/train_setup.py
+    LegoGearsFiles/build_darknet.sh /usr/local/bin/build_darknet.sh
+    LegoGearsFiles/run.py           /workspace/run.py
+    src/                            /opt/app/src/
 
 %post
     # Update package list and install dependencies
@@ -26,12 +27,19 @@ From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
     # Create the working directory (for non-bound scenarios)
     mkdir -p /workspace
     # Make the script executable
-    chmod +x /usr/local/bin/script.sh
+    chmod +x /usr/local/bin/build_darknet.sh
 
 %runscript
-    # Optionally activate the virtual environment, though having its bin in PATH is sufficient
-    # source /opt/venv/bin/activate
-    /usr/local/bin/script.sh
+    /usr/local/bin/build_darknet.sh
+    # Prepare dataset lists and .data
+    python -m chocolatechip.model_training.dataset_setup \
+      --root /workspace/LegoGears_v2 \
+      --sets set_01 set_02_empty set_03 \
+      --classes 5 \
+      --names LegoGears.names \
+      --prefix LegoGears
+    # Optional sanity check and then run
     ls /host_workspace/darknet/build/src-cli
-    /host_workspace/darknet/build/src-cli/darknet version && python3 -u /workspace/run.py && exec /bin/bash
-
+    /host_workspace/darknet/build/src-cli/darknet version
+    python3 -u /workspace/run.py
+    exec /bin/bash
