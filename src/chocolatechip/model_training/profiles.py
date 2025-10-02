@@ -38,6 +38,16 @@ PROFILES = {
         # run both templates in one go:
         templates=("yolov4-tiny", "yolov7-tiny"),
     ),
+    "LegoGears": TrainProfile(
+        name="LegoGears",
+        backend="ultralytics",
+        data_path="/ultralytics/LegoGears_v2/LegoGears.data",
+        cfg_out="/ultralytics/LegoGears_v2/LegoGears.cfg",
+        width=224, height=160,
+        batch_size=64, subdivisions=8,
+        iterations=3000, learning_rate=0.00261,
+        templates=("yolov11n"),
+    ),
     # If you want single-template profiles too, you can add:
     # "LegoGears_v4tiny": TrainProfile(..., template="yolov4-tiny"),
     # "LegoGears_v7tiny": TrainProfile(..., template="yolov7-tiny"),
