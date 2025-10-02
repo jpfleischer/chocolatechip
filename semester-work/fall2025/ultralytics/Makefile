@@ -3,6 +3,12 @@ DATASET_DIR    := LegoGears_v2
 DATASET_ZIP    := legogears_2_dataset.zip
 PROJ_ROOT 	   := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
 
+benchmark-ultra benchmarking:
+	docker build -t my-benchmark-app -f $(CURDIR)/Dockerfile $(PROJ_ROOT)
+	docker run --rm -it --shm-size=4gb --gpus all \
+		-v $(CURDIR)/outputs:/ultralytics/outputs \
+		my-benchmark-app
+
 check-dataset:
 	@if [ ! -d $(DATASET_DIR) ]; then \
 		echo "Dataset folder '$(DATASET_DIR)' not found. Downloading dataset..."; \
@@ -33,8 +39,6 @@ benchmark: check-dataset
 		-v $(CURDIR)/LegoGears_v2:/ultralytics/LegoGears_v2 \
 		-v $(CURDIR)/LG_v2.yaml:/ultralytics/LG_v2.yaml \
 		-v $(CURDIR)/train_setup.py:/ultralytics/train_setup.py \
-		-v $(CURDIR)/run.py:/ultralytics/run.py \
-		-v $(CURDIR)/hw_info.py:/ultralytics/hw_info.py \
 		-v $(CURDIR)/outputs:/ultralytics/outputs \
 		ultralytics/ultralytics:latest \
 		${CONTAINER_NAME} /bin/bash -c "ls && \
@@ -44,11 +48,6 @@ benchmark: check-dataset
 		chmod +x script.sh; ./script.sh; python -u -m chocolatechip.model_training.train &&\
 		exec /bin/bash"
 
-benchmark-ultra benchmarking:
-	docker build -t my-benchmark-app -f $(CURDIR)/Dockerfile $(PROJ_ROOT)
-	docker run --rm -it --shm-size=4gb --gpus all \
-		-v $(CURDIR)/outputs:/ultralytics/outputs \
-		my-benchmark-app
 
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=2134 batch=64
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=1 batch=64

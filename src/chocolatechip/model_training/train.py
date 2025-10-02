@@ -14,6 +14,7 @@ from chocolatechip.model_training.hw_info import (
 )
 from chocolatechip.model_training.cfg_maker import generate_cfg_file
 from chocolatechip.model_training.profiles import TrainProfile, get_profile
+from chocolatechip.model_training.darknet_ultralytics_translation import build_ultralytics_cmd
 
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
@@ -64,13 +65,6 @@ def build_darknet_cmd(p: TrainProfile, gpus_str: str) -> str:
         + f"train {p.data_path} {p.cfg_out} 2>&1 | tee training_output.log"
     )
 
-def build_ultralytics_cmd(p: TrainProfile, device_indices: list[int]) -> str:
-    device_str = ",".join(str(i) for i in device_indices) if device_indices else ""
-    return (
-        f"yolo {p.ultra_args} "
-        + (f"device={device_str} " if device_str else "")
-        + "2>&1 | tee training_output.log"
-    )
 
 # ---------- one run ----------
 def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None:
@@ -119,7 +113,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         if p.backend == "darknet":
             cmd = build_darknet_cmd(p, gpus_str)
         else:
-            cmd = build_ultralytics_cmd(p, indices)
+            cmd = build_ultralytics_cmd(profile=p, device_indices=indices)
         print(f"[train] {cmd}")
         subprocess.call(cmd, shell=True)
         StopWatch.stop("benchmark")
