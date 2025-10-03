@@ -2,9 +2,13 @@ DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legog
 DATASET_DIR    := LegoGears_v2
 DATASET_ZIP    := legogears_2_dataset.zip
 PROJ_ROOT 	   := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
+SOURCE_PATH := "semester-work/fall2025/ultralytics"
 
-benchmark-ultra benchmarking:
-	docker build -t my-benchmark-app -f $(CURDIR)/Dockerfile $(PROJ_ROOT)
+benchmark-ultra benchmarking benchmark: check-dataset
+	docker build \
+		--build-arg SOURCE_PATH=$(SOURCE_PATH) \
+		-t my-benchmark-app \
+		-f $(CURDIR)/Dockerfile $(PROJ_ROOT)
 	docker run --rm -it --shm-size=4gb --gpus all \
 		-v $(CURDIR)/outputs:/ultralytics/outputs \
 		my-benchmark-app
