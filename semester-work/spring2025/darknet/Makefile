@@ -5,13 +5,11 @@ DATASET_DIR    := docker/LegoGears_v2
 EXTRAFILES_DIR := LegoGearsFiles
 DATASET_ZIP    := legogears_2_dataset.zip
 DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip
-# Name for the apptainer image file
-SIF_NAME       := my_darknet_container.sif
+SIF_NAME       := $(CURDIR)/my_darknet_container.sif
 # Local directory for a writable workspace
 DARKNET_WORKSPACE := $(CURDIR)/darknet_workspace
 # Bind mount option stored in a variable
 BIND_OPT := -B $(DARKNET_WORKSPACE):/host_workspace:rw
-
 PROJ_ROOT := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
 
 YOLO_TEMPLATES ?= all   # values: all | yolov4-tiny | yolov7-tiny
@@ -30,7 +28,7 @@ DOCKER_UVA_ENV := --env UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING)
 # Define a variable to conditionally load apptainer if at UVA.
 MODULE_LOAD_APPTAINER = if [ "$(UVA_VIRGINIA_RUNNING)" = "true" ]; then \
 		. /etc/profile.d/modules.sh && module load apptainer; \
-	fi;
+	fi
 
 ACTUAL_PWD := $(shell pwd)
 
@@ -108,7 +106,10 @@ stop:
 
 # Build the apptainer image using the definition file
 $(SIF_NAME): apptainer.def
-	@$(MODULE_LOAD_APPTAINER) apptainer build --force -f $(SIF_NAME) apptainer.def
+	@$(MODULE_LOAD_APPTAINER); set -e; \
+	cd "$(PROJ_ROOT)"; \
+	apptainer build --force -f "$(SIF_NAME)" "$(CURDIR)/apptainer.def"
+
 
 apptainer-build: $(SIF_NAME)
 
@@ -125,7 +126,7 @@ delete:
 arun: check-dataset copy-lego-files apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
 arun-command:
-	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) SINGULARITYENV_YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
+	@$(MODULE_LOAD_APPTAINER); SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) SINGULARITYENV_YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
 		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/docker:/workspace \
@@ -134,23 +135,23 @@ arun-command:
 
 arun-cms-gpu:
 	@echo "CUDA_VISIBLE_DEVICES is $$CUDA_VISIBLE_DEVICES"
-	$(MODULE_LOAD_APPTAINER) apptainer exec --nv \
+	$(MODULE_LOAD_APPTAINER); apptainer exec --nv \
     	$(SIF_NAME) cms gpu watch --gpu=`echo $$CUDA_VISIBLE_DEVICES | tr -d '\n\r'` --delay=1 --dense --logfile=mylogfile.log &
 
 arun-cars-command:
-	@$(MODULE_LOAD_APPTAINER) SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) \
+	@$(MODULE_LOAD_APPTAINER); SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) \
 		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/CollabFiles:/workspace \
 		$(SIF_NAME)
 
 ashell:
-	@$(MODULE_LOAD_APPTAINER) apptainer shell $(SIF_NAME)
+	@$(MODULE_LOAD_APPTAINER); apptainer shell $(SIF_NAME)
 
 
 lego-setup: apptainer-build $(DARKNET_WORKSPACE)
 
-slurm: delete check-dataset copy-lego-files 
+slurm: delete check-dataset copy-lego-files apptainer-build
 	@if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
 	    ACCOUNT="--account=bi_dsc_community"; \
 	else \

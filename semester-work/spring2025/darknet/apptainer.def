@@ -9,9 +9,9 @@ From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
     export PYTHONPATH="/opt/app/src:${PYTHONPATH}"
 
 %files
-    LegoGearsFiles/build_darknet.sh /usr/local/bin/build_darknet.sh
-    LegoGearsFiles/run.py           /workspace/run.py
-    src/                            /opt/app/src/
+    semester-work/spring2025/darknet/LegoGearsFiles/build_darknet.sh /usr/local/bin/build_darknet.sh
+    src                                                            /opt/app/
+
 
 %post
     # Update package list and install dependencies
@@ -41,5 +41,5 @@ From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
     # Optional sanity check and then run
     ls /host_workspace/darknet/build/src-cli
     /host_workspace/darknet/build/src-cli/darknet version
-    python3 -u /workspace/run.py
+    python -u -m chocolatechip.model_training.train --profile LegoGearsDarknet
     exec /bin/bash
