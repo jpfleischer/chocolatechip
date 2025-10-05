@@ -2,21 +2,38 @@ DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legog
 DATASET_DIR    := LegoGears_v2
 DATASET_ZIP    := legogears_2_dataset.zip
 PROJ_ROOT 	   := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
-SOURCE_PATH := "semester-work/fall2025/ultralytics"
+SOURCE_PATH    := "semester-work/fall2025/ultralytics"
+
+# Detect Git Bash vs Linux for a tiny path tweak (optional but nice)
+UNAME_S := $(shell uname -s)
+IS_WINDOWS := $(or $(findstring MINGW,$(UNAME_S)),$(findstring MSYS,$(UNAME_S)))
+ifeq ($(IS_WINDOWS),)
+  CUR_HOST := $(CURDIR)
+  SHELL_ENV :=
+  BUILD_UID := $$(id -u)
+  BUILD_GID := $$(id -g)
+else
+  # Convert current dir to Windows-style path with forward slashes (C:/...)
+  CUR_HOST := $(shell cygpath -m "$(CURDIR)")
+  # Prevent path mangling on -v args
+  SHELL_ENV := MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL=*
+  BUILD_UID := 1000
+  BUILD_GID := 1000
+endif
 
 benchmark-ultra benchmarking benchmark: check-dataset
+	@mkdir -p outputs
 	docker build \
 		--build-arg SOURCE_PATH=$(SOURCE_PATH) \
+		--build-arg UID=$(BUILD_UID) \
+		--build-arg GID=$(BUILD_GID) \
 		-t my-benchmark-app \
-		-f $(CURDIR)/Dockerfile $(PROJ_ROOT)
-	docker run --rm -it --shm-size=4gb --gpus all \
-		--user $$(id -u):$$(id -g) \
+		-f "$(CURDIR)/Dockerfile" "$(PROJ_ROOT)"
+	$(SHELL_ENV) docker run --rm -it --shm-size=4gb --gpus all \
 		-e TRUE_USER=$$(id -un) \
-		-e HOME=/tmp/home-$$(id -u) \
-		-e ACTUAL_PWD=$(CURDIR) \
-		-v /etc/passwd:/etc/passwd:ro \
-		-v /etc/group:/etc/group:ro \
-		-v $(CURDIR)/outputs:/ultralytics/outputs \
+		-e HOME=/home/appuser \
+		-e ACTUAL_PWD="$(CUR_HOST)" \
+		-v "$(CUR_HOST)/outputs":/ultralytics/outputs \
 		my-benchmark-app
 
 check-dataset:
@@ -25,20 +42,17 @@ check-dataset:
 		curl -L $(DATASET_URL) -o $(DATASET_ZIP); \
 		unzip -q $(DATASET_ZIP); \
 		rm $(DATASET_ZIP); \
-		rm LegoGears_v2/LegoGears.cfg && rm LegoGears_v2/LegoGears.data; \
+		rm -f LegoGears_v2/LegoGears.cfg LegoGears_v2/LegoGears.data; \
 	fi
 
-ultra: check-dataset
-	docker pull ultralytics/ultralytics:latest
-	docker run -it --shm-size=4gb --gpus all \
-		-v $(CURDIR)/LegoGears_v2:/ultralytics/LegoGears_v2 \
-		-v $(CURDIR)/LG_v2.yaml:/ultralytics/LG_v2.yaml \
-		-v $(CURDIR)/train_setup.py:/ultralytics/train_setup.py \
-		-v $(CURDIR)/outputs:/ultralytics/outputs \
-		ultralytics/ultralytics:latest \
-		${CONTAINER_NAME} /bin/bash -c "ls && \
-		python3 train_setup.py &&\
-		exec /bin/bash"
+ultra bash: check-dataset
+	@mkdir -p outputs
+	$(SHELL_ENV) docker run -it --shm-size=4gb --gpus all \
+		-v "$(CUR_HOST)/LegoGears_v2":/ultralytics/LegoGears_v2 \
+		-v "$(CUR_HOST)/LG_v2.yaml":/ultralytics/LG_v2.yaml:ro \
+		-v "$(CUR_HOST)/outputs":/ultralytics/outputs \
+		my-benchmark-app \
+		/bin/bash -lc "ls -la /ultralytics && exec /bin/bash"
 
 
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=2134 batch=64
