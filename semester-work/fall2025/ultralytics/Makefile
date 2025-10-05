@@ -10,6 +10,12 @@ benchmark-ultra benchmarking benchmark: check-dataset
 		-t my-benchmark-app \
 		-f $(CURDIR)/Dockerfile $(PROJ_ROOT)
 	docker run --rm -it --shm-size=4gb --gpus all \
+		--user $$(id -u):$$(id -g) \
+		-e TRUE_USER=$$(id -un) \
+		-e HOME=/tmp/home-$$(id -u) \
+		-e ACTUAL_PWD=$(CURDIR) \
+		-v /etc/passwd:/etc/passwd:ro \
+		-v /etc/group:/etc/group:ro \
 		-v $(CURDIR)/outputs:/ultralytics/outputs \
 		my-benchmark-app
 
