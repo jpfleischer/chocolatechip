@@ -167,12 +167,8 @@ def auto_ultra_epochs_from_darknet(
 
 # ---------- Ultralytics CLI builder (no ultra_args string) ----------
 
-def build_ultralytics_cmd(*, profile, device_indices: list[int]) -> str:
-    """
-    Build the 'yolo ...' CLI using typed fields from TrainProfile,
-    deriving epochs from Darknet-style iterations when profile.epochs is None.
-    """
-    device_str = ",".join(str(i) for i in device_indices) if device_indices else ""
+def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -> str:
+    device_str = ",".join(str(i) for i in device_indices) if device_indices else "0"
     imgsz = max(profile.width, profile.height)
 
     epochs = (
@@ -183,11 +179,15 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int]) -> str:
             iterations=profile.iterations,
             batch=profile.batch_size,
             subdivisions=profile.subdivisions,
-            steps=(),      # available if you later want to mirror Darknet steps
+            steps=(),
             burn_in=0,
             round_up=True,
         )
     )
+
+    # Point project at the specific benchmark run directory; keep a simple name
+    project = run_dir
+    run_name = "train"  # or f"{profile.name}_train" if you prefer
 
     core = (
         f"task=detect mode=train "
@@ -196,10 +196,15 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int]) -> str:
         f"epochs={epochs} "
         f"batch={profile.batch_size} "
         f"imgsz={imgsz} "
-        f"lr0={profile.learning_rate}"
+        f"lr0={profile.learning_rate} "
+        f"project={project} name={run_name} exist_ok=True "
+        f"device={device_str} "
     )
+
     return (
-        f"yolo {core} "
-        + (f"device={device_str} " if device_str else "")
-        + "2>&1 | tee training_output.log"
+        "bash -lc "
+        f"'set -o pipefail; "
+        f"mkdir -p {project}; "                              # ensure run dir exists
+        f"yolo settings runs_dir={project}; "                # align yolo’s default runs_dir too
+        f"yolo {core} 2>&1 | tee training_output.log'"
     )
