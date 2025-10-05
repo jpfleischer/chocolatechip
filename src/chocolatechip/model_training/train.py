@@ -113,7 +113,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         if p.backend == "darknet":
             cmd = build_darknet_cmd(p, gpus_str)
         else:
-            cmd = build_ultralytics_cmd(profile=p, device_indices=indices)
+            cmd = build_ultralytics_cmd(profile=p, device_indices=indices, run_dir=output_dir)
         print(f"[train] {cmd}")
         subprocess.call(cmd, shell=True)
         StopWatch.stop("benchmark")
@@ -143,7 +143,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     row = {
         "Backend": p.backend,
         "Profile": p.name,
-        "YOLO Template": template if (p.backend == "darknet" and template) else "",
+        "YOLO Template": template if (p.backend == "darknet" and template) else p.ultra_model,
         "Benchmark Time (s)": b["time"],
         "CPU Name": sysinfo["cpu"],
         "CPU Threads": sysinfo["cpu_threads"],
