@@ -4,6 +4,11 @@ ARG SOURCE_PATH
 
 WORKDIR /ultralytics
 
+# System package for disk benchmarking
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends fio && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY ${SOURCE_PATH}/LegoGears_v2/ ./LegoGears_v2/
 COPY ${SOURCE_PATH}/LG_v2.yaml .
 
