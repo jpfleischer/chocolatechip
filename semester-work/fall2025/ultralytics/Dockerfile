@@ -2,6 +2,11 @@ FROM ultralytics/ultralytics:latest
 
 ARG SOURCE_PATH
 
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} appgroup \
+ && useradd -m -u ${UID} -g ${GID} -s /bin/bash appuser
+
 WORKDIR /ultralytics
 
 # System package for disk benchmarking
@@ -25,6 +30,11 @@ RUN python -m chocolatechip.model_training.dataset_setup \
     --names LegoGears.names \
     --prefix LegoGears
 
-WORKDIR /ultralytics
+RUN mkdir -p /ultralytics/outputs /ultralytics/.cache \
+ && chown -R appuser:appgroup /ultralytics
 
+ENV HOME=/home/appuser
+USER appuser
+
+WORKDIR /ultralytics
 CMD ["bash", "-lc", "python -u -m chocolatechip.model_training.train --profile LegoGearsUltra"]
