@@ -4,6 +4,8 @@ DATASET_ZIP    := legogears_2_dataset.zip
 PROJ_ROOT 	   := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
 SOURCE_PATH    := "semester-work/fall2025/ultralytics"
 SIF_NAME	   := $(CURDIR)/my_ultralytics_container.sif
+APPTAINER_SRC := $(PROJ_ROOT)/src
+
 
 # Detect Git Bash vs Linux for a tiny path tweak (optional but nice)
 UNAME_S := $(shell uname -s)
@@ -72,7 +74,7 @@ MODULE_LOAD_APPTAINER = if [ "$(UVA_VIRGINIA_RUNNING)" = "true" ]; then \
 $(SIF_NAME): apptainer.def
 	@$(MODULE_LOAD_APPTAINER); set -e; \
 	cd "$(PROJ_ROOT)"; \
-	apptainer build --force -f "$(SIF_NAME)" "$(CURDIR)/apptainer.def"
+	APPTAINER_SRC="$(APPTAINER_SRC)" apptainer build --force -f "$(SIF_NAME)" "$(CURDIR)/apptainer.def"
 
 apptainer-build: $(SIF_NAME)
 

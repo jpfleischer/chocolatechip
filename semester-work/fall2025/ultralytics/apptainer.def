@@ -3,27 +3,31 @@ From: ultralytics/ultralytics:latest
 
 %environment
     export DEBIAN_FRONTEND=noninteractive
+    export PYTHONPATH=/ultralytics/src
+
+%setup
+    : "${APPTAINER_SRC:?Set APPTAINER_SRC=/abs/path/to/repo/src}"
+    echo "Using APPTAINER_SRC=$APPTAINER_SRC" >&2
+    test -d "$APPTAINER_SRC" || { echo "No such dir: $APPTAINER_SRC" >&2; exit 1; }
+    mkdir -p "$SINGULARITY_ROOTFS/ultralytics/src"
+    cp -a "$APPTAINER_SRC/." "$SINGULARITY_ROOTFS/ultralytics/src/"
 
 %files
-    src                                                 /ultralytics/src
-    semester-work/fall2025/ultralytics/LegoGears_v2      /ultralytics/LegoGears_v2
-    semester-work/fall2025/ultralytics/LG_v2.yaml       /ultralytics/LG_v2.yaml
+    semester-work/fall2025/ultralytics/LegoGears_v2   /ultralytics/LegoGears_v2
+    semester-work/fall2025/ultralytics/LG_v2.yaml     /ultralytics/LG_v2.yaml
 
 %post
+    set -e
     cd /ultralytics
 
-    apt-get update 
+    apt-get update
     apt-get install -y --no-install-recommends fio
-
-    # Install the required Python packages in the virtual environment
     pip install --upgrade pip
-    pip install --no-cache-dir cloudmesh-common git+https://github.com/cloudmesh/cloudmesh-gpu.git 
+    pip install --no-cache-dir cloudmesh-common git+https://github.com/cloudmesh/cloudmesh-gpu.git
 
-    #user
-    groupadd -g 1000 appgroup && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash appuser
+    # Build-time PYTHONPATH so the setup step can import your package
+    export PYTHONPATH=/ultralytics/src:$PYTHONPATH
 
-    #dataset setup 
     python -m chocolatechip.model_training.dataset_setup \
         --root /ultralytics/LegoGears_v2 \
         --sets set_01 set_02_empty set_03 \
@@ -31,11 +35,11 @@ From: ultralytics/ultralytics:latest
         --names LegoGears.names \
         --prefix LegoGears
 
-    #ownership
-    mkdir -p /ultralytics/outputs /ultralytics/.cache && \
-    chown -R appuser:appgroup /ultralytics
+    mkdir -p /ultralytics/outputs /ultralytics/.cache
+    chmod -R a+rX /ultralytics
+    chmod -R a+rwX /ultralytics/outputs /ultralytics/.cache
+
     rm -rf /var/lib/apt/lists/*
 
 %runscript
-    # This is the only command that runs when the container starts
     exec bash -lc "python -u -m chocolatechip.model_training.train --profile LegoGearsUltra"
