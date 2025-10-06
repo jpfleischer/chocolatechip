@@ -3,6 +3,7 @@ DATASET_DIR    := LegoGears_v2
 DATASET_ZIP    := legogears_2_dataset.zip
 PROJ_ROOT 	   := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
 SOURCE_PATH    := "semester-work/fall2025/ultralytics"
+SIF_NAME	   := $(CURDIR)/my_ultralytics_container.sif
 
 # Detect Git Bash vs Linux for a tiny path tweak (optional but nice)
 UNAME_S := $(shell uname -s)
@@ -54,8 +55,40 @@ ultra bash: check-dataset
 		my-benchmark-app \
 		/bin/bash -lc "ls -la /ultralytics && exec /bin/bash"
 
+# on hipergator
+UVA_VIRGINIA_RUNNING := $(shell \
+	if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
+		echo true; \
+	else \
+		echo false; \
+	fi)
+
+DOCKER_UVA_ENV := --env UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING)
+
+MODULE_LOAD_APPTAINER = if [ "$(UVA_VIRGINIA_RUNNING)" = "true" ]; then \
+		. /etc/profile.d/modules.sh && module load apptainer; \
+	fi
+
+$(SIF_NAME): apptainer.def
+	@$(MODULE_LOAD_APPTAINER); set -e; \
+	cd "$(PROJ_ROOT)"; \
+	apptainer build --force -f "$(SIF_NAME)" "$(CURDIR)/apptainer.def"
+
+apptainer-build: $(SIF_NAME)
+
+slurm: check-dataset apptainer-build
+	@if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
+	    ACCOUNT="--account=bi_dsc_community"; \
+	else \
+	    ACCOUNT=""; \
+	fi; \
+	echo "Submitting job with account option: $$ACCOUNT"; \
+	sbatch -J "lego_train_$$(date +%Y%m%d_%H%M%S)" $$ACCOUNT legogears.slurm
+	watch squeue -u $(USER)
+
 
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=2134 batch=64
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=1 batch=64
-#moving files to get the info : mv runs/detect/train outputs
-#locate benchmark_bundle__default_username__NVIDIA_RTX_A6000-_NVIDIA_RTX_A6000__Intel_R_Xeon_R_Gold_6226R_CPU_2.90GHz__20250928_160849.zip
+
+#make apptainer.def and whatever is in it
+#make legogears.slurm
