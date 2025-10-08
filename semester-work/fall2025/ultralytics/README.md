@@ -89,3 +89,10 @@ you should parse the cfg with something like this, feel free to borrow logic
 or ask GPT about it: https://github.com/jpfleischer/chocolatechip/blob/main/semester-work/spring2025/darknet/onnxconvert/cfgparser.py
 
 
+# oct 8
+
+When running on hipergator and pushing to github, ssh keys should be placed in ~/.ssh/authorized_keys 
+instead of the classic location ~/.ssh/id_rsa.pub 
+If this is not followed, you will be unable to login to hipergator and get the error "Permission denied (public key) "
+
+
