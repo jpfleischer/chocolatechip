@@ -44,8 +44,14 @@ ifeq ($(OS),Windows_NT)
   WINDOWS_CAP := $(strip $(WINDOWS_CAP))
   # Set both environment variables for Docker.
   DOCKER_WINDOWS_ENV := --env WINDOWS_HARD_DRIVE="$(WINDOWS_HD)" --env WINDOWS_HARD_DRIVE_CAPACITY="$(WINDOWS_CAP)"
+  # --- Build IDs on Git Bash/Windows: stick to 1000:1000 like your working setup ---
+  BUILD_UID := 1000
+  BUILD_GID := 1000
 else
   DOCKER_WINDOWS_ENV :=
+  # --- Build IDs on Linux/macOS: match the current user ---
+  BUILD_UID := $$(id -u)
+  BUILD_GID := $$(id -g)
 endif
 
 
@@ -93,7 +99,11 @@ check-dataset-collab:
 	cp $(COLLABFILES_DIR)/build_darknet.sh $(COLLAB_DIR)/build_darknet.sh;
 
 build:
-	@docker build -t darknet-container -f $(CURDIR)/Dockerfile $(PROJ_ROOT)
+	@docker build \
+		--build-arg UID=$(BUILD_UID) \
+		--build-arg GID=$(BUILD_GID) \
+		-t darknet-container \
+		-f $(CURDIR)/Dockerfile $(PROJ_ROOT)
 
 shell:
 	@docker exec -it $(CONTAINER_NAME) /bin/bash

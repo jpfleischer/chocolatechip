@@ -36,7 +36,7 @@ PROFILES = {
         cfg_out="/workspace/LegoGears_v2/LegoGears.cfg",
         width=224, height=160,
         batch_size=64, subdivisions=8,
-        iterations=3000, learning_rate=0.00261,
+        iterations=4000, learning_rate=0.00261,
         templates=("yolov4-tiny", "yolov7-tiny"),
     ),
     "LegoGearsUltra": TrainProfile(
@@ -45,7 +45,7 @@ PROFILES = {
         data_path="", cfg_out="",
         width=224, height=160,
         batch_size=64, subdivisions=8,
-        iterations=3000, learning_rate=0.00261,
+        iterations=4000, learning_rate=0.00261,
         templates=(),
         epochs=None,               # auto-derive from iterations and dataset size
         ultra_data="LG_v2.yaml",
