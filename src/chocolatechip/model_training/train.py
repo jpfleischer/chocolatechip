@@ -39,8 +39,10 @@ def effective_username() -> str:
     return getpass.getuser()
 
 def darknet_path() -> str:
-    if "APPTAINER_ENVIRONMENT" in os.environ or os.path.exists("/.dockerenv"):
+    if "APPTAINER_ENVIRONMENT" in os.environ:
         return "/host_workspace/darknet/build/src-cli/darknet"
+    elif os.path.exists("/.dockerenv"):
+        return "/workspace/darknet/build/src-cli/darknet"
     return "darknet"
 
 # ---------- cfg generation (darknet) ----------
