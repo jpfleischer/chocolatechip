@@ -59,7 +59,6 @@ endif
 
 run: check-dataset copy-lego-files build stop
 	docker run --rm -d --gpus all --name $(CONTAINER_NAME) \
-	    -v $(DARKNET_WORKSPACE):/host_workspace \
 		-v ${CURDIR}/docker:/workspace \
 		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
 		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) $(DOCKER_UVA_ENV) \
@@ -158,8 +157,6 @@ arun-cars-command:
 ashell:
 	@$(MODULE_LOAD_APPTAINER); apptainer shell $(SIF_NAME)
 
-
-lego-setup: apptainer-build $(DARKNET_WORKSPACE)
 
 slurm: delete check-dataset copy-lego-files apptainer-build
 	@if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
