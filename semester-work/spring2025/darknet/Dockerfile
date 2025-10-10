@@ -62,7 +62,6 @@ python -m chocolatechip.model_training.dataset_setup \
   --classes 5 \
   --names LegoGears.names \
   --prefix LegoGears \
-  --val-frac 0.15 \
   --seed 9001 \
   --neg-subdirs set_02_empty; \
 python -u -m chocolatechip.model_training.train --profile LegoGearsDarknet"]

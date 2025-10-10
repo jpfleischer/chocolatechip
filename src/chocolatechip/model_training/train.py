@@ -16,6 +16,8 @@ from chocolatechip.model_training.cfg_maker import generate_cfg_file
 from chocolatechip.model_training.profiles import TrainProfile, get_profile
 from chocolatechip.model_training.darknet_ultralytics_translation import build_ultralytics_cmd
 
+from dataclasses import replace 
+
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
     s = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode("ascii")
@@ -67,6 +69,24 @@ def build_darknet_cmd(p: TrainProfile, gpus_str: str) -> str:
         + f"train {p.data_path} {p.cfg_out} 2>&1 | tee training_output.log"
     )
 
+# --- helper: (re)build split for a given val fraction using profile.dataset ---
+def build_split_for(vf: float, ds) -> tuple[str, str]:
+    ratio_tag = f"v{int(round(vf*100)):02d}"          # e.g., v10, v15, v20
+    prefix = f"{ds.prefix}_{ratio_tag}"
+
+    sets_str = " ".join(ds.sets)
+    neg = f"--neg-subdirs {' '.join(ds.neg_subdirs)}" if ds.neg_subdirs else ""
+    exts = f"--exts {' '.join(ds.exts)}" if ds.exts else ""
+    legos = "--legos" if ds.legos else ""
+
+    cmd = (
+        "python -m chocolatechip.model_training.dataset_setup "
+        f"--root {ds.root} --sets {sets_str} --classes {ds.classes} "
+        f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.seed} "
+        f"{neg} {exts} {legos}"
+    )
+    subprocess.check_call(cmd, shell=True)
+    return str(Path(ds.root) / f"{prefix}.data"), ratio_tag
 
 # ---------- one run ----------
 def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None:
@@ -81,7 +101,15 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     vram = ", ".join(sel["selected_vram"]) if sel["selected_vram"] else "N/A"
     gpu_name_safe = slugify(gpu_name.replace(",", "-"))
 
-    tag = template if (p.backend == "darknet" and template) else "ultralytics"
+    # --- derive ratio from p.data_path and append to tag ---
+    m = re.search(r"_v(\d{2})(?:\.data)?$", os.path.basename(p.data_path or ""))
+    ratio_pct = m.group(1) if m else None                   # e.g. "10", "15", "20"
+    ratio_float = (int(ratio_pct) / 100.0) if ratio_pct else None
+    ratio_suffix = f"__val{ratio_pct}" if ratio_pct else ""
+
+    base_tag = template if (p.backend == "darknet" and template) else "ultralytics"
+    tag = base_tag + ratio_suffix
+
     output_dir = os.path.join(out_root, f"benchmark__{user}__{gpu_name_safe}__{tag}__{now}")
     os.makedirs(output_dir, exist_ok=True)
     os.chdir(output_dir)
@@ -164,6 +192,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         "cuDNN Version": env["cudnn_version"],
         "GPUs Used": env["num_gpus_used"],
         "Compute Capability": env["compute_caps_str"],
+        "Val Fraction": ratio_float,
     }
 
     csv_name = f"benchmark__{user}__{gpu_name_safe}__{cpu_name_safe}__{tag}__{now}.csv"
@@ -193,21 +222,19 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
 # ---------- main ----------
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Train with a named profile (profiles may contain multiple templates).")
-    ap.add_argument("--profile", default="LegoGears", help="Profile name in profiles.PROFILES")
+    ap.add_argument("--profile", default="LegoGearsDarknet", help="Profile name in profiles.PROFILES")
     args = ap.parse_args()
 
     p = get_profile(args.profile)
     out_root = "/outputs" if p.backend == "darknet" else "/ultralytics/outputs"
+    templates = p.templates or ((p.template,) if p.template else (None,))
     os.makedirs(out_root, exist_ok=True)
 
-    if p.backend == "darknet":
-        # Option 2: if profile defines multiple templates, benchmark them sequentially
-        if getattr(p, "templates", tuple()):
-            for t in p.templates:
-                print(f"\n=== {t} ===")
-                run_once(p=p, template=t, out_root=out_root)
-        else:
-            # single-template profile
-            run_once(p=p, template=p.template, out_root=out_root)
+    if p.backend == "darknet" and p.dataset:
+        for t in templates:
+            for vf in p.val_fracs:
+                data_path, ratio_tag = build_split_for(vf, p.dataset)
+                p_iter = replace(p, data_path=data_path)  # TrainProfile is frozen
+                run_once(p=p_iter, template=t, out_root=out_root)  # unchanged
     else:
-        run_once(p=p, template=None, out_root=out_root)
+        run_once(p=p, template=None if p.backend != "darknet" else p.template, out_root=out_root)
