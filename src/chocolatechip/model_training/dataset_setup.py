@@ -1,8 +1,7 @@
-# src/chocolatechip/model_training/dataset_setup.py
 from __future__ import annotations
 from pathlib import Path
-import argparse, random, json
-from typing import Dict, List
+import argparse, random, json, re
+from typing import Dict, List, Tuple
 
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
 
@@ -38,11 +37,7 @@ def choose_split(
     val_frac: float,
     seed: int,
 ) -> tuple[List[Path], List[Path], dict]:
-    """Return (train, valid, stats) with a deterministic 'random' split.
-
-    - negatives are any subdir in `neg_subdirs`
-    - validation keeps the global negative/positive ratio (rounded)
-    """
+    """Return (train, valid, stats) with a deterministic 'random' split."""
     rng = random.Random(seed)
 
     negatives: List[Path] = []
@@ -53,7 +48,6 @@ def choose_split(
     negatives.sort()
     positives.sort()
 
-    # Shuffle deterministically, then slice
     rng.shuffle(negatives)
     rng.shuffle(positives)
 
@@ -63,7 +57,6 @@ def choose_split(
         raise RuntimeError("No images found overall.")
 
     n_val = max(1, round(val_frac * n_total))
-    # keep the negative/positive ratio in val
     n_val_neg = min(n_neg, round(n_val * (n_neg / n_total))) if n_neg else 0
     n_val_pos = n_val - n_val_neg
     n_val_pos = min(n_pos, n_val_pos)
@@ -74,25 +67,131 @@ def choose_split(
 
     train = sorted(negatives[n_val_neg:] + positives[n_val_pos:])
 
-    # safety checks
     inter = set(train).intersection(valid)
     assert not inter, f"Train/valid overlap detected: {list(inter)[:3]}"
 
     stats = {
+        "mode": "ratio",
         "seed": seed,
         "val_frac": val_frac,
         "counts": {
-            "total": n_total,
+            "valid_total": len(valid),
+            "train_total": len(train),
             "negatives_total": n_neg,
             "positives_total": n_pos,
-            "valid_total": len(valid),
-            "valid_negatives": len(val_neg),
-            "valid_positives": len(val_pos),
-            "train_total": len(train),
         },
         "neg_subdirs": neg_subdirs,
     }
     return train, valid, stats
+
+# ---------- LEGOS SPECIAL MODE ----------
+
+_SCENE_RX = re.compile(r'(DSCN\d+)', re.IGNORECASE)
+
+def _scene_key(p: Path) -> str:
+    """Return the scene id (e.g., 'DSCN2164') if present, else the stem prefix before first '_'."""
+    m = _SCENE_RX.search(p.stem)
+    if m:
+        return m.group(1)
+    # fallback: take up to first underscore to avoid grouping different frames together
+    return p.stem.split('_', 1)[0]
+
+def choose_split_legos(
+    images_by_subdir: Dict[str, List[Path]],
+    neg_subdirs: List[str],
+) -> Tuple[List[Path], List[Path], dict]:
+    """
+    Deterministic validation composition for the Lego experiment:
+      - set_03: one image per scene (scene inferred from 'DSCN####')
+      - set_02 (negatives): one image total (from provided neg_subdirs)
+      - set_01: one image total (any)
+      - everything else goes to train
+    """
+    # Find subdir keys case-insensitively
+    def _find_key(name: str) -> str | None:
+        name = name.lower()
+        for k in images_by_subdir.keys():
+            if name in k.lower():
+                return k
+        return None
+
+    key_set01 = _find_key("set_01")
+    key_set03 = _find_key("set_03")
+
+    if key_set03 is None:
+        raise RuntimeError("LEGOS mode expects a subdir containing 'set_03'.")
+
+    # Deterministic (sorted) lists
+    set03_imgs = list(sorted(images_by_subdir[key_set03]))
+    set01_imgs = list(sorted(images_by_subdir.get(key_set01, [])))
+
+    neg_imgs: List[Path] = []
+    pos_other: List[Path] = []
+
+    for d, lst in images_by_subdir.items():
+        if d == key_set03 or d == key_set01:
+            continue
+        if d in neg_subdirs:
+            neg_imgs.extend(lst)
+        else:
+            pos_other.extend(lst)
+
+    neg_imgs.sort()
+    pos_other.sort()
+
+    # ---- Build VALID set deterministically ----
+    valid: List[Path] = []
+
+    # 1) set_03: pick first image per scene id
+    seen_scenes = set()
+    per_scene_picks: List[Path] = []
+    for p in set03_imgs:
+        sk = _scene_key(p)
+        if sk not in seen_scenes:
+            seen_scenes.add(sk)
+            per_scene_picks.append(p)
+    valid.extend(per_scene_picks)
+
+    # 2) negatives: pick one (first) if present
+    neg_pick = neg_imgs[0:1]
+    valid.extend(neg_pick)
+
+    # 3) set_01: pick one (first) if present
+    set01_pick = set01_imgs[0:1]
+    valid.extend(set01_pick)
+
+    valid = sorted(valid)
+
+    # ---- TRAIN = everything else ----
+    all_imgs = []
+    for lst in images_by_subdir.values():
+        all_imgs.extend(lst)
+    all_imgs = sorted(set(all_imgs))  # unique
+
+    train = sorted(set(all_imgs) - set(valid))
+
+    # Safety
+    inter = set(train).intersection(valid)
+    assert not inter, f"Train/valid overlap detected: {list(inter)[:3]}"
+
+    # Stats
+    stats = {
+        "mode": "legos",
+        "counts": {
+            "valid_total": len(valid),
+            "train_total": len(train),
+            "valid_set03_scenes": len(per_scene_picks),
+            "valid_negatives": len(neg_pick),
+            "valid_set01": len(set01_pick),
+        },
+        "details": {
+            "set03_scenes": sorted({_scene_key(p) for p in set03_imgs}),
+            "neg_subdirs": neg_subdirs,
+            "set01_present": key_set01 is not None,
+        },
+    }
+    return train, valid, stats
+# ---------------------------------------
 
 def main():
     ap = argparse.ArgumentParser(description="Prepare disjoint train/valid lists and a Darknet .data file.")
@@ -106,6 +205,8 @@ def main():
     ap.add_argument("--neg-subdirs", nargs="*", default=None,
                     help="Subdirs to treat as negatives. If omitted, any subdir containing 'empty' or 'neg' is treated as negative.")
     ap.add_argument("--exts", nargs="*", default=[".jpg"], help="Image extensions to include")
+    ap.add_argument("--legos", action="store_true",
+                    help="Special deterministic split for LegoGears: 1 per scene from set_03, 1 negative from set_02, 1 from set_01.")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
@@ -119,12 +220,18 @@ def main():
     else:
         neg_subdirs = args.neg_subdirs
 
-    train_paths, valid_paths, stats = choose_split(
-        images_by_subdir,
-        neg_subdirs=neg_subdirs,
-        val_frac=args.val_frac,
-        seed=args.seed,
-    )
+    if args.legos:
+        train_paths, valid_paths, stats = choose_split_legos(
+            images_by_subdir,
+            neg_subdirs=neg_subdirs,
+        )
+    else:
+        train_paths, valid_paths, stats = choose_split(
+            images_by_subdir,
+            neg_subdirs=neg_subdirs,
+            val_frac=args.val_frac,
+            seed=args.seed,
+        )
 
     train_file = root / f"{args.prefix}_train.txt"
     valid_file = root / f"{args.prefix}_valid.txt"
@@ -144,14 +251,14 @@ def main():
     )
     manifest.write_text(json.dumps(stats, indent=2), encoding="utf-8")
 
-    c = stats["counts"]
+    ctrain, cvalid = len(train_paths), len(valid_paths)
     print(
         "[setup] Wrote:\n"
-        f"  {train_file}  ({c['train_total']} images)\n"
-        f"  {valid_file}  ({c['valid_total']} images; {c['valid_negatives']} neg / {c['valid_positives']} pos)\n"
+        f"  {train_file}  ({ctrain} images)\n"
+        f"  {valid_file}  ({cvalid} images)\n"
         f"  {data_file}\n"
         f"  {manifest}\n"
-        f"[setup] Seed={stats['seed']}  Neg subdirs={stats['neg_subdirs']}"
+        f"[setup] Mode={stats.get('mode','ratio')}  Neg subdirs={neg_subdirs}"
     )
 
 if __name__ == "__main__":
