@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from threading import Thread, Event
 from typing import Optional
+from dataclasses import replace
 
 from cloudmesh.common.StopWatch import StopWatch
 from cloudmesh.gpu.gpu import Gpu
@@ -15,8 +16,6 @@ from chocolatechip.model_training.hw_info import (
 from chocolatechip.model_training.cfg_maker import generate_cfg_file
 from chocolatechip.model_training.profiles import TrainProfile, get_profile
 from chocolatechip.model_training.darknet_ultralytics_translation import build_ultralytics_cmd
-
-from dataclasses import replace 
 
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
@@ -69,7 +68,7 @@ def build_darknet_cmd(p: TrainProfile, gpus_str: str) -> str:
         + f"train {p.data_path} {p.cfg_out} 2>&1 | tee training_output.log"
     )
 
-# --- helper: (re)build split for a given val fraction using profile.dataset ---
+# --- dataset split builder for a given val fraction using profile.dataset ---
 def build_split_for(vf: float, ds) -> tuple[str, str]:
     ratio_tag = f"v{int(round(vf*100)):02d}"          # e.g., v10, v15, v20
     prefix = f"{ds.prefix}_{ratio_tag}"
@@ -87,6 +86,103 @@ def build_split_for(vf: float, ds) -> tuple[str, str]:
     )
     subprocess.check_call(cmd, shell=True)
     return str(Path(ds.root) / f"{prefix}.data"), ratio_tag
+
+# ---------- metrics parsing ----------
+def _maybe_percent_to_percent(val_str: str) -> float:
+    """Return value as percent; if <=1 treat as fraction and convert to percent."""
+    try:
+        v = float(val_str)
+    except Exception:
+        return float("nan")
+    if v <= 1.0:
+        return v * 100.0
+    return v
+
+def parse_darknet_summary(log_path: str):
+    """
+    Returns dict:
+      last_map50_pct, best_map50_pct, best_iter, prec, rec, f1
+    mAP as percent (0..100), PRF as decimals (0..1). Missing -> None.
+    """
+    out = dict(last_map50_pct=None, best_map50_pct=None, best_iter=None,
+               prec=None, rec=None, f1=None)
+    if not os.path.isfile(log_path):
+        return out
+
+    rx_last_best = re.compile(
+        r"Last accuracy mAP@0\.50\s*=\s*([0-9]*\.?[0-9]+)%?,\s*best\s*=\s*([0-9]*\.?[0-9]+)%?\s*at iteration\s*#(\d+)",
+        re.I)
+    rx_map_line = re.compile(r"mean average precision \(mAP@0\.50\)\s*=\s*([0-9]*\.?[0-9]+)%?", re.I)
+    rx_prf = re.compile(
+        r"for conf_thresh=.*?precision\s*=\s*([0-9]*\.?[0-9]+),\s*recall\s*=\s*([0-9]*\.?[0-9]+),\s*F1 score\s*=\s*([0-9]*\.?[0-9]+)",
+        re.I)
+
+    with open(log_path, "r", errors="ignore") as f:
+        for line in f:
+            m = rx_last_best.search(line)
+            if m:
+                out["last_map50_pct"] = _maybe_percent_to_percent(m.group(1))
+                out["best_map50_pct"] = _maybe_percent_to_percent(m.group(2))
+                out["best_iter"] = int(m.group(3))
+            m = rx_map_line.search(line)
+            if m:
+                out["last_map50_pct"] = _maybe_percent_to_percent(m.group(1))
+            m = rx_prf.search(line)
+            if m:
+                out["prec"] = float(m.group(1))
+                out["rec"]  = float(m.group(2))
+                out["f1"]   = float(m.group(3))
+    return out
+
+def parse_ultra_map(results_csv_path: str) -> tuple[float|None, float|None]:
+    """
+    Read Ultralytics results.csv and return (mAP50_pct, mAP50-95_pct).
+    """
+    if not os.path.isfile(results_csv_path):
+        return None, None
+    last = None
+    with open(results_csv_path, newline="") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            last = row
+    if not last:
+        return None, None
+
+    def _pick(*keys):
+        for k in keys:
+            if k in last and last[k] not in (None, "", "nan"):
+                try:
+                    return float(last[k])
+                except Exception:
+                    pass
+        return None
+
+    m50 = _pick("metrics/mAP50", "metrics/mAP_50", "mAP50")
+    m95 = _pick("metrics/mAP50-95", "metrics/mAP_50-95", "mAP50-95", "metrics/mAP50-95(B)")
+
+    # convert to percent if present
+    m50 = (m50 * 100.0) if (m50 is not None and m50 <= 1.0) else m50
+    m95 = (m95 * 100.0) if (m95 is not None and m95 <= 1.0) else m95
+    return m50, m95
+
+
+def parse_darknet_data_file(data_path: str) -> dict:
+    """
+    Returns dict with keys 'train', 'valid', 'names', 'backup' if present.
+    """
+    out = {}
+    if not data_path or not os.path.isfile(data_path):
+        return out
+    with open(data_path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                k, v = line.split("=", 1)
+                out[k.strip()] = v.strip()
+    return out
+
 
 # ---------- one run ----------
 def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None:
@@ -118,6 +214,19 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     if p.backend == "darknet":
         assert template, "template required for darknet"
         generate_cfg(p, template)
+
+    # --- copy only the validation list into the output dir as valid.txt ---
+    if p.backend == "darknet" and p.data_path:
+        dd = parse_darknet_data_file(p.data_path)
+        valid_src = dd.get("valid")
+        if valid_src and os.path.isfile(valid_src):
+            try:
+                shutil.copy2(valid_src, os.path.join(output_dir, "valid.txt"))
+                print(f"[valid] copied {valid_src} -> {os.path.join(output_dir, 'valid.txt')}")
+            except Exception as e:
+                print(f"[valid] copy failed: {e}")
+        else:
+            print("[valid] no valid file found in .data")
 
     # GPU watcher
     watch_log = os.path.join(output_dir, "mylogfile.log")
@@ -170,6 +279,27 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
 
     env = summarize_env(indices=indices, training_log_path=os.path.join(output_dir, "training_output.log"))
 
+    # --- derive evaluation metrics ---
+    map50_last_pct = None
+    map50_best_pct = None
+    best_iter = None
+    prf = dict(prec=None, rec=None, f1=None)
+    map5095_pct = None
+
+    if p.backend == "darknet":
+        summary = parse_darknet_summary(os.path.join(output_dir, "training_output.log"))
+        map50_last_pct = summary["last_map50_pct"]
+        map50_best_pct = summary["best_map50_pct"]
+        best_iter = summary["best_iter"]
+        prf["prec"] = summary["prec"]
+        prf["rec"] = summary["rec"]
+        prf["f1"] = summary["f1"]
+    else:
+        # Ultralytics: results.csv in output_dir
+        m50, m95 = parse_ultra_map(os.path.join(output_dir, "results.csv"))
+        map50_last_pct = m50
+        map5095_pct = m95
+
     row = {
         "Backend": p.backend,
         "Profile": p.name,
@@ -193,6 +323,13 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         "GPUs Used": env["num_gpus_used"],
         "Compute Capability": env["compute_caps_str"],
         "Val Fraction": ratio_float,
+        "mAP@0.50 (last %)": map50_last_pct,
+        "mAP@0.50 (best %)": map50_best_pct,
+        "mAP@0.50-0.95 (%)": map5095_pct,
+        "Best Iteration": best_iter,
+        "Precision@thr": prf["prec"],
+        "Recall@thr": prf["rec"],
+        "F1@thr": prf["f1"],
     }
 
     csv_name = f"benchmark__{user}__{gpu_name_safe}__{cpu_name_safe}__{tag}__{now}.csv"
@@ -230,11 +367,11 @@ if __name__ == "__main__":
     templates = p.templates or ((p.template,) if p.template else (None,))
     os.makedirs(out_root, exist_ok=True)
 
-    if p.backend == "darknet" and p.dataset:
+    if p.backend == "darknet" and getattr(p, "dataset", None):
         for t in templates:
             for vf in p.val_fracs:
                 data_path, ratio_tag = build_split_for(vf, p.dataset)
                 p_iter = replace(p, data_path=data_path)  # TrainProfile is frozen
-                run_once(p=p_iter, template=t, out_root=out_root)  # unchanged
+                run_once(p=p_iter, template=t, out_root=out_root)
     else:
         run_once(p=p, template=None if p.backend != "darknet" else p.template, out_root=out_root)
