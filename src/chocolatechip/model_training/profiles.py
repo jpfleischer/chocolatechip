@@ -54,7 +54,7 @@ PROFILES = {
         cfg_out="/workspace/LegoGears_v2/LegoGears.cfg",
         width=224, height=160,
         batch_size=64, subdivisions=8,
-        iterations=4000, learning_rate=0.00261,
+        iterations=5000, learning_rate=0.00261,
         templates=("yolov4-tiny", "yolov7-tiny"),
         val_fracs=(0.10, 0.15, 0.20),
         dataset=DatasetSpec(
@@ -75,7 +75,7 @@ PROFILES = {
         data_path="", cfg_out="",
         width=224, height=160,
         batch_size=64, subdivisions=8,
-        iterations=4000, learning_rate=0.00261,
+        iterations=5000, learning_rate=0.00261,
         templates=(),
         val_fracs=(0.20,),   # ignored unless you hook a splitter
         dataset=None,
