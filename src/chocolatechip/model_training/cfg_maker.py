@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# test
 """
 cfg_maker.py — Generate a Darknet .cfg from the yolov7-tiny template (downloaded in-memory),
 ALWAYS recalculating anchors from your dataset labels, using a .data file.
@@ -25,7 +26,7 @@ from urllib.error import URLError, HTTPError
 TEMPLATE_URLS = {
     "yolov7-tiny": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov7-tiny.cfg",
     "yolov4-tiny": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov4-tiny.cfg",
-    "yolov3-tiny": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov3-tiny.cfg",
+    "yolov4-tiny-3l": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov4-tiny-3l.cfg",
 }
 
 
@@ -335,9 +336,9 @@ def transform_cfg_from_text(template_text: str, *,
     num_heads = len(yolo_idxs)
 
     # Decide anchor count by template (no CLI)
-    if template_name in ("yolov4-tiny", "yolov3-tiny"):
+    if template_name == "yolov4-tiny":
         k = 6   # 2 heads * 3 anchors
-    elif template_name == "yolov7-tiny":
+    elif template_name in ['yolov7-tiny', 'yolov4-tiny-3l']:
         k = 9   # 3 heads * 3 anchors
     else:
         # conservative fallback
@@ -356,10 +357,10 @@ def transform_cfg_from_text(template_text: str, *,
             last.append(last[-1])
 
     # Map groups to heads so the FIRST [yolo] gets the LARGEST anchors (DarkMark-style)
-    if template_name in ("yolov4-tiny", "yolov3-tiny") and num_heads == 2:
+    if template_name == "yolov4-tiny" and num_heads == 2:
         # groups: 0=small, 1=large
         group_order = [1, 0]  # head0->large, head1->small
-    elif template_name == "yolov7-tiny" and num_heads == 3:
+    elif template_name in ['yolov7-tiny', 'yolov4-tiny-3l'] and num_heads == 3:
         # groups: 0=small,1=mid,2=large
         group_order = [2, 1, 0]  # head0->large, head1->mid, head2->small
     else:
@@ -428,7 +429,6 @@ def transform_cfg_from_text(template_text: str, *,
     print(f"[anchors] template={template_name}, k={k}, avg IoU ≈ {avg_iou:.2f}%")
     print(f"[class balance] counters_per_class = {counters_per_class}")
     return lines
-
 
 def generate_cfg_file(
     *,
@@ -526,7 +526,7 @@ def main():
     ap.add_argument("--write-counters-per-class", action="store_true",
                     help="also write counters_per_class=<csv> into [net]")
 
-    ap.add_argument("--template", choices=["yolov7-tiny", "yolov4-tiny", "yolov3-tiny"], default="yolov7-tiny",
+    ap.add_argument("--template", choices=["yolov7-tiny", "yolov4-tiny", "yolov4-tiny-3l"], default="yolov7-tiny",
                     help="which Darknet template to start from")
 
     # anchors
@@ -542,8 +542,8 @@ def main():
     # Decide template + default anchor count
     template_name = args.template
     template_text = fetch_template_text(pick_template_url(template_name))
-    anchor_clusters = 9 if (args.anchor_clusters is None and template_name == "yolov7-tiny") else \
-                      6 if (args.anchor_clusters is None and template_name in ("yolov4-tiny", "yolov3-tiny")) else \
+    anchor_clusters = 9 if (args.anchor_clusters is None and template_name in ['yolov7-tiny', 'yolov4-tiny-3l']) else \
+                      6 if (args.anchor_clusters is None and template_name == "yolov4-tiny") else \
                       args.anchor_clusters
 
     if anchor_clusters is None or anchor_clusters <= 1:
