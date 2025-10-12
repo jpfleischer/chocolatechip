@@ -127,3 +127,31 @@ to use multiple GPUs?
 
 Use this command to validate model
 darknet_03_display_videos detector demo annotations.data annotations.cfg annotations_best.weights -ext_output ~/07_2024-10-01_07-10-04.361.mp4
+
+
+# 10/12
+
+uploading open files to hipergator 
+
+
+```bash
+# Find mapped collection ID (MAPID)
+globus endpoint search 'UFRC HiPerGator'
+# set this to MAPID
+
+# Create guest collection (fill these with YOUR values)
+globus gcs collection create guest \
+  "$MAPID" "/PATH/UNDER/YOUR/MAPPED/COLLECTION" "YOUR DISPLAY NAME" \
+  --description "Share for leather.zip"
+
+NEWCID=<id from output>
+
+# Safer default: require a Globus login instead of anonymous
+globus endpoint permission create "$NEWCID:/" --permissions r --all-authenticated
+# If you truly want anyone-without-login:
+# globus endpoint permission create "$NEWCID:/" --permissions r --anonymous
+
+BASE=$(globus gcs collection show "$NEWCID" --jq https_url -F unix)
+echo "$BASE/leather.zip"
+```
+
