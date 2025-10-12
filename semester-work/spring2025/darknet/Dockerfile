@@ -56,14 +56,6 @@ WORKDIR /workspace
 # Run the script via bash (don’t rely on chmod on a bind mount)
 CMD ["bash", "-lc", "\
 bash build_darknet.sh; \
-python -m chocolatechip.model_training.dataset_setup \
-  --root /workspace/LegoGears_v2 \
-  --sets set_01 set_02_empty set_03 \
-  --classes 5 \
-  --names LegoGears.names \
-  --prefix LegoGears \
-  --seed 9001 \
-  --neg-subdirs set_02_empty; \
 python -u -m chocolatechip.model_training.train --profile LegoGearsDarknet"]
 
 # CMD ["bash", "-lc", "chmod +x build_darknet.sh; ./build_darknet.sh; python -u -m chocolatechip.model_training.train --profile LegoGearsDarknet"]
