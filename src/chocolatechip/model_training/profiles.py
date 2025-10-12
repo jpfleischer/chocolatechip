@@ -16,6 +16,8 @@ class DatasetSpec:
     neg_subdirs: Tuple[str, ...] = tuple()
     exts: Tuple[str, ...] = (".jpg",)
     legos: bool = False  # special lego split
+    url: str | None = None
+    sha256: str | None = None 
 
 @dataclass(frozen=True)
 class TrainProfile:
@@ -136,6 +138,8 @@ PROFILES = {
             neg_subdirs=("set_02_empty",),
             exts=(".jpg",),
             legos=False,
+            url="https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip",
+            sha256="126980d3e43986bbd3d785ac16f6430e9bf3b726e65a30574bb3c9ba06a4462e",
         ),
     ),
     "LegoGearsUltra": TrainProfile(
