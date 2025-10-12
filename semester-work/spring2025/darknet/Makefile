@@ -1,10 +1,6 @@
 CONTAINER_NAME := my_darknet_container
 COLLAB_DIR     := ${CURDIR}/../cvat/docker/
 COLLABFILES_DIR:= ${CURDIR}/CollabFiles
-DATASET_DIR    := docker/LegoGears_v2
-EXTRAFILES_DIR := LegoGearsFiles
-DATASET_ZIP    := legogears_2_dataset.zip
-DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip
 SIF_NAME       := $(CURDIR)/my_darknet_container.sif
 # Local directory for a writable workspace
 DARKNET_WORKSPACE := $(CURDIR)/darknet_workspace
@@ -55,9 +51,12 @@ else
 endif
 
 
-.PHONY: check-dataset build run stop apptainer-build arun ashell
+.PHONY: build run stop apptainer-build arun ashell
 
-run: check-dataset copy-lego-files build stop
+run: build stop
+	mkdir -p ${CURDIR}/docker ${CURDIR}/LegoGearsFiles/outputs
+	cp -f ${CURDIR}/LegoGearsFiles/build_darknet.sh ${CURDIR}/docker/build_darknet.sh
+
 	docker run --rm -d --gpus all --name $(CONTAINER_NAME) \
 		-v ${CURDIR}/docker:/workspace \
 		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
@@ -68,27 +67,12 @@ run: check-dataset copy-lego-files build stop
 		darknet-container
 	make logs
 
+
 logs:
 	@docker logs $(CONTAINER_NAME) --follow
 
 collab: check-dataset-collab build
 	@docker run --rm -it --gpus all --name $(CONTAINER_NAME) -v $(COLLAB_DIR):/workspace darknet-container
-
-check-dataset:
-	@if [ ! -d $(DATASET_DIR) ]; then \
-		mkdir -p docker; \
-		echo "Dataset folder '$(DATASET_DIR)' not found. Downloading dataset..."; \
-		curl -L $(DATASET_URL) -o $(DATASET_ZIP); \
-		unzip -q $(DATASET_ZIP) -d docker; \
-		rm $(DATASET_ZIP); \
-		rm $(DATASET_DIR)/LegoGears.cfg && rm $(DATASET_DIR)/LegoGears.data; \
-	fi
-
-copy-lego-files:
-	cp $(EXTRAFILES_DIR)/LegoGears.cfg $(DATASET_DIR)/LegoGears.cfg; \
-	cp $(EXTRAFILES_DIR)/LegoGears.data $(DATASET_DIR)/LegoGears.data; \
-	cp $(EXTRAFILES_DIR)/build_darknet.sh docker/build_darknet.sh
-
 
 check-dataset-collab:
 	cp $(COLLABFILES_DIR)/cars.cfg $(COLLAB_DIR)/cars.cfg;
@@ -132,9 +116,12 @@ delete:
 	-rm darknet_train.out darknet_train.err
 
 # Run the apptainer container with a bind mount for a writable workspace
-arun: check-dataset copy-lego-files apptainer-build $(DARKNET_WORKSPACE) arun-command
+arun: apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
 arun-command:
+	mkdir -p ${CURDIR}/docker ${CURDIR}/LegoGearsFiles/outputs
+	cp -f ${CURDIR}/LegoGearsFiles/build_darknet.sh ${CURDIR}/docker/build_darknet.sh
+	
 	@$(MODULE_LOAD_APPTAINER); SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) SINGULARITYENV_YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
 		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
@@ -158,7 +145,7 @@ ashell:
 	@$(MODULE_LOAD_APPTAINER); apptainer shell $(SIF_NAME)
 
 
-slurm: delete check-dataset copy-lego-files apptainer-build
+slurm: delete apptainer-build
 	@if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
 	    ACCOUNT="--account=bi_dsc_community"; \
 	else \
@@ -173,5 +160,5 @@ slurm-shell:
 	srun -p gpu --gpus=geforce:1 --time=01:00:00 --mem=50gb --pty apptainer shell --nv $(SIF_NAME)
 
 
-cars-slurm: delete check-dataset copy-lego-files apptainer-build $(DARKNET_WORKSPACE)
+cars-slurm: delete apptainer-build $(DARKNET_WORKSPACE)
 	sbatch -J "darknet_cars_train_$(date +%Y%m%d_%H%M%S)" CollabFiles/cars.slurm

@@ -18,6 +18,10 @@ from chocolatechip.model_training.cfg_maker import generate_cfg_file
 from chocolatechip.model_training.profiles import TrainProfile, get_profile, equalize_for_split
 from chocolatechip.model_training.darknet_ultralytics_translation import build_ultralytics_cmd
 
+
+from chocolatechip.model_training.datasets import ensure_download_once
+
+
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
     s = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode("ascii")
@@ -389,10 +393,15 @@ if __name__ == "__main__":
     ap.add_argument("--profile", default="LegoGearsDarknet", help="Profile name in profiles.PROFILES")
     args = ap.parse_args()
 
+    # --- main ---
     p = get_profile(args.profile)
     out_root = "/outputs" if p.backend == "darknet" else "/ultralytics/outputs"
     templates = p.templates or ((p.template,) if p.template else (None,))
     os.makedirs(out_root, exist_ok=True)
+
+    # ensure the raw dataset exists ONCE (idempotent), BEFORE we call dataset_setup
+    if getattr(p, "dataset", None):
+        ensure_download_once(p.dataset)   # <--- download/extract once into p.dataset.root
 
     if p.backend == "darknet" and getattr(p, "dataset", None):
         for t in templates:
