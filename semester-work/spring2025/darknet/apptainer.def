@@ -33,11 +33,13 @@ From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
     /usr/local/bin/build_darknet.sh
     # Prepare dataset lists and .data
     python -m chocolatechip.model_training.dataset_setup \
-      --root /workspace/LegoGears_v2 \
-      --sets set_01 set_02_empty set_03 \
-      --classes 5 \
-      --names LegoGears.names \
-      --prefix LegoGears
+        --root /workspace/LegoGears_v2 \
+        --sets set_01 set_02_empty set_03 \
+        --classes 5 \
+        --names LegoGears.names \
+        --prefix LegoGears \
+        --seed 9001 \
+        --neg-subdirs set_02_empty
     # Optional sanity check and then run
     ls /host_workspace/darknet/build/src-cli
     /host_workspace/darknet/build/src-cli/darknet version

@@ -4,8 +4,9 @@ import os, re, csv, glob, shutil, getpass, subprocess, zipfile, unicodedata, arg
 from pathlib import Path
 from datetime import datetime
 from threading import Thread, Event
-from typing import Optional
+from typing import Optional, Tuple
 from dataclasses import replace
+import json
 
 from cloudmesh.common.StopWatch import StopWatch
 from cloudmesh.gpu.gpu import Gpu
@@ -14,7 +15,7 @@ from chocolatechip.model_training.hw_info import (
     summarize_env, resolve_gpu_selection, fio_seq_rw, get_disk_info
 )
 from chocolatechip.model_training.cfg_maker import generate_cfg_file
-from chocolatechip.model_training.profiles import TrainProfile, get_profile
+from chocolatechip.model_training.profiles import TrainProfile, get_profile, equalize_for_split
 from chocolatechip.model_training.darknet_ultralytics_translation import build_ultralytics_cmd
 
 # ---------- small utils ----------
@@ -86,6 +87,35 @@ def build_split_for(vf: float, ds) -> tuple[str, str]:
     )
     subprocess.check_call(cmd, shell=True)
     return str(Path(ds.root) / f"{prefix}.data"), ratio_tag
+
+def parse_darknet_data_file(data_path: str) -> dict:
+    out = {}
+    if not data_path or not os.path.isfile(data_path):
+        return out
+    with open(data_path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                k, v = line.split("=", 1)
+                out[k.strip()] = v.strip()
+    return out
+
+def split_manifest_from_data_path(data_path: str) -> Path:
+    """'/.../LegoGears_v15.data' -> '/.../LegoGears_v15_split.json'"""
+    p = Path(data_path)
+    return p.with_name(p.stem + "_split.json")
+
+def read_split_counts_from_data(data_path: str) -> Tuple[int, int]:
+    """Return (train_count, valid_count); (0,0) if manifest missing."""
+    try:
+        manifest = split_manifest_from_data_path(data_path)
+        js = json.loads(manifest.read_text(encoding="utf-8"))
+        c = js.get("counts", {})
+        return int(c.get("train_total", 0)), int(c.get("valid_total", 0))
+    except Exception:
+        return 0, 0
 
 # ---------- metrics parsing ----------
 def _maybe_percent_to_percent(val_str: str) -> float:
@@ -164,25 +194,6 @@ def parse_ultra_map(results_csv_path: str) -> tuple[float|None, float|None]:
     m50 = (m50 * 100.0) if (m50 is not None and m50 <= 1.0) else m50
     m95 = (m95 * 100.0) if (m95 is not None and m95 <= 1.0) else m95
     return m50, m95
-
-
-def parse_darknet_data_file(data_path: str) -> dict:
-    """
-    Returns dict with keys 'train', 'valid', 'names', 'backup' if present.
-    """
-    out = {}
-    if not data_path or not os.path.isfile(data_path):
-        return out
-    with open(data_path, "r", encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if "=" in line:
-                k, v = line.split("=", 1)
-                out[k.strip()] = v.strip()
-    return out
-
 
 # ---------- one run ----------
 def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None:
@@ -300,6 +311,14 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         map50_last_pct = m50
         map5095_pct = m95
 
+    # --- dataset sizing & effective epochs (for CSV) ---
+    train_count = valid_count = 0
+    approx_epochs = None
+    if p.backend == "darknet" and p.data_path:
+        train_count, valid_count = read_split_counts_from_data(p.data_path)
+        if train_count > 0:
+            approx_epochs = (p.iterations * p.batch_size) / float(train_count)
+
     row = {
         "Backend": p.backend,
         "Profile": p.name,
@@ -322,6 +341,14 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         "cuDNN Version": env["cudnn_version"],
         "GPUs Used": env["num_gpus_used"],
         "Compute Capability": env["compute_caps_str"],
+        # NEW: training knobs + dataset sizing
+        "Iterations": p.iterations,
+        "Batch Size": p.batch_size,
+        "Subdivisions": p.subdivisions,
+        "Train Images": train_count,
+        "Valid Images": valid_count,
+        "Approx Epochs": approx_epochs,
+        # Existing eval fields
         "Val Fraction": ratio_float,
         "mAP@0.50 (last %)": map50_last_pct,
         "mAP@0.50 (best %)": map50_best_pct,
@@ -371,7 +398,8 @@ if __name__ == "__main__":
         for t in templates:
             for vf in p.val_fracs:
                 data_path, ratio_tag = build_split_for(vf, p.dataset)
-                p_iter = replace(p, data_path=data_path)  # TrainProfile is frozen
+                # adjust per split to keep approx epochs constant (iterations mode)
+                p_iter = equalize_for_split(p, data_path=data_path, mode="iterations")
                 run_once(p=p_iter, template=t, out_root=out_root)
     else:
         run_once(p=p, template=None if p.backend != "darknet" else p.template, out_root=out_root)
