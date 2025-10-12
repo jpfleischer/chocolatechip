@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# test
 """
 cfg_maker.py — Generate a Darknet .cfg from the yolov7-tiny template (downloaded in-memory),
 ALWAYS recalculating anchors from your dataset labels, using a .data file.
