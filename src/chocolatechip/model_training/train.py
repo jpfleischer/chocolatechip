@@ -73,24 +73,33 @@ def build_darknet_cmd(p: TrainProfile, gpus_str: str) -> str:
         + f"train {p.data_path} {p.cfg_out} 2>&1 | tee training_output.log"
     )
 
-# --- dataset split builder for a given val fraction using profile.dataset ---
 def build_split_for(vf: float, ds) -> tuple[str, str]:
     ratio_tag = f"v{int(round(vf*100)):02d}"          # e.g., v10, v15, v20
     prefix = f"{ds.prefix}_{ratio_tag}"
 
-    sets_str = " ".join(ds.sets)
-    neg = f"--neg-subdirs {' '.join(ds.neg_subdirs)}" if ds.neg_subdirs else ""
     exts = f"--exts {' '.join(ds.exts)}" if ds.exts else ""
-    legos = "--legos" if ds.legos else ""
+    legos = "--legos" if getattr(ds, 'legos', False) else ""
 
-    cmd = (
-        "python -m chocolatechip.model_training.dataset_setup "
-        f"--root {ds.root} --sets {sets_str} --classes {ds.classes} "
-        f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.seed} "
-        f"{neg} {exts} {legos}"
-    )
+    if getattr(ds, "flat_dir", None):  # <-- FLAT MODE
+        cmd = (
+            "python -m chocolatechip.model_training.dataset_setup "
+            f"--root {ds.root} --flat-dir {ds.flat_dir} --classes {ds.classes} "
+            f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.seed} "
+            f"{exts}"
+        )
+    else:  # existing hierarchical mode
+        sets_str = " ".join(ds.sets)
+        neg = f"--neg-subdirs {' '.join(ds.neg_subdirs)}" if ds.neg_subdirs else ""
+        cmd = (
+            "python -m chocolatechip.model_training.dataset_setup "
+            f"--root {ds.root} --sets {sets_str} --classes {ds.classes} "
+            f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.seed} "
+            f"{neg} {exts} {legos}"
+        )
+
     subprocess.check_call(cmd, shell=True)
     return str(Path(ds.root) / f"{prefix}.data"), ratio_tag
+
 
 def parse_darknet_data_file(data_path: str) -> dict:
     out = {}
