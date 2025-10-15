@@ -15,6 +15,7 @@ class DatasetSpec:
     seed: int = 9001
     neg_subdirs: Tuple[str, ...] = tuple()
     exts: Tuple[str, ...] = (".jpg",)
+    flat_dir: str | None = None
     legos: bool = False  # special lego split
     url: str | None = None
     sha256: str | None = None 
@@ -149,20 +150,21 @@ PROFILES = {
         cfg_out="/workspace/leather/leather.cfg",
         width=256, height=256,
         batch_size=64, subdivisions=1,
-        iterations=4000, learning_rate=0.00261,
+        iterations=6000, learning_rate=0.00261,
         templates=("yolov4-tiny", "yolov7-tiny"),
         val_fracs=(0.20,),
         dataset=DatasetSpec(
             root="/workspace/leather",
-            sets=("color", "cut", "fold", "glue", "poke"),
+            sets=("color", "cut", "fold", "glue", "poke", "good_1", "good_2"),
             classes=5,
             names="leather.names",
             prefix="leather",
             seed=9001,
-            neg_subdirs=("good_1", "good_2", ),
+            neg_subdirs=("good_1", "good_2"),
             exts=(".jpg", ".png"),
             url="https://g-665dcc.55ba.08cc.data.globus.org/leather_oct_25.zip",
             sha256="87fba3c49bce7342af51e1fe6df5a470862f201c0e8e25bf3ea80a0c6f238d8c",
+            flat_dir="darkmark_image_cache/resize",
         ),
     ),
 

@@ -25,36 +25,67 @@ def _sha256(path: Path, bufsize: int = 2**20) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+def _flat_top(spec) -> str | None:
+    fd = getattr(spec, "flat_dir", None)
+    if not fd:
+        return None
+    return fd.strip("/").split("/")[0]
+
+# ---- NEW: expected dirs = sets ∪ neg_subdirs --------------------------------
+def _expected_dirs(spec) -> set[str]:
+    """Dirs we must preserve & consider part of the dataset root."""
+    return set(spec.sets) | set(getattr(spec, "neg_subdirs", []) or [])
+
 def _looks_ready(root: Path, spec) -> bool:
     try:
-        return all((root / d).is_dir() for d in spec.sets)
+        # if a flat cache is specified, that's enough
+        if getattr(spec, "flat_dir", None):
+            if (root / spec.flat_dir).is_dir():
+                return True
+        expected = set(spec.sets) | set(getattr(spec, "neg_subdirs", []) or [])
+        return all((root / d).is_dir() for d in expected)
     except Exception:
         return False
 
+
 def _find_dir_with_sets(root: Path, spec) -> Path | None:
-    # search a couple of levels for a directory that contains ALL expected set dirs
-    candidates = [root] + [p for p in root.rglob("*") if p.is_dir() and p.relative_to(root).parts and len(p.relative_to(root).parts) <= 3]
+    expected = set(spec.sets) | set(getattr(spec, "neg_subdirs", []) or [])
+    flat_rel = getattr(spec, "flat_dir", None)
+    candidates = [root] + [p for p in root.rglob("*")
+                           if p.is_dir() and p.relative_to(root).parts
+                           and len(p.relative_to(root).parts) <= 3]
     for c in candidates:
-        if all((c / d).is_dir() for d in spec.sets):
+        ok_sets = all((c / d).is_dir() for d in expected) if expected else False
+        ok_flat = (flat_rel is not None) and (c / flat_rel).is_dir()
+        if ok_sets or ok_flat:                 # <--- NEW
             return c
     return None
+
 
 def _promote_sets_to_root(root: Path, src: Path, spec) -> None:
     if src == root:
         return
-    # move ONLY what we care about (set dirs and expected top-level files) to root
-    # keep this conservative to avoid surprises
-    wanted = set(spec.sets) | {spec.names, f"{spec.prefix}.data", f"{spec.prefix}.cfg", "license.txt"}
+    expected = set(spec.sets) | set(getattr(spec, "neg_subdirs", []) or [])
+    flat_top = _flat_top(spec)                 # <--- NEW
+    if flat_top:
+        expected.add(flat_top)                 # <--- include darkmark_image_cache
+
+    wanted_files = {spec.names, f"{spec.prefix}.data", f"{spec.prefix}.cfg", "license.txt"}
+    wanted = expected | wanted_files
+
     for item in src.iterdir():
         name = item.name
-        if name in wanted or name in spec.sets:
+        if name in wanted:
             shutil.move(str(item), root / name)
-    # As a fallback, if sets still missing, just move everything
+
     if not _looks_ready(root, spec):
+        # still missing (e.g., flat_dir nested deeper); move everything
         for item in list(src.iterdir()):
             shutil.move(str(item), root / item.name)
+
     shutil.rmtree(src, ignore_errors=True)
 
+# -----------------------------------------------------------------------------
 
 def _download(url: str, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -122,11 +153,10 @@ def ensure_download_once(spec: DatasetSpec, *, force: bool = False) -> Path:
         _eprint(f"[skip] dataset ready at {root}")
         return root
 
-    # marker exists but sets missing → repair
+    # marker exists but expected dirs missing → repair
     if already_prepared(root) and not _looks_ready(root, spec):
-        _eprint(f"[warn] marker exists but sets missing; repairing {root}")
+        _eprint(f"[warn] marker exists but expected dirs missing; repairing {root}")
         force = True
-
 
     with DirLock(root):
         if force and root.exists():
@@ -157,7 +187,8 @@ def ensure_download_once(spec: DatasetSpec, *, force: bool = False) -> Path:
                 meta["sha256"] = got
 
             _extract(archive, root)
-            # flatten trivial single-dir case (keep your existing block)
+
+            # flatten trivial single-dir case
             children = [c for c in root.iterdir() if c.name != MARKER_NAME]
             if len(children) == 1 and children[0].is_dir():
                 inner = children[0]
@@ -165,23 +196,22 @@ def ensure_download_once(spec: DatasetSpec, *, force: bool = False) -> Path:
                     shutil.move(str(item), root / item.name)
                 shutil.rmtree(inner, ignore_errors=True)
 
-            # NEW: if the expected sets still aren’t under root/, find them and promote
+            # if expected dirs still aren’t at root/, find and promote them
             if not _looks_ready(root, spec):
                 cand = _find_dir_with_sets(root, spec)
                 if cand is not None:
-                    _eprint(f"[normalize] promoting sets from {cand} -> {root}")
+                    _eprint(f"[normalize] promoting expected dirs from {cand} -> {root}")
                     _promote_sets_to_root(root, cand, spec)
 
-            # sanity check; if still not good, show what we extracted
+            # sanity check; if still not ready, show what we extracted
             if not _looks_ready(root, spec):
-                _eprint("[error] expected set folders missing after extract/normalize")
+                _eprint("[error] expected dirs missing after extract/normalize")
                 try:
                     tree = "\n".join(str(p) for p in root.rglob("*") if p.is_dir())[:2000]
                     _eprint(tree)
                 except Exception:
                     pass
-                raise RuntimeError(f"Extracted dataset does not contain {spec.sets} at {root}")
-
+                raise RuntimeError(f"Extracted dataset does not contain {_expected_dirs(spec)} at {root}")
 
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
@@ -191,10 +221,6 @@ def ensure_download_once(spec: DatasetSpec, *, force: bool = False) -> Path:
         return root
 
 def ensure_splits(spec: DatasetSpec) -> None:
-    """
-    Run your dataset_setup only if split artifacts are missing.
-    Looks for: <prefix>_train.txt, <prefix>_valid.txt, <prefix>.data.
-    """
     root = Path(spec.root).resolve()
     train = root / f"{spec.prefix}_train.txt"
     valid = root / f"{spec.prefix}_valid.txt"
@@ -203,21 +229,35 @@ def ensure_splits(spec: DatasetSpec) -> None:
         _eprint("[split] existing split detected; skipping")
         return
 
-    cmd = [
-        sys.executable, "-m", "chocolatechip.model_training.dataset_setup",
-        "--root", str(root),
-        "--sets", *spec.sets,
-        "--classes", str(spec.classes),
-        "--names", spec.names,
-        "--prefix", spec.prefix,
-        "--val-frac", "0.20",
-        "--seed", str(spec.seed),
-        "--exts", *[e.lower() for e in spec.exts],
-    ]
-    if spec.neg_subdirs:
-        cmd += ["--neg-subdirs", *spec.neg_subdirs]
-    if spec.legos:
-        cmd += ["--legos"]
+    if getattr(spec, "flat_dir", None):
+        cmd = [
+            sys.executable, "-m", "chocolatechip.model_training.dataset_setup",
+            "--root", str(root),
+            "--flat-dir", spec.flat_dir,
+            "--classes", str(spec.classes),
+            "--names", spec.names,
+            "--prefix", spec.prefix,
+            "--val-frac", "0.20",
+            "--seed", str(spec.seed),
+            "--exts", *[e.lower() for e in spec.exts],
+        ]
+    else:
+        all_sets = list(set(spec.sets) | set(getattr(spec, "neg_subdirs", []) or []))
+        cmd = [
+            sys.executable, "-m", "chocolatechip.model_training.dataset_setup",
+            "--root", str(root),
+            "--sets", *all_sets,
+            "--classes", str(spec.classes),
+            "--names", spec.names,
+            "--prefix", spec.prefix,
+            "--val-frac", "0.20",
+            "--seed", str(spec.seed),
+            "--exts", *[e.lower() for e in spec.exts],
+        ]
+        if spec.neg_subdirs:
+            cmd += ["--neg-subdirs", *spec.neg_subdirs]
+        if spec.legos:
+            cmd += ["--legos"]
 
     _eprint("[split]", " ".join(cmd))
     subprocess.check_call(cmd)
