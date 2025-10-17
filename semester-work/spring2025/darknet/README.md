@@ -1,3 +1,9 @@
+run overnight:
+```bash
+nohup bash -lc 'for i in {1..10}; do make || exit 1; sleep 30; done'   > overnight.log 2>&1 & disown
+```
+
+
 # Apptainer
 
 Please ensure your ssh key is set up with GitHub.
