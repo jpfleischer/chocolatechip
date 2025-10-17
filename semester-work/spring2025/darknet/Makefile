@@ -54,12 +54,12 @@ endif
 .PHONY: build run stop apptainer-build arun ashell
 
 run: build stop
-	mkdir -p ${CURDIR}/docker ${CURDIR}/LegoGearsFiles/outputs
-	cp -f ${CURDIR}/LegoGearsFiles/build_darknet.sh ${CURDIR}/docker/build_darknet.sh
+	mkdir -p ${CURDIR}/docker ${CURDIR}/artifacts/outputs
+	cp -f ${CURDIR}/artifacts/build_darknet.sh ${CURDIR}/docker/build_darknet.sh
 
 	docker run --rm -d --gpus all --name $(CONTAINER_NAME) \
 		-v ${CURDIR}/docker:/workspace \
-		-v ${CURDIR}/LegoGearsFiles/outputs:/outputs \
+		-v ${CURDIR}/artifacts/outputs:/outputs \
 		--env TRUE_USER=$(shell whoami) $(DOCKER_WINDOWS_ENV) $(DOCKER_UVA_ENV) \
 		--env ACTUAL_PWD=$(ACTUAL_PWD) \
     	--env YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
@@ -119,14 +119,14 @@ delete:
 arun: apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
 arun-command:
-	mkdir -p ${CURDIR}/docker ${CURDIR}/LegoGearsFiles/outputs
-	cp -f ${CURDIR}/LegoGearsFiles/build_darknet.sh ${CURDIR}/docker/build_darknet.sh
+	mkdir -p ${CURDIR}/docker ${CURDIR}/artifacts/outputs
+	cp -f ${CURDIR}/artifacts/build_darknet.sh ${CURDIR}/docker/build_darknet.sh
 	
 	@$(MODULE_LOAD_APPTAINER); SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) SINGULARITYENV_YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
 		apptainer run --nv --fakeroot \
 		-B $(DARKNET_WORKSPACE):/host_workspace \
 		-B ${CURDIR}/docker:/workspace \
-		-B ${CURDIR}/LegoGearsFiles/outputs:/outputs \
+		-B ${CURDIR}/artifacts/outputs:/outputs \
 		$(SIF_NAME)
 
 arun-cms-gpu:
