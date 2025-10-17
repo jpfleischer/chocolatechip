@@ -61,17 +61,33 @@ def generate_cfg(p: TrainProfile, template: str) -> None:
         width=p.width, height=p.height,
         batch_size=p.batch_size, subdivisions=p.subdivisions,
         iterations=p.iterations, learning_rate=p.learning_rate,
-        anchor_clusters=None,  # template default (6 for v3/v4-tiny, 9 for v7/v4-3l)
+        anchor_clusters=None,
+        color_preset=p.color_preset,   # <- single, purposeful knob
     )
 
-# ---------- command builders ----------
-def build_darknet_cmd(p: TrainProfile, gpus_str: str) -> str:
+
+def build_darknet_cmd(p: TrainProfile, gpus_str: str, *,
+                      map_thresh: float | None = None,
+                      iou_thresh: float | None = None,
+                      points: int | None = None) -> str:
     dk = darknet_path()
+    # Prefer explicit kwargs if given; otherwise fall back to profile fields
+    mt = map_thresh if map_thresh is not None else p.map_thresh
+    it = iou_thresh if iou_thresh is not None else p.iou_thresh
+    pts = points     if points     is not None else p.map_points
+
+    extras = []
+    if mt  is not None: extras += ["-thresh", f"{mt:.2f}"]
+    if it  is not None: extras += ["-iou_thresh", f"{it:.2f}"]
+    if pts is not None: extras += ["-points", str(pts)]
+    extra_str = (" " + " ".join(extras)) if extras else ""
     return (
-        f"{dk} detector -map -dont_show -nocolor "
+        f"{dk} detector -map{extra_str} -dont_show -nocolor "
         + (f"-gpus {gpus_str} " if gpus_str else "")
         + f"train {p.data_path} {p.cfg_out} 2>&1 | tee training_output.log"
     )
+
+
 
 def build_split_for(vf: float, ds) -> tuple[str, str]:
     ratio_tag = f"v{int(round(vf*100)):02d}"          # e.g., v10, v15, v20
@@ -143,39 +159,78 @@ def _maybe_percent_to_percent(val_str: str) -> float:
 
 def parse_darknet_summary(log_path: str):
     """
-    Returns dict:
-      last_map50_pct, best_map50_pct, best_iter, prec, rec, f1
-    mAP as percent (0..100), PRF as decimals (0..1). Missing -> None.
+    Returns:
+      {
+        map_iou: float | None,             # e.g., 0.60
+        last_map_pct: float | None,        # mAP (last) in percent (0..100)
+        best_map_pct: float | None,        # mAP (best) in percent (0..100)
+        best_iter: int | None,
+        conf_thresh_eval: float | None,    # printed conf_thresh used for PR/F1 (0..1)
+        prec: float | None,                # at printed conf_thresh (0..1)
+        rec:  float | None,                # at printed conf_thresh (0..1)
+        f1:   float | None,                # at printed conf_thresh (0..1)
+      }
     """
-    out = dict(last_map50_pct=None, best_map50_pct=None, best_iter=None,
-               prec=None, rec=None, f1=None)
+    out = dict(
+        map_iou=None,
+        last_map_pct=None,
+        best_map_pct=None,
+        best_iter=None,
+        conf_thresh_eval=None,
+        prec=None, rec=None, f1=None
+    )
     if not os.path.isfile(log_path):
         return out
 
+    # Examples matched:
+    # "mean average precision (mAP@0.60)=97.46%"
+    rx_map_line = re.compile(
+        r"mean average precision\s*\(mAP@([0-9]+(?:\.[0-9]+)?)\)\s*=\s*([0-9]+(?:\.[0-9]+)?)%?",
+        re.I
+    )
+
+    # Example matched:
+    # "Last accuracy mAP@0.60=97.46%, best=99.18% at iteration #5900."
     rx_last_best = re.compile(
-        r"Last accuracy mAP@0\.50\s*=\s*([0-9]*\.?[0-9]+)%?,\s*best\s*=\s*([0-9]*\.?[0-9]+)%?\s*at iteration\s*#(\d+)",
-        re.I)
-    rx_map_line = re.compile(r"mean average precision \(mAP@0\.50\)\s*=\s*([0-9]*\.?[0-9]+)%?", re.I)
+        r"Last accuracy mAP@([0-9]+(?:\.[0-9]+)?)\s*=\s*([0-9]+(?:\.[0-9]+)?)%?,\s*best\s*=\s*([0-9]+(?:\.[0-9]+)?)%?\s*at iteration\s*#\s*(\d+)",
+        re.I
+    )
+
+    # Example matched:
+    # "for conf_thresh=0.50, precision=0.94, recall=0.93, F1 score=0.93"
     rx_prf = re.compile(
-        r"for conf_thresh=.*?precision\s*=\s*([0-9]*\.?[0-9]+),\s*recall\s*=\s*([0-9]*\.?[0-9]+),\s*F1 score\s*=\s*([0-9]*\.?[0-9]+)",
-        re.I)
+        r"for\s+conf_thresh\s*=\s*([0-9]*\.?[0-9]+)\s*,\s*precision\s*=\s*([0-9]*\.?[0-9]+)\s*,\s*recall\s*=\s*([0-9]*\.?[0-9]+)\s*,\s*F1\s*score\s*=\s*([0-9]*\.?[0-9]+)",
+        re.I
+    )
 
     with open(log_path, "r", errors="ignore") as f:
         for line in f:
             m = rx_last_best.search(line)
             if m:
-                out["last_map50_pct"] = _maybe_percent_to_percent(m.group(1))
-                out["best_map50_pct"] = _maybe_percent_to_percent(m.group(2))
-                out["best_iter"] = int(m.group(3))
+                out["map_iou"]      = float(m.group(1))
+                out["last_map_pct"] = _maybe_percent_to_percent(m.group(2))
+                out["best_map_pct"] = _maybe_percent_to_percent(m.group(3))
+                out["best_iter"]    = int(m.group(4))
+                continue
+
             m = rx_map_line.search(line)
             if m:
-                out["last_map50_pct"] = _maybe_percent_to_percent(m.group(1))
+                out["map_iou"]      = float(m.group(1))
+                out["last_map_pct"] = _maybe_percent_to_percent(m.group(2))
+                continue
+
             m = rx_prf.search(line)
             if m:
-                out["prec"] = float(m.group(1))
-                out["rec"]  = float(m.group(2))
-                out["f1"]   = float(m.group(3))
+                # conf_thresh in Darknet logs is typically 0..1 or 0..100; keep it as fraction if <=1
+                ct = float(m.group(1))
+                out["conf_thresh_eval"] = ct if ct <= 1.0 else ct / 100.0
+                out["prec"] = float(m.group(2))
+                out["rec"]  = float(m.group(3))
+                out["f1"]   = float(m.group(4))
+
     return out
+
+
 
 def parse_ultra_map(results_csv_path: str) -> tuple[float|None, float|None]:
     """
@@ -227,6 +282,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     ratio_float = (int(ratio_pct) / 100.0) if ratio_pct else None
     ratio_suffix = f"__val{ratio_pct}" if ratio_pct else ""
 
+
     base_tag = template if (p.backend == "darknet" and template) else "ultralytics"
     tag = base_tag + ratio_suffix
 
@@ -238,6 +294,16 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     if p.backend == "darknet":
         assert template, "template required for darknet"
         generate_cfg(p, template)
+
+        # --- stash a copy of the CFG for provenance ---
+        try:
+            src_cfg = Path(p.cfg_out).resolve()
+            dst_cfg = Path(output_dir) / src_cfg.name
+            if not (dst_cfg.exists() and os.path.samefile(src_cfg, dst_cfg)):
+                shutil.copy2(src_cfg, dst_cfg)
+            print(f"[cfg] copied {src_cfg} -> {dst_cfg}")
+        except Exception as e:
+            print(f"[cfg] copy failed: {e}")
 
     # --- copy only the validation list into the output dir as valid.txt ---
     if p.backend == "darknet" and p.data_path:
@@ -304,25 +370,34 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     env = summarize_env(indices=indices, training_log_path=os.path.join(output_dir, "training_output.log"))
 
     # --- derive evaluation metrics ---
-    map50_last_pct = None
-    map50_best_pct = None
-    best_iter = None
+    map_last_pct = None
+    map_best_pct = None
+    map_iou = None
+    map_points = None
     prf = dict(prec=None, rec=None, f1=None)
+    conf_thresh_eval = None
     map5095_pct = None
 
     if p.backend == "darknet":
         summary = parse_darknet_summary(os.path.join(output_dir, "training_output.log"))
-        map50_last_pct = summary["last_map50_pct"]
-        map50_best_pct = summary["best_map50_pct"]
-        best_iter = summary["best_iter"]
-        prf["prec"] = summary["prec"]
-        prf["rec"] = summary["rec"]
-        prf["f1"] = summary["f1"]
+        map_iou        = summary.get("map_iou")
+        map_last_pct   = summary.get("last_map_pct")
+        map_best_pct   = summary.get("best_map_pct")
+        best_iter      = summary.get("best_iter")
+        conf_thresh_eval = summary.get("conf_thresh_eval")
+        prf["prec"]    = summary.get("prec")
+        prf["rec"]     = summary.get("rec")
+        prf["f1"]      = summary.get("f1")
+        map_points     = getattr(p, "map_points", None)
     else:
-        # Ultralytics: results.csv in output_dir
         m50, m95 = parse_ultra_map(os.path.join(output_dir, "results.csv"))
-        map50_last_pct = m50
-        map5095_pct = m95
+        map_last_pct = m50
+        map_best_pct = None
+        map5095_pct  = m95
+        map_iou      = 0.50
+        map_points   = None
+        best_iter    = None
+        conf_thresh_eval = None
 
     # --- dataset sizing & effective epochs (for CSV) ---
     train_count = valid_count = 0
@@ -331,6 +406,8 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         train_count, valid_count = read_split_counts_from_data(p.data_path)
         if train_count > 0:
             approx_epochs = (p.iterations * p.batch_size) / float(train_count)
+
+    color_preset_for_csv = p.color_preset if p.color_preset is not None else "off"
 
     row = {
         "Backend": p.backend,
@@ -354,22 +431,31 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         "cuDNN Version": env["cudnn_version"],
         "GPUs Used": env["num_gpus_used"],
         "Compute Capability": env["compute_caps_str"],
-        # NEW: training knobs + dataset sizing
+
+        # Training knobs + dataset sizing
         "Iterations": p.iterations,
         "Batch Size": p.batch_size,
         "Subdivisions": p.subdivisions,
         "Train Images": train_count,
         "Valid Images": valid_count,
         "Approx Epochs": approx_epochs,
-        # Existing eval fields
+        "Color Preset": color_preset_for_csv,
+
+        # Evaluation knobs (fixed schema)
         "Val Fraction": ratio_float,
-        "mAP@0.50 (last %)": map50_last_pct,
-        "mAP@0.50 (best %)": map50_best_pct,
-        "mAP@0.50-0.95 (%)": map5095_pct,
+        "IoU (mAP)": map_iou,
+        "mAP Points": map_points,
+        "mAP (last %)": map_last_pct,
+        "mAP (best %)": map_best_pct,
+        "mAP50-95 (%)": map5095_pct,
         "Best Iteration": best_iter,
-        "Precision@thr": prf["prec"],
-        "Recall@thr": prf["rec"],
-        "F1@thr": prf["f1"],
+
+        # PRF at printed conf
+        "Conf Thresh (PRF)": conf_thresh_eval,
+        "Precision@Conf": prf["prec"],
+        "Recall@Conf": prf["rec"],
+        "F1@Conf": prf["f1"],
+
     }
 
     csv_name = f"benchmark__{user}__{gpu_name_safe}__{cpu_name_safe}__{tag}__{now}.csv"
@@ -396,6 +482,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
             z.write(q, arcname=q.relative_to(output_dir))
     print(f"[zip] {bundle_path}")
 
+
 # ---------- main ----------
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Train with a named profile (profiles may contain multiple templates).")
@@ -404,7 +491,9 @@ if __name__ == "__main__":
 
     # --- main ---
     p = get_profile(args.profile)
-    out_root = "/outputs" if p.backend == "darknet" else "/ultralytics/outputs"
+    out_root_base = "/outputs" if p.backend == "darknet" else "/ultralytics/outputs"
+    out_root = os.path.join(out_root_base, p.name)   # e.g., /outputs/LeatherDarknet
+
     templates = p.templates or ((p.template,) if p.template else (None,))
     os.makedirs(out_root, exist_ok=True)
 
@@ -413,11 +502,15 @@ if __name__ == "__main__":
         ensure_download_once(p.dataset)   # <--- download/extract once into p.dataset.root
 
     if p.backend == "darknet" and getattr(p, "dataset", None):
-        for t in templates:
+        for t in (p.templates or ((p.template,) if p.template else ())):
             for vf in p.val_fracs:
                 data_path, ratio_tag = build_split_for(vf, p.dataset)
-                # adjust per split to keep approx epochs constant (iterations mode)
+                # keep approx epochs constant across splits
                 p_iter = equalize_for_split(p, data_path=data_path, mode="iterations")
-                run_once(p=p_iter, template=t, out_root=out_root)
+                # sweep color presets (e.g., (None, "preserve"))
+                for color_preset in (p.color_presets if getattr(p, "color_presets", None) else (p.color_preset,)):
+                    p_variant = replace(p_iter, color_preset=color_preset)
+                    run_once(p=p_variant, template=t, out_root=out_root)
     else:
         run_once(p=p, template=None if p.backend != "darknet" else p.template, out_root=out_root)
+
