@@ -38,6 +38,17 @@ def pick_template_url(name: str) -> str:
 KV_RE  = re.compile(r'^\s*([^#;\s=]+)\s*=\s*([^\s#;]+)')
 SEC_RE = re.compile(r'^\s*\[([^\]]+)\]\s*$')
 
+# Top-level (near constants)
+COLOR_PRESETS = {
+    # preserve color (no HSV aug)
+    "preserve": (1.0, 1.0, 0.0),
+    # reasonable defaults you can tweak later
+    "light":    (1.2, 1.2, 0.05),
+    "medium":   (1.5, 1.5, 0.10),
+    "strong":   (1.8, 1.8, 0.15),
+}
+
+
 # -------------------- .data parsing --------------------
 
 def parse_data_file(data_path: Path) -> Dict[str, str]:
@@ -248,6 +259,23 @@ def avg_iou_against_anchors(wh: List[Tuple[float,float]], anchors: List[Tuple[fl
             count += 1
     return (100.0 * total / count) if count else 0.0
 
+def resolve_color_triplet(color_preset: Optional[str]) -> Optional[tuple[float,float,float]]:
+    if not color_preset:
+        return None
+    key = color_preset.strip().lower()
+    if key in COLOR_PRESETS:
+        return COLOR_PRESETS[key]
+    # allow "s,e,h" literal
+    parts = [p.strip() for p in key.split(",")]
+    if len(parts) == 3:
+        try:
+            return (float(parts[0]), float(parts[1]), float(parts[2]))
+        except ValueError:
+            pass
+    sys.exit(f"Invalid color_preset '{color_preset}'. "
+             f"Use one of {', '.join(COLOR_PRESETS)} or 's,e,h'.")
+
+
 def group_masks(num_anchors: int, num_heads: int) -> List[List[int]]:
     if num_heads <= 0:
         sys.exit("internal error: num_heads <= 0")
@@ -270,23 +298,16 @@ def group_masks(num_anchors: int, num_heads: int) -> List[List[int]]:
 def transform_cfg_from_text(template_text: str, *,
                             template_name: str,
                             classes: int,
-                            width: int,
-                            height: int,
-                            batch_size: int,
-                            subdivisions: int,
-                            iterations: int,
-                            learning_rate: float,
-                            saturation: float,
-                            exposure: float,
-                            hue: float,
-                            flip: int,
-                            angle: int,
-                            mosaic: int,
-                            cutmix: int,
-                            mixup: int,
+                            width: int, height: int,
+                            batch_size: int, subdivisions: int,
+                            iterations: int, learning_rate: float,
+                            color_preset: Optional[str],
+                            flip: int, angle: int, mosaic: int, cutmix: int, mixup: int,
                             write_counters_per_class: bool,
                             anchors_wh: List[Tuple[float,float]],
-                            counters_per_class: List[int]) -> List[str]:
+                            counters_per_class: List[int],
+                            anchor_clusters: Optional[int] = None
+                            ) -> List[str]:
 
     lines = cfg_text_to_lines(template_text)
     secs  = find_section_ranges(lines)
@@ -297,17 +318,27 @@ def transform_cfg_from_text(template_text: str, *,
         sys.exit("No [net] section in template")
     _, ns, ne = secs[net_idx]
 
-    def set_net(k, v): section_key_set(lines, ns, ne, k, str(v))
+    # # Auto lower LR for v7-tiny if user passed a "high" value
+    # lr_used = learning_rate
+    # if template_name == "yolov7-tiny" and learning_rate >= 0.001:
+    #     lr_used = learning_rate * 0.1  # stabilize early training
 
+    def set_net(k, v): section_key_set(lines, ns, ne, k, str(v))
     set_net("width", width)
     set_net("height", height)
     set_net("batch", batch_size)
     set_net("subdivisions", subdivisions)
-    set_net("learning_rate", f"{learning_rate:.6f}")
+    # set_net("learning_rate", f"{lr_used:.6f}")
     set_net("max_batches", iterations)
-    set_net("saturation", f"{saturation:.6f}")
-    set_net("exposure",   f"{exposure:.6f}")
-    set_net("hue",        f"{hue:.6f}")
+
+    # Single knob controls HSV collectively; if None, preserve template values
+    hsv_triplet = resolve_color_triplet(color_preset)
+    if hsv_triplet is not None:
+        s, e, h = hsv_triplet
+        set_net("saturation", f"{float(s):.6f}")
+        set_net("exposure",   f"{float(e):.6f}")
+        set_net("hue",        f"{float(h):.6f}")
+
     set_net("flip",       flip)
     set_net("angle",      angle)
     set_net("mosaic",     mosaic)
@@ -334,36 +365,33 @@ def transform_cfg_from_text(template_text: str, *,
         sys.exit("Template has no [yolo] sections")
     num_heads = len(yolo_idxs)
 
-    # Decide anchor count by template (no CLI)
-    if template_name == "yolov4-tiny":
-        k = 6   # 2 heads * 3 anchors
+    if anchor_clusters and anchor_clusters > 1:
+        k = anchor_clusters
+    elif template_name == "yolov4-tiny":
+        k = 6
     elif template_name in ['yolov7-tiny', 'yolov4-tiny-3l']:
-        k = 9   # 3 heads * 3 anchors
+        k = 9
     else:
-        # conservative fallback
         k = max(3 * num_heads, 6)
 
     anchors = kmeans_iou(anchors_wh, k)
     avg_iou = avg_iou_against_anchors(anchors_wh, anchors)
 
-    # Sort small->large and group in triplets
     anchors.sort(key=lambda x: x[0] * x[1])
     groups = [list(range(3*g, min(3*g+3, len(anchors)))) for g in range((len(anchors)+2)//3)]
-    # pad last group if needed (rare)
     if groups and len(groups[-1]) < 3:
         last = groups[-1]
         while len(last) < 3:
             last.append(last[-1])
 
-    # Map groups to heads so the FIRST [yolo] gets the LARGEST anchors (DarkMark-style)
+    # Map triplets to heads in file order
     if template_name == "yolov4-tiny" and num_heads == 2:
-        # groups: 0=small, 1=large
-        group_order = [1, 0]  # head0->large, head1->small
-    elif template_name in ['yolov7-tiny', 'yolov4-tiny-3l'] and num_heads == 3:
-        # groups: 0=small,1=mid,2=large
-        group_order = [2, 1, 0]  # head0->large, head1->mid, head2->small
+        group_order = [1, 0]        # large, small
+    elif template_name == "yolov7-tiny" and num_heads == 3:
+        group_order = [0, 1, 2]     # small, mid, large
+    elif template_name == "yolov4-tiny-3l" and num_heads == 3:
+        group_order = [2, 1, 0]     # large, mid, small
     else:
-        # generic: largest to first, then descending
         group_order = list(reversed(range(min(num_heads, len(groups)))))
 
     anchors_csv = ", ".join(f"{int(w)}, {int(h)}" for (w, h) in anchors)
@@ -382,47 +410,58 @@ def transform_cfg_from_text(template_text: str, *,
     for head_idx, yi in enumerate(yolo_idxs):
         _, ys, ye = secs[yi]
 
-        # mask for this head from the chosen group ordering
-        if head_idx >= len(group_order):
-            mask_ids = groups[-1]  # fallback
-        else:
-            mask_ids = groups[group_order[head_idx]]
+        mask_ids = groups[group_order[head_idx]] if head_idx < len(group_order) else groups[-1]
 
         section_key_set(lines, ys, ye, "classes", str(classes))
         section_key_set(lines, ys, ye, "mask", ",".join(str(i) for i in mask_ids))
         section_key_set(lines, ys, ye, "anchors", anchors_csv)
         section_key_set(lines, ys, ye, "num", str(total_num))
 
+        # # ---- v7-tiny stabilizers on each YOLO head ----
+        # these needed to be changed to give leather dataset a shot. otherwise mAP was really bad
+        #
+        # if template_name == "yolov7-tiny":
+        #     section_key_set(lines, ys, ye, "new_coords", "0")
+        #     section_key_set(lines, ys, ye, "iou_loss", "giou")
+        #     section_key_set(lines, ys, ye, "random", "1")
+
+        #     section_key_set(lines, ys, ye, "iou_normalizer", "1.0")
+        #     section_key_set(lines, ys, ye, "obj_normalizer", "2.0")
+        #     section_key_set(lines, ys, ye, "cls_normalizer", "0.5")
+
         expected_filters = len(mask_ids) * (classes + 5)
 
-        # Find and update the preceding 1x1 conv
+        # Find the conv immediately before this [yolo] (prefer 1x1), then
+        # set filters and force activation=linear. Also strip batch_normalize.
         target = None
         conv_idx = yi - 1
         while conv_idx >= 0:
             cnm, cs, ce = secs[conv_idx]
             if cnm == "convolutional":
-                sz = get_key_in_block(cs, ce, "size")
-                if sz and sz.isdigit() and int(sz) == 1:
-                    target = (cs, ce)
-                    break
+                size_val = get_key_in_block(cs, ce, "size")
                 if target is None:
                     target = (cs, ce)
+                if size_val and size_val.isdigit() and int(size_val) == 1:
+                    target = (cs, ce)
+                    break
             conv_idx -= 1
         if target is None:
             sys.exit("No [convolutional] found before [yolo]")
 
         cs, ce = target
-        replaced = False
-        for i in range(cs + 1, ce):
-            m = KV_RE.match(lines[i])
-            if m and m.group(1).lower() == "filters":
-                lines[i] = f"filters={expected_filters}"
-                replaced = True
-                break
-        if not replaced:
-            lines.insert(ce, f"filters={expected_filters}")
+        section_key_set(lines, cs, ce, "filters", str(expected_filters))
+        # section_key_set(lines, cs, ce, "activation", "linear")
 
-        # refresh section indices after edits
+        # # remove batch_normalize from output conv if present
+        # i = cs + 1
+        # while i < ce:
+        #     m = KV_RE.match(lines[i])
+        #     if m and m.group(1).lower() == "batch_normalize":
+        #         del lines[i]
+        #         ce -= 1
+        #         continue
+        #     i += 1
+
         secs = find_section_ranges(lines)
 
     print(f"[anchors] template={template_name}, k={k}, avg IoU ≈ {avg_iou:.2f}%")
@@ -440,9 +479,7 @@ def generate_cfg_file(
     subdivisions: int = 2,
     iterations: int = 20000,
     learning_rate: float = 0.001,
-    saturation: float = 1.5,
-    exposure: float = 1.5,
-    hue: float = 0.1,
+    color_preset: Optional[str] = None,
     flip: int = 0,
     angle: int = 0,
     mosaic: int = 0,
@@ -451,18 +488,14 @@ def generate_cfg_file(
     write_counters_per_class: bool = False,
     anchor_clusters: int | None = None,
 ) -> str:
-    """Programmatic wrapper that mirrors the CLI behavior."""
-    # Resolve template text
     template_text = fetch_template_text(pick_template_url(template))
 
-    # Default k per template if not provided
     if anchor_clusters is None:
-        if template == "yolov7-tiny":
+        if template in ("yolov7-tiny", "yolov4-tiny-3l"):
             anchor_clusters = 9
         elif template in ("yolov4-tiny", "yolov3-tiny"):
             anchor_clusters = 6
 
-    # Parse .data and gather boxes
     data_path_p = Path(data_path)
     data_cfg = parse_data_file(data_path_p)
     classes = int(data_cfg["classes"])
@@ -478,7 +511,6 @@ def generate_cfg_file(
         img_paths, width, height, classes
     )
 
-    # Transform and write
     cfg_lines = transform_cfg_from_text(
         template_text,
         template_name=template,
@@ -486,10 +518,11 @@ def generate_cfg_file(
         width=width, height=height,
         batch_size=batch_size, subdivisions=subdivisions,
         iterations=iterations, learning_rate=learning_rate,
-        saturation=saturation, exposure=exposure, hue=hue,
+        color_preset=color_preset,
         flip=flip, angle=angle, mosaic=mosaic, cutmix=cutmix, mixup=mixup,
         write_counters_per_class=write_counters_per_class,
         anchors_wh=anchors_wh, counters_per_class=counters_per_class,
+        anchor_clusters=anchor_clusters,
     )
 
     out_p = Path(out_path)
@@ -497,26 +530,27 @@ def generate_cfg_file(
     print(f"Wrote: {out_p}")
     return str(out_p)
 
-
 # -------------------- CLI --------------------
 
 def main():
     ap = argparse.ArgumentParser(
-        description="Generate a Darknet .cfg from an online template (yolov7-tiny or yolov4-tiny), recalculating anchors from a .data file."
+        description="Generate a Darknet .cfg from an online template (yolov7-tiny/yolov4-tiny/4-tiny-3l), recalculating anchors from a .data file."
     )
     ap.add_argument("--data", required=True, help="path to .data file (must include 'classes=' and 'train=')")
     ap.add_argument("--out", required=True, help="output .cfg path")
 
-    # [net] + training knobs
     ap.add_argument("--width", type=int, default=416)
     ap.add_argument("--height", type=int, default=416)
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--subdivisions", type=int, default=2)
     ap.add_argument("--iterations", type=int, default=20000, help="Darknet max_batches")
     ap.add_argument("--learning-rate", type=float, default=0.001)
-    ap.add_argument("--saturation", type=float, default=1.5)
-    ap.add_argument("--exposure",  type=float, default=1.5)
-    ap.add_argument("--hue",       type=float, default=0.1)
+
+    # Single HSV knob (optional). Examples: preserve | light | medium | strong | 1.0,1.0,0.0
+    ap.add_argument("--color-preset",
+                    help=f"HSV preset name ({', '.join(COLOR_PRESETS)}) or a literal 's,e,h' triple. "
+                         "Omit to preserve template HSV values.")
+
     ap.add_argument("--flip",      type=int,   default=0)
     ap.add_argument("--angle",     type=int,   default=0)
     ap.add_argument("--mosaic",    type=int,   default=0)
@@ -525,12 +559,9 @@ def main():
     ap.add_argument("--write-counters-per-class", action="store_true",
                     help="also write counters_per_class=<csv> into [net]")
 
-    ap.add_argument("--template", choices=["yolov7-tiny", "yolov4-tiny", "yolov4-tiny-3l"], default="yolov7-tiny",
-                    help="which Darknet template to start from")
-
-    # anchors
+    ap.add_argument("--template", choices=["yolov7-tiny", "yolov4-tiny", "yolov4-tiny-3l"], default="yolov7-tiny")
     ap.add_argument("--anchor-clusters", type=int, default=None,
-                    help="total anchors to compute (defaults: 9 for yolov7-tiny, 6 for yolov4-tiny)")
+                    help="total anchors to compute (defaults: 9 for v7-tiny/4-tiny-3l, 6 for v4-tiny)")
 
     args = ap.parse_args()
 
@@ -573,15 +604,16 @@ def main():
     out_cfg = Path(args.out)
     cfg_lines = transform_cfg_from_text(
         template_text,
-        template_name=template_name,   # NEW
+        template_name=template_name,
         classes=classes,
         width=args.width, height=args.height,
         batch_size=args.batch_size, subdivisions=args.subdivisions,
         iterations=args.iterations, learning_rate=args.learning_rate,
-        saturation=args.saturation, exposure=args.exposure, hue=args.hue,
+        color_preset=args.color_preset,
         flip=args.flip, angle=args.angle, mosaic=args.mosaic, cutmix=args.cutmix, mixup=args.mixup,
         write_counters_per_class=args.write_counters_per_class,
         anchors_wh=anchors_wh, counters_per_class=counters_per_class,
+        anchor_clusters=anchor_clusters,
     )
 
     write_lines(out_cfg, cfg_lines)
