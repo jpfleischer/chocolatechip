@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 import json
 import math
 
@@ -24,27 +24,32 @@ class DatasetSpec:
 class TrainProfile:
     name: str
     backend: str              # "darknet" or "ultralytics"
-
-    # dataset-specific (darknet; ignored by ultralytics)
     data_path: str
     cfg_out: str
 
-    # training knobs (ultralytics ignores subdivisions/cfg_out/data_path)
+    # training knobs
     width: int
     height: int
     batch_size: int
     subdivisions: int
-    iterations: int           # Darknet max_batches; used to derive Ultralytics epochs
+    iterations: int
     learning_rate: float
 
-    # choose ONE in darknet mode
+    # darknet template selection
     template: str | None = None
     templates: Tuple[str, ...] = tuple()
-
-    # sweep control (darknet only; ultralytics ignores unless you use your own splitter)
     val_fracs: Tuple[float, ...] = (0.20,)
 
-    # dataset recipe for (re)generating splits per val_frac
+    # SINGLE color knob: None -> keep template HSV; otherwise a preset name or "s,e,h"
+    color_preset: Optional[str] = None
+    color_presets: Tuple[Optional[str], ...] = (None,) # sweep list, e.g. (None, "preserve")
+
+    # mAP evaluation knobs (darknet)
+    map_thresh: float | None = None
+    iou_thresh: float | None = None
+    map_points: int | None = None
+
+    # dataset recipe for split regen
     dataset: DatasetSpec | None = None
 
     # ultralytics only
@@ -125,9 +130,10 @@ PROFILES = {
         data_path="/workspace/LegoGears_v2/LegoGears.data",
         cfg_out="/workspace/LegoGears_v2/LegoGears.cfg",
         width=224, height=160,
-        batch_size=64, subdivisions=8,
+        batch_size=64, subdivisions=1,
         iterations=6000, learning_rate=0.00261,
-        templates=("yolov4-tiny", "yolov7-tiny"),
+        templates=("yolov4-tiny", "yolov7-tiny",),
+        # templates=("yolov7-tiny",),
         val_fracs=(0.10, 0.15, 0.20),
         dataset=DatasetSpec(
             root="/workspace/LegoGears_v2",
@@ -149,10 +155,13 @@ PROFILES = {
         data_path="/workspace/leather/leather.data",
         cfg_out="/workspace/leather/leather.cfg",
         width=256, height=256,
+        # width=480, height=480,
         batch_size=64, subdivisions=1,
-        iterations=6000, learning_rate=0.00261,
+        iterations=7000, learning_rate=0.00261,
         templates=("yolov4-tiny", "yolov7-tiny"),
+        # templates=("yolov7-tiny"),
         val_fracs=(0.20,),
+        color_presets=(None, "preserve"),
         dataset=DatasetSpec(
             root="/workspace/leather",
             sets=("color", "cut", "fold", "glue", "poke", "good_1", "good_2"),
@@ -166,6 +175,9 @@ PROFILES = {
             sha256="87fba3c49bce7342af51e1fe6df5a470862f201c0e8e25bf3ea80a0c6f238d8c",
             flat_dir="darkmark_image_cache/resize",
         ),
+        # map_thresh=0.50,
+        # iou_thresh=0.60,
+        # map_points=None,
     ),
 
     "LegoGearsUltra": TrainProfile(
