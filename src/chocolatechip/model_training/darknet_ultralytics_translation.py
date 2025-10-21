@@ -182,7 +182,7 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
             steps=(),
             burn_in=0,
             round_up=True,
-            seed = profile.seed,
+            seed = profile.training_seed,
         )
     )
 
