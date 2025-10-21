@@ -13,6 +13,7 @@ class DatasetSpec:
     names: str
     prefix: str
     seed: int = 9001
+    training_seed: int = 42
     neg_subdirs: Tuple[str, ...] = tuple()
     exts: Tuple[str, ...] = (".jpg",)
     flat_dir: str | None = None
@@ -193,7 +194,7 @@ PROFILES = {
         epochs=None,
         ultra_data="LG_v2.yaml",
         ultra_model="yolo11n.pt",
-        seed = 42,
+        training_seed = 42,
     ),
 }
 
