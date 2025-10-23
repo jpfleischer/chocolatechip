@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import argparse, random, json, re
 from typing import Dict, List, Tuple
+import yaml
 
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
 
@@ -34,6 +35,42 @@ def write_darknet_data_file(out: Path, *, classes: int, train: Path, valid: Path
         f"backup = {backup}\n"
     )
     out.write_text(txt, encoding="utf-8")
+
+def write_ultralytics_yaml(
+    root: Path,
+    prefix: str,
+    classes: int,
+    names_file: str,
+    train_file: Path,
+    valid_file: Path,
+    ratio_tag: str | None = None,
+) -> Path:
+    # Resolve name list
+    names_path = root / names_file
+    class_names = [
+        line.strip()
+        for line in names_path.read_text().splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    yaml_path = root / f"{prefix}{('_' + ratio_tag) if ratio_tag else ''}.yaml"
+
+    # Build minimal ultralytics spec
+    data = {
+        "train": str(train_file),
+        "val": str(valid_file),
+        "nc": classes,
+        "names": class_names,
+    }
+
+    # Write
+    yaml.safe_dump(
+        data,
+        yaml_path.write_text,
+        default_flow_style=False,
+        sort_keys=False,
+        width=1000,
+    )
+    return yaml_path
 
 def choose_split(
     images_by_subdir: Dict[str, List[Path]],
@@ -356,6 +393,17 @@ def main():
         backup=root,
     )
     manifest.write_text(json.dumps(stats, indent=2), encoding="utf-8")
+
+    yaml_path = write_ultralytics_yaml(
+        root=root,
+        prefix=args.prefix,
+        classes=args.classes,
+        names_file=args.names,
+        train_file=train_file,
+        valid_file=valid_file,
+        ratio_tag=data_path.name.split(".data")[0].split(args.prefix)[-1] if "." in data_path.name else None,
+    )
+    print(f"  {yaml_path}  (Ultralytics YAML)")
 
     ctrain, cvalid = len(train_paths), len(valid_paths)
     print(
