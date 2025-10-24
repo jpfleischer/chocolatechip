@@ -4,9 +4,11 @@ import os, re, csv, glob, shutil, getpass, subprocess, zipfile, unicodedata, arg
 from pathlib import Path
 from datetime import datetime
 from threading import Thread, Event
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any, Dict, List
+import itertools
 from dataclasses import replace
 import json
+import yaml
 
 from cloudmesh.common.StopWatch import StopWatch
 from cloudmesh.gpu.gpu import Gpu
@@ -100,7 +102,7 @@ def build_split_for(vf: float, ds) -> tuple[str, str]:
         cmd = (
             "python -m chocolatechip.model_training.dataset_setup "
             f"--root {ds.root} --flat-dir {ds.flat_dir} --classes {ds.classes} "
-            f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.seed} "
+            f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.split_seed} "
             f"{exts}"
         )
     else:  # existing hierarchical mode
@@ -109,12 +111,53 @@ def build_split_for(vf: float, ds) -> tuple[str, str]:
         cmd = (
             "python -m chocolatechip.model_training.dataset_setup "
             f"--root {ds.root} --sets {sets_str} --classes {ds.classes} "
-            f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.seed} "
+            f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.split_seed} "
             f"{neg} {exts} {legos}"
         )
 
     subprocess.check_call(cmd, shell=True)
     return str(Path(ds.root) / f"{prefix}.data"), ratio_tag
+
+
+# helper to pull value-list for a given key
+def _values_for_key(p: TrainProfile, key: str) -> Tuple[Any, ...]:
+    # explicit values win
+    if getattr(p, "sweep_values", None) and key in p.sweep_values and p.sweep_values[key]:
+        return tuple(p.sweep_values[key])
+
+    # conventional mappings from existing profile fields
+    if key == "templates":
+        # prefer templated list; else single template; allow None (ultra)
+        if p.templates:
+            return tuple(p.templates)
+        return (p.template,) if p.template is not None else (None,)
+
+    if key == "val_fracs":
+        return tuple(p.val_fracs)
+
+    if key == "color_presets":
+        if getattr(p, "color_presets", None):
+            return tuple(p.color_presets)
+        return (p.color_preset,)
+
+    # generic: if the profile has a tuple/list field with this name, use it
+    if hasattr(p, key):
+        v = getattr(p, key)
+        if isinstance(v, (tuple, list)):
+            return tuple(v)
+        # allow sweeping scalar via explicit sweep_values only
+    raise KeyError(f"sweep key '{key}' has no values (add to profile.sweep_values or provide a plural field)")
+
+def _apply_one(p: TrainProfile, key: str, val: Any) -> TrainProfile:
+    # templates: set the *active* template in the variant (don’t mutate templates tuple)
+    if key == "templates":
+        return replace(p, template=val)
+    if key == "color_presets":
+        return replace(p, color_preset=val)
+    if hasattr(p, key):
+        return replace(p, **{key: val})
+    # color_presets/val_fracs handled by control flow (we don’t store val_fracs per-run)
+    return p
 
 
 def parse_darknet_data_file(data_path: str) -> dict:
@@ -340,8 +383,40 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     try:
         StopWatch.start("benchmark")
         if p.backend == "darknet":
+            if getattr(p, "training_seed", None) is not None:
+                print("[seed] training_seed set but Darknet ignores training RNG; proceeding without it.")
             cmd = build_darknet_cmd(p, gpus_str)
         else:
+            # ensure we have a dataset YAML; auto-generate from DatasetSpec if provided
+            if getattr(p, "dataset", None) and (not p.ultra_data or not os.path.isfile(p.ultra_data)):
+                default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
+                data_path, _ = build_split_for(default_vf, p.dataset)
+                yaml_path = str(Path(data_path).with_suffix(".yaml"))  # dataset_setup wrote this
+                p = replace(p, ultra_data=yaml_path)
+                print(f"[ultra] using dataset YAML: {yaml_path}")
+            if getattr(p, "training_seed", None) is None:
+                p = replace(p, training_seed=42)
+
+            # --- stash Ultralytics dataset artifacts for provenance ---
+            try:
+                ypath = Path(p.ultra_data).resolve()
+                # copy the YAML used
+                dst_yaml = Path(output_dir) / ypath.name
+                if not (dst_yaml.exists() and os.path.samefile(ypath, dst_yaml)):
+                    shutil.copy2(ypath, dst_yaml)
+                # read YAML to find train/val lists and copy them
+                ydoc = yaml.safe_load(ypath.read_text(encoding="utf-8"))
+                for key, outname in (("val", "valid.txt"), ("train", "train.txt")):
+                    src = ydoc.get(key)
+                    if isinstance(src, str) and os.path.isfile(src):
+                        shutil.copy2(src, Path(output_dir) / outname)
+                        print(f"[{key}] copied {src} -> {Path(output_dir) / outname}")
+                    else:
+                        # might be a list or glob; ignore silently
+                        pass
+            except Exception as e:
+                print(f"[ultra] provenance copy failed: {e}")
+
             cmd = build_ultralytics_cmd(profile=p, device_indices=indices, run_dir=output_dir)
         print(f"[train] {cmd}")
         subprocess.call(cmd, shell=True)
@@ -441,6 +516,10 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         "Approx Epochs": approx_epochs,
         "Color Preset": color_preset_for_csv,
 
+        # Seeds (explicit provenance)
+        "Split Seed": getattr(p.dataset, "split_seed", None),
+        "Training Seed": getattr(p, "training_seed", None),
+
         # Evaluation knobs (fixed schema)
         "Val Fraction": ratio_float,
         "IoU (mAP)": map_iou,
@@ -464,12 +543,13 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     print(f"[csv] {csv_name}")
 
     # Move any Darknet weights (if present)
-    cfg_dir = os.path.dirname(p.cfg_out)
-    for f in glob.glob(os.path.join(cfg_dir, "*weights")):
-        try:
-            shutil.move(f, output_dir)
-        except Exception:
-            pass
+    if p.backend == "darknet":
+        cfg_dir = os.path.dirname(p.cfg_out)
+        for f in glob.glob(os.path.join(cfg_dir, "*weights")):
+            try:
+                shutil.move(f, output_dir)
+            except Exception:
+                pass
 
     # Zip (exclude .weights)
     bundle = f"benchmark_bundle__{user}__{gpu_name_safe}__{cpu_name_safe}__{tag}__{now}.zip"
@@ -489,28 +569,60 @@ if __name__ == "__main__":
     ap.add_argument("--profile", default="LegoGearsDarknet", help="Profile name in profiles.PROFILES")
     args = ap.parse_args()
 
-    # --- main ---
     p = get_profile(args.profile)
-    out_root_base = "/outputs" if p.backend == "darknet" else "/ultralytics/outputs"
-    out_root = os.path.join(out_root_base, p.name)   # e.g., /outputs/LeatherDarknet
 
-    templates = p.templates or ((p.template,) if p.template else (None,))
+        
+    # new (no helpers, single inline check)
+    inside_container = os.path.exists("/.dockerenv") or ("APPTAINER_ENVIRONMENT" in os.environ)
+    out_root_base = "/outputs" if inside_container else "artifacts/outputs"
+
+    out_root = os.path.join(out_root_base, p.name)
     os.makedirs(out_root, exist_ok=True)
 
-    # ensure the raw dataset exists ONCE (idempotent), BEFORE we call dataset_setup
-    if getattr(p, "dataset", None):
-        ensure_download_once(p.dataset)   # <--- download/extract once into p.dataset.root
+    sweep_keys = tuple(getattr(p, "sweep_keys", ()) or ())
+    if p.backend == "darknet" and sweep_keys:
+        # build cartesian product of declared sweep variables
+        grid_lists = [ _values_for_key(p, k) for k in sweep_keys ]
+        for combo in itertools.product(*grid_lists):
+            # make a concrete variant for this combo
+            p_variant = p
+            combo_map = dict(zip(sweep_keys, combo))
 
-    if p.backend == "darknet" and getattr(p, "dataset", None):
-        for t in (p.templates or ((p.template,) if p.template else ())):
-            for vf in p.val_fracs:
-                data_path, ratio_tag = build_split_for(vf, p.dataset)
-                # keep approx epochs constant across splits
-                p_iter = equalize_for_split(p, data_path=data_path, mode="iterations")
-                # sweep color presets (e.g., (None, "preserve"))
-                for color_preset in (p.color_presets if getattr(p, "color_presets", None) else (p.color_preset,)):
-                    p_variant = replace(p_iter, color_preset=color_preset)
-                    run_once(p=p_variant, template=t, out_root=out_root)
+            # apply non-split fields to the profile (e.g., template, color_preset, iterations, etc.)
+            for k, v in combo_map.items():
+                if k not in ("val_fracs",):  # val_fracs handled via split below
+                    p_variant = _apply_one(p_variant, k, v)
+
+            # decide dataset split for this run
+            if "val_fracs" in combo_map:
+                vf = float(combo_map["val_fracs"])
+                data_path, _ = build_split_for(vf, p.dataset) if getattr(p, "dataset", None) else (p.data_path, None)
+            else:
+                # if no val sweep: use existing .data (or build the first one if missing)
+                if p.data_path and os.path.isfile(p.data_path):
+                    data_path = p.data_path
+                else:
+                    default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
+                    data_path, _ = build_split_for(default_vf, p.dataset) if getattr(p, "dataset", None) else (p.data_path, None)
+
+            # equalize per-template to keep epochs ~constant
+            p_variant = equalize_for_split(p_variant, data_path=data_path, mode="iterations")
+
+            # run it
+            run_once(p=p_variant, template=p_variant.template, out_root=out_root)
+
+    elif p.backend == "darknet":
+        # no sweep declared: single run using (first) template / existing data
+        run_once(p=p, template=p.template or (p.templates[0] if p.templates else None), out_root=out_root)
+
     else:
-        run_once(p=p, template=None if p.backend != "darknet" else p.template, out_root=out_root)
-
+        # ultralytics: you can still declare sweep_keys for things like epochs/batch_size if you want
+        if sweep_keys:
+            grid_lists = [ _values_for_key(p, k) for k in sweep_keys ]
+            for combo in itertools.product(*grid_lists):
+                p_variant = p
+                for k, v in dict(zip(sweep_keys, combo)).items():
+                    p_variant = _apply_one(p_variant, k, v)
+                run_once(p=p_variant, template=None, out_root=out_root)
+        else:
+            run_once(p=p, template=None, out_root=out_root)
