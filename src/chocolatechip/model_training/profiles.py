@@ -44,6 +44,8 @@ class TrainProfile:
     color_preset: Optional[str] = None
     color_presets: Tuple[Optional[str], ...] = (None,) # sweep list, e.g. (None, "preserve")
 
+    tag_color_preset: bool = False
+
     # mAP evaluation knobs (darknet)
     map_thresh: float | None = None
     iou_thresh: float | None = None
@@ -172,6 +174,7 @@ PROFILES = {
         # templates=("yolov7-tiny"),
         val_fracs=(0.20,),
         color_presets=(None, "preserve"),
+        tag_color_preset=True,   # <— ONLY Leather opts in
         sweep_keys=("templates", "color_presets"),
         sweep_values={},
         dataset=DatasetSpec(
