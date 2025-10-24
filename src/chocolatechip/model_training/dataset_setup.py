@@ -23,6 +23,14 @@ def _label_path_for(img: Path) -> Path:
     # always .txt regardless of image extension/case
     return img.with_suffix(".txt")
 
+def _derive_ratio_tag_from_prefix(prefix: str) -> str | None:
+    """
+    Extract trailing pattern like '_v10' or '_v15' from a prefix such as 'LegoGears_v10'.
+    Returns 'v10' or None if absent.
+    """
+    m = re.search(r'_(v\d{2})$', prefix)
+    return m.group(1) if m else None
+
 def write_list(path: Path, paths: List[Path]) -> None:
     path.write_text("\n".join(str(p) for p in paths) + "\n", encoding="utf-8")
 
@@ -52,7 +60,9 @@ def write_ultralytics_yaml(
         for line in names_path.read_text().splitlines()
         if line.strip() and not line.strip().startswith("#")
     ]
-    yaml_path = root / f"{prefix}{('_' + ratio_tag) if ratio_tag else ''}.yaml"
+    # The prefix you pass (e.g., 'LegoGears_v10') already carries the ratio;
+    # don’t append ratio_tag again to avoid '..._v10_v10.yaml'.
+    yaml_path = root / f"{prefix}.yaml"
 
     # Build minimal ultralytics spec
     data = {
@@ -63,13 +73,9 @@ def write_ultralytics_yaml(
     }
 
     # Write
-    yaml.safe_dump(
-        data,
-        yaml_path.write_text,
-        default_flow_style=False,
-        sort_keys=False,
-        width=1000,
-    )
+    # Properly write YAML to file
+    yaml_str = yaml.safe_dump(data, sort_keys=False, default_flow_style=False, width=1000)
+    yaml_path.write_text(yaml_str, encoding="utf-8")
     return yaml_path
 
 def choose_split(
@@ -394,17 +400,17 @@ def main():
     )
     manifest.write_text(json.dumps(stats, indent=2), encoding="utf-8")
 
-    # breaks for now
-    # yaml_path = write_ultralytics_yaml(
-    #     root=root,
-    #     prefix=args.prefix,
-    #     classes=args.classes,
-    #     names_file=args.names,
-    #     train_file=train_file,
-    #     valid_file=valid_file,
-    #     ratio_tag=data_path.name.split(".data")[0].split(args.prefix)[-1] if "." in data_path.name else None,
-    # )
-    # print(f"  {yaml_path}  (Ultralytics YAML)")
+    yaml_path = write_ultralytics_yaml(
+        root=root,
+        prefix=args.prefix,
+        classes=args.classes,
+        names_file=args.names,
+        train_file=train_file,
+        valid_file=valid_file,
+        # derive from prefix (e.g., 'LegoGears_v10' -> 'v10'); safe if absent
+        ratio_tag=_derive_ratio_tag_from_prefix(args.prefix),
+    )
+    print(f"  {yaml_path}  (Ultralytics YAML)")
 
     ctrain, cvalid = len(train_paths), len(valid_paths)
     print(
