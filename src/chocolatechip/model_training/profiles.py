@@ -13,7 +13,6 @@ class DatasetSpec:
     names: str
     prefix: str
     seed: int = 9001
-    training_seed: int = 42
     neg_subdirs: Tuple[str, ...] = tuple()
     exts: Tuple[str, ...] = (".jpg",)
     flat_dir: str | None = None
@@ -57,6 +56,7 @@ class TrainProfile:
     epochs: int | None = None
     ultra_data: str = "LG_v2.yaml"
     ultra_model: str = "yolo11n.pt"
+    training_seed: int = 42
 
 # ---------------- equalization helpers (profiles-level policy) ----------------
 
@@ -190,13 +190,10 @@ PROFILES = {
         iterations=6000, learning_rate=0.00261,
         templates=(),
         val_fracs=(0.20,),   # ignored unless you hook a splitter
-        dataset=None,
         epochs=None,
         ultra_data="LG_v2.yaml",
         ultra_model="yolo11n.pt",
-        dataset=DatasetSpec(
-            training_seed = 42,
-        )
+        dataset=None,
     ),
 }
 
