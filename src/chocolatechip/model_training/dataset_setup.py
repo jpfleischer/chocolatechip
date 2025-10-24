@@ -394,16 +394,17 @@ def main():
     )
     manifest.write_text(json.dumps(stats, indent=2), encoding="utf-8")
 
-    yaml_path = write_ultralytics_yaml(
-        root=root,
-        prefix=args.prefix,
-        classes=args.classes,
-        names_file=args.names,
-        train_file=train_file,
-        valid_file=valid_file,
-        ratio_tag=data_path.name.split(".data")[0].split(args.prefix)[-1] if "." in data_path.name else None,
-    )
-    print(f"  {yaml_path}  (Ultralytics YAML)")
+    # breaks for now
+    # yaml_path = write_ultralytics_yaml(
+    #     root=root,
+    #     prefix=args.prefix,
+    #     classes=args.classes,
+    #     names_file=args.names,
+    #     train_file=train_file,
+    #     valid_file=valid_file,
+    #     ratio_tag=data_path.name.split(".data")[0].split(args.prefix)[-1] if "." in data_path.name else None,
+    # )
+    # print(f"  {yaml_path}  (Ultralytics YAML)")
 
     ctrain, cvalid = len(train_paths), len(valid_paths)
     print(
