@@ -53,6 +53,16 @@ def darknet_path() -> str:
         return "/workspace/darknet/build/src-cli/darknet"
     return "darknet"
 
+def _color_token(p) -> str:
+    # Only emit if the profile opted in
+    if not getattr(p, "tag_color_preset", False):
+        return ""
+    v = getattr(p, "color_preset", None)
+    # encode "off" vs specific preset
+    if v in (None, "", "off"):
+        return "__color_off"
+    return f"__color_{slugify(str(v))}"
+
 # ---------- cfg generation (darknet) ----------
 def generate_cfg(p: TrainProfile, template: str) -> None:
     print(f"[cfg] template={template} -> {p.cfg_out}")
@@ -327,7 +337,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
 
 
     base_tag = template if (p.backend == "darknet" and template) else "ultralytics"
-    tag = base_tag + ratio_suffix
+    tag = base_tag + ratio_suffix + _color_token(p)
 
     output_dir = os.path.join(out_root, f"benchmark__{user}__{gpu_name_safe}__{tag}__{now}")
     os.makedirs(output_dir, exist_ok=True)
@@ -598,12 +608,15 @@ if __name__ == "__main__":
                 vf = float(combo_map["val_fracs"])
                 data_path, _ = build_split_for(vf, p.dataset) if getattr(p, "dataset", None) else (p.data_path, None)
             else:
-                # if no val sweep: use existing .data (or build the first one if missing)
-                if p.data_path and os.path.isfile(p.data_path):
+                # Prefer building a fresh split if we have a DatasetSpec
+                if getattr(p, "dataset", None):
+                    default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
+                    data_path, _ = build_split_for(default_vf, p.dataset)
+                elif p.data_path and os.path.isfile(p.data_path):
                     data_path = p.data_path
                 else:
-                    default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
-                    data_path, _ = build_split_for(default_vf, p.dataset) if getattr(p, "dataset", None) else (p.data_path, None)
+                    data_path = p.data_path  # last resort
+
 
             # equalize per-template to keep epochs ~constant
             p_variant = equalize_for_split(p_variant, data_path=data_path, mode="iterations")
