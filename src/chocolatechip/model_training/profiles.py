@@ -1,7 +1,7 @@
 from __future__ import annotations
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, field
+from typing import Tuple, Dict, Optional, Any
 from pathlib import Path
-from typing import Tuple, Dict, Optional
 import json
 import math
 
@@ -12,7 +12,7 @@ class DatasetSpec:
     classes: int
     names: str
     prefix: str
-    seed: int = 9001
+    split_seed: int = 9001
     neg_subdirs: Tuple[str, ...] = tuple()
     exts: Tuple[str, ...] = (".jpg",)
     flat_dir: str | None = None
@@ -56,12 +56,18 @@ class TrainProfile:
     epochs: int | None = None
     ultra_data: str = "LG_v2.yaml"
     ultra_model: str = "yolo11n.pt"
-    training_seed: int = 42
+
+    # ultralytics-only training RNG; ignored by Darknet
+    training_seed: Optional[int] = None
+
+
+    sweep_keys: Tuple[str, ...] = tuple()
+    sweep_values: Dict[str, Tuple[Any, ...]] = field(default_factory=dict)
 
 # ---------------- equalization helpers (profiles-level policy) ----------------
 
 # cache target_epochs per profile name so the first split sets the baseline
-_equalize_cache: Dict[str, float] = {}
+_equalize_cache: Dict[tuple, float] = {}
 
 def _manifest_from_data_path(data_path: str) -> Path:
     """'/path/LegoGears_v15.data' -> '/path/LegoGears_v15_split.json'."""
@@ -99,7 +105,7 @@ def equalize_for_split(profile: TrainProfile, *, data_path: str, mode: str = "it
         return replace(profile, data_path=data_path)
 
     # Establish target epochs on first call for this profile name
-    key = profile.name
+    key = (profile.name, getattr(profile, "template", None), getattr(profile, "color_preset", None))
     if key not in _equalize_cache:
         _equalize_cache[key] = (profile.iterations * profile.batch_size) / max(1, T)
         if _equalize_cache[key] <= 0:
@@ -136,13 +142,16 @@ PROFILES = {
         templates=("yolov4-tiny", "yolov7-tiny",),
         # templates=("yolov7-tiny",),
         val_fracs=(0.10, 0.15, 0.20),
+        sweep_keys=("templates", "val_fracs"),
+        # sweep_values can stay empty; we’ll use the tuples above
+        sweep_values={},
         dataset=DatasetSpec(
             root="/workspace/LegoGears_v2",
             sets=("set_01", "set_02_empty", "set_03"),
             classes=5,
             names="LegoGears.names",
             prefix="LegoGears",
-            seed=9001,
+            split_seed=9001,
             neg_subdirs=("set_02_empty",),
             exts=(".jpg",),
             legos=False,
@@ -163,13 +172,15 @@ PROFILES = {
         # templates=("yolov7-tiny"),
         val_fracs=(0.20,),
         color_presets=(None, "preserve"),
+        sweep_keys=("templates", "color_presets"),
+        sweep_values={},
         dataset=DatasetSpec(
             root="/workspace/leather",
             sets=("color", "cut", "fold", "glue", "poke", "good_1", "good_2"),
             classes=5,
             names="leather.names",
             prefix="leather",
-            seed=9001,
+            split_seed=9001,
             neg_subdirs=("good_1", "good_2"),
             exts=(".jpg", ".png"),
             url="https://g-665dcc.55ba.08cc.data.globus.org/leather_oct_25.zip",
@@ -189,11 +200,24 @@ PROFILES = {
         batch_size=64, subdivisions=8,
         iterations=6000, learning_rate=0.00261,
         templates=(),
-        val_fracs=(0.20,),   # ignored unless you hook a splitter
+        val_fracs=(0.20,),
+        dataset=DatasetSpec(
+            root="/workspace/LegoGears_v2",
+            sets=("set_01", "set_02_empty", "set_03"),
+            classes=5,
+            names="LegoGears.names",
+            prefix="LegoGears",
+            split_seed=9001,
+            neg_subdirs=("set_02_empty",),
+            exts=(".jpg",),
+            legos=False,
+            url="https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip",
+            sha256="126980d3e43986bbd3d785ac16f6430e9bf3b726e65a30574bb3c9ba06a4462e",
+        ),
         epochs=None,
-        ultra_data="LG_v2.yaml",
+        ultra_data="",
         ultra_model="yolo11n.pt",
-        dataset=None,
+        training_seed = 42,
     ),
 }
 

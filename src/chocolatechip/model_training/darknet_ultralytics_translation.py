@@ -182,13 +182,22 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
             steps=(),
             burn_in=0,
             round_up=True,
-            seed = profile.training_seed,
         )
     )
 
     # Point project at the specific benchmark run directory; keep a simple name
     project = run_dir
     run_name = "train"  # or f"{profile.name}_train" if you prefer
+
+    seed_arg = (
+        f"seed={int(profile.training_seed)} "
+        if getattr(profile, "training_seed", None) is not None
+        else ""
+    )
+    # Ultralytics supports deterministic mode; helps make seeds meaningful.
+    det_arg = "deterministic=True "
+    # Fewer workers also reduces nondeterministic dataloader timing effects.
+    workers_arg = "workers=0 "
 
     core = (
         f"task=detect mode=train "
@@ -200,6 +209,7 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
         f"lr0={profile.learning_rate} "
         f"project={project} name={run_name} exist_ok=True "
         f"device={device_str} "
+        f"{seed_arg}{det_arg}{workers_arg}"
     )
 
     return (
