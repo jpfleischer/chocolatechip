@@ -194,7 +194,9 @@ PROFILES = {
         epochs=None,
         ultra_data="LG_v2.yaml",
         ultra_model="yolo11n.pt",
-        training_seed = 42,
+        dataset=DatasetSpec(
+            training_seed = 42,
+        )
     ),
 }
 
