@@ -3,6 +3,12 @@ run overnight:
 nohup bash -lc 'for i in {1..10}; do make || exit 1; sleep 30; done'   > overnight.log 2>&1 & disown
 ```
 
+find the pid
+
+```bash
+pgrep -af 'bash -lc .*for i in \{1\.\.10\}; do make'
+```
+
 
 # Apptainer
 
