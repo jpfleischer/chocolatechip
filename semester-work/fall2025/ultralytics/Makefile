@@ -2,7 +2,7 @@ DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legog
 DATASET_DIR    := LegoGears_v2
 DATASET_ZIP    := legogears_2_dataset.zip
 PROJ_ROOT 	   := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
-SOURCE_PATH    := "semester-work/fall2025/ultralytics"
+SOURCE_PATH    := semester-work/fall2025/ultralytics
 SIF_NAME	   := $(CURDIR)/my_ultralytics_container.sif
 APPTAINER_SRC := $(PROJ_ROOT)/src
 
@@ -27,7 +27,6 @@ endif
 benchmark-ultra benchmarking benchmark: check-dataset
 	@mkdir -p outputs
 	docker build \
-		--build-arg SOURCE_PATH=$(SOURCE_PATH) \
 		--build-arg UID=$(BUILD_UID) \
 		--build-arg GID=$(BUILD_GID) \
 		-t my-benchmark-app \
@@ -36,7 +35,8 @@ benchmark-ultra benchmarking benchmark: check-dataset
 		-e TRUE_USER=$$(id -un) \
 		-e HOME=/home/appuser \
 		-e ACTUAL_PWD="$(CUR_HOST)" \
-		-v "$(CUR_HOST)/outputs":/ultralytics/outputs \
+		-v "$(CUR_HOST)/LegoGears_v2":/workspace/LegoGears_v2 \
+		-v "$(CUR_HOST)/outputs":/outputs \
 		my-benchmark-app
 
 check-dataset:
@@ -51,9 +51,8 @@ check-dataset:
 ultra bash: check-dataset
 	@mkdir -p outputs
 	$(SHELL_ENV) docker run -it --shm-size=4gb --gpus all \
-		-v "$(CUR_HOST)/LegoGears_v2":/ultralytics/LegoGears_v2 \
-		-v "$(CUR_HOST)/LG_v2.yaml":/ultralytics/LG_v2.yaml:ro \
-		-v "$(CUR_HOST)/outputs":/ultralytics/outputs \
+		-v "$(CUR_HOST)/LegoGears_v2":/workspace/LegoGears_v2 \
+		-v "$(CUR_HOST)/outputs":/outputs \
 		my-benchmark-app \
 		/bin/bash -lc "ls -la /ultralytics && exec /bin/bash"
 
