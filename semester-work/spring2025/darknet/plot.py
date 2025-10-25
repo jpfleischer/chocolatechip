@@ -15,40 +15,67 @@ FOLDER_RX = re.compile(r"__(?P<template>yolov[0-9a-zA-Z\-_.]+)__val(?P<val>\d{2}
 
 # columns to try for the "last" mAP
 MAP50_LAST_KEYS = [
-    "mAP@0.50 (last %)",   # current writer
-    "mAP@0.50 (last)",     # fallback
-    "mAP@0.50",            # older fallback
+    "mAP (last %)",          # <-- what your CSV actually has
+    "mAP@0.50 (last %)",
+    "mAP@0.50 (last)",
+    "mAP@0.50",
+    "map50_last",
+    "map_50_last",
+    "last_map50",
+    "map50 (last)",
+    "map@0.50_last",
 ]
 
 def read_last_map50_pct(csv_path: str, debug: bool=False) -> Optional[float]:
     """Return last mAP@0.50 as PERCENT (float), or None if missing/unreadable."""
+    import re
+    DYNAMIC_KEY_PATTERNS = [
+        re.compile(r'^mAP(?:@0?\.?50)?\s*\(last.*\)%?$', re.I),   # e.g. "mAP (last %)", "mAP@0.50 (last %)"
+        re.compile(r'^map.*last.*%$', re.I),                      # catch odd spellings that still state 'last' and '%'
+    ]
     try:
         with open(csv_path, newline="") as f:
             rows = list(csv.DictReader(f))
             if not rows:
-                if debug:
-                    print(f"[debug] CSV empty: {csv_path}")
+                if debug: print(f"[debug] CSV empty: {csv_path}")
                 return None
-            row = rows[-1]  # usually single-row
+            row = rows[-1]
+
+            # 1) exact/known keys first
             for key in MAP50_LAST_KEYS:
                 if key in row and row[key] not in ("", "nan", None):
                     try:
-                        v = float(row[key])
+                        s = str(row[key]).strip().replace("%", "")
+                        v = float(s)
+                        v = v * 100.0 if v <= 1.0 else v  # ensure percent
+                        if debug: print(f"[debug] Using {key}={v:.2f}% from {os.path.basename(csv_path)}")
+                        return v
                     except Exception:
-                        if debug:
-                            print(f"[debug] Could not parse {key}='{row[key]}' in {csv_path}")
+                        if debug: print(f"[debug] Could not parse {key}='{row[key]}' in {csv_path}")
                         continue
-                    v = v * 100.0 if v <= 1.0 else v  # ensure percent
-                    if debug:
-                        print(f"[debug] Using {key}={v:.2f}% from {os.path.basename(csv_path)}")
-                    return v
+
+            # 2) dynamic fallback: look for any header that matches our patterns
+            headers = list(row.keys())
+            for pat in DYNAMIC_KEY_PATTERNS:
+                for key in headers:
+                    if pat.match(key) and row.get(key) not in ("", "nan", None):
+                        try:
+                            s = str(row[key]).strip().replace("%", "")
+                            v = float(s)
+                            v = v * 100.0 if v <= 1.0 else v
+                            if debug: print(f"[debug] Using dynamic key {key}={v:.2f}% from {os.path.basename(csv_path)}")
+                            return v
+                        except Exception:
+                            if debug: print(f"[debug] Could not parse dynamic {key}='{row[key]}' in {csv_path}")
+                            continue
+
             if debug:
-                print(f"[debug] No mAP key found in {os.path.basename(csv_path)}; headers={list(row.keys())}")
+                print(f"[debug] No mAP key found in {os.path.basename(csv_path)}; headers={headers}")
     except Exception as e:
-        if debug:
-            print(f"[debug] Failed reading CSV {csv_path}: {e}")
+        if debug: print(f"[debug] Failed reading CSV {csv_path}: {e}")
         return None
     return None
+
 
 def collect_map(outputs_dir: str,
                 include_templates: Optional[List[str]] = None,
@@ -336,7 +363,7 @@ def main():
     ap = argparse.ArgumentParser(
         description="Grouped boxplots of last mAP@0.50 by validation ratio and YOLO template (reads run CSVs)."
     )
-    ap.add_argument("--outputs-dir", default="LegoGearsFiles/outputs",
+    ap.add_argument("--outputs-dir", default="artifacts/outputs/LegoGearsDarknet/",
                     help="Directory containing benchmark__* run folders.")
     ap.add_argument("--templates", nargs="*", default=None,
                     help="Optional list to include (e.g., yolov4-tiny yolov7-tiny). Defaults to all found.")
