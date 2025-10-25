@@ -63,6 +63,15 @@ def _color_token(p) -> str:
         return "__color_off"
     return f"__color_{slugify(str(v))}"
 
+def _find_ultra_results_csv(output_dir: str) -> str | None:
+    d = Path(output_dir)
+    for p in (d / "results.csv", d / "train" / "results.csv"):
+        if p.is_file():
+            return str(p)
+    for sub in d.glob("*/results.csv"):
+        return str(sub)
+    return None
+
 # ---------- cfg generation (darknet) ----------
 def generate_cfg(p: TrainProfile, template: str) -> None:
     print(f"[cfg] template={template} -> {p.cfg_out}")
@@ -83,10 +92,16 @@ def build_darknet_cmd(p: TrainProfile, gpus_str: str, *,
                       iou_thresh: float | None = None,
                       points: int | None = None) -> str:
     dk = darknet_path()
-    # Prefer explicit kwargs if given; otherwise fall back to profile fields
-    mt = map_thresh if map_thresh is not None else p.map_thresh
-    it = iou_thresh if iou_thresh is not None else p.iou_thresh
-    pts = points     if points     is not None else p.map_points
+    # Prefer explicit kwargs; else profile; else default to 101
+    mt = map_thresh if map_thresh is not None else getattr(p, "map_thresh", None)
+    it = iou_thresh if iou_thresh is not None else getattr(p, "iou_thresh", None)
+    pts = (
+        points
+        if points is not None
+        else (getattr(p, "map_points", None) if hasattr(p, "map_points") else None)
+    )
+    if pts is None:
+        pts = 101  # <-- default to COCO-style 101 recall points
 
     extras = []
     if mt  is not None: extras += ["-thresh", f"{mt:.2f}"]
@@ -308,8 +323,9 @@ def parse_ultra_map(results_csv_path: str) -> tuple[float|None, float|None]:
                     pass
         return None
 
-    m50 = _pick("metrics/mAP50", "metrics/mAP_50", "mAP50")
+    m50 = _pick("metrics/mAP50", "metrics/mAP_50", "mAP50", "metrics/mAP50(B)")
     m95 = _pick("metrics/mAP50-95", "metrics/mAP_50-95", "mAP50-95", "metrics/mAP50-95(B)")
+
 
     # convert to percent if present
     m50 = (m50 * 100.0) if (m50 is not None and m50 <= 1.0) else m50
@@ -395,6 +411,10 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         if p.backend == "darknet":
             if getattr(p, "training_seed", None) is not None:
                 print("[seed] training_seed set but Darknet ignores training RNG; proceeding without it.")
+            # right before you call build_darknet_cmd(...) in run_once()
+            if p.backend == "darknet" and getattr(p, "map_points", None) is None:
+                p = replace(p, map_points=101)   # record the choice for provenance/CSV
+
             cmd = build_darknet_cmd(p, gpus_str)
         else:
             # ensure we have a dataset YAML; auto-generate from DatasetSpec if provided
@@ -473,16 +493,23 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         prf["prec"]    = summary.get("prec")
         prf["rec"]     = summary.get("rec")
         prf["f1"]      = summary.get("f1")
-        map_points     = getattr(p, "map_points", None)
+        map_points     = getattr(p, "map_points", 101)
     else:
-        m50, m95 = parse_ultra_map(os.path.join(output_dir, "results.csv"))
+        csv_path = _find_ultra_results_csv(output_dir)
+        if csv_path:
+            m50, m95 = parse_ultra_map(csv_path)
+        else:
+            print("[ultra] results.csv not found; looked in run dir and train/ subdir")
+            m50, m95 = (None, None)
+
         map_last_pct = m50
         map_best_pct = None
         map5095_pct  = m95
         map_iou      = 0.50
-        map_points   = None
+        map_points   = 101  # Ultralytics uses 101-point PR
         best_iter    = None
         conf_thresh_eval = None
+
 
     # --- dataset sizing & effective epochs (for CSV) ---
     train_count = valid_count = 0
