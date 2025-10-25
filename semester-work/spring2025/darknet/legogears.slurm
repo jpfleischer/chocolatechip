@@ -14,17 +14,7 @@
 # and your dataset directory so that your training data (in docker/) is available inside the container.
 
 
-make lego-setup
-
-make arun-cms-gpu
-# sleep 25
-
-make arun-command
-
-pkill -SIGINT -f "cms gpu watch"
-
-sleep 5
-
-# Move the mylogfile.log to the most recently created directory in LegoGearsFiles/outputs/
-target=$(ls -td LegoGearsFiles/outputs/*/ | head -1)
-mv mylogfile.log "$target"
+set -euo pipefail
+# Ensure we run from the submit directory (important on some clusters)
+cd "${SLURM_SUBMIT_DIR:-$PWD}"
+make arun
