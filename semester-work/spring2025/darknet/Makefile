@@ -51,7 +51,8 @@ else
 endif
 
 
-.PHONY: build run stop apptainer-build arun ashell
+.PHONY: build run stop apptainer-build arun ashell arun-command
+
 
 run: build stop
 	mkdir -p ${CURDIR}/docker ${CURDIR}/artifacts/outputs
@@ -118,16 +119,23 @@ delete:
 # Run the apptainer container with a bind mount for a writable workspace
 arun: apptainer-build $(DARKNET_WORKSPACE) arun-command
 	
-arun-command:
-	mkdir -p ${CURDIR}/docker ${CURDIR}/artifacts/outputs
+arun-command: $(DARKNET_WORKSPACE)
+	mkdir -p $(DARKNET_WORKSPACE) \
+	         ${CURDIR}/docker \
+	         ${CURDIR}/artifacts/outputs
 	cp -f ${CURDIR}/artifacts/build_darknet.sh ${CURDIR}/docker/build_darknet.sh
-	
-	@$(MODULE_LOAD_APPTAINER); SINGULARITYENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) SINGULARITYENV_ACTUAL_PWD=$(ACTUAL_PWD) SINGULARITYENV_YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
-		apptainer run --nv --fakeroot \
-		-B $(DARKNET_WORKSPACE):/host_workspace \
-		-B ${CURDIR}/docker:/workspace \
-		-B ${CURDIR}/artifacts/outputs:/outputs \
-		$(SIF_NAME)
+
+	@$(MODULE_LOAD_APPTAINER); \
+	APPTAINERENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) \
+	APPTAINERENV_ACTUAL_PWD=$(ACTUAL_PWD) \
+	APPTAINERENV_YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
+	APPTAINERENV_DARKNET_PARENT=/host_workspace \
+	apptainer run --nv --fakeroot \
+	-B $(DARKNET_WORKSPACE):/host_workspace \
+	-B ${CURDIR}/docker:/workspace \
+	-B ${CURDIR}/artifacts/outputs:/outputs \
+	$(SIF_NAME)
+
 
 arun-cms-gpu:
 	@echo "CUDA_VISIBLE_DEVICES is $$CUDA_VISIBLE_DEVICES"
