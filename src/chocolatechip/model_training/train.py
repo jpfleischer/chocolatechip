@@ -117,6 +117,9 @@ def build_darknet_cmd(p: TrainProfile, gpus_str: str, *,
 
 
 def build_split_for(vf: float, ds) -> tuple[str, str]:
+    # Make sure the dataset exists on disk (download/extract once if needed)
+    ensure_download_once(ds)
+    
     ratio_tag = f"v{int(round(vf*100)):02d}"          # e.g., v10, v15, v20
     prefix = f"{ds.prefix}_{ratio_tag}"
 
