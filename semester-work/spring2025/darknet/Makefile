@@ -91,7 +91,7 @@ build:
 shell:
 	@docker exec -it $(CONTAINER_NAME) /bin/bash
 
-stop:
+stop down:
 	@-docker stop $(CONTAINER_NAME)
 	@-docker rm $(CONTAINER_NAME)
 
