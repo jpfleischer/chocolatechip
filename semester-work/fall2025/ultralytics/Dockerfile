@@ -15,7 +15,11 @@ RUN apt-get update && \
 
 RUN mkdir -p /outputs /workspace && chown -R appuser:appgroup /outputs /workspace
 
-RUN pip install --no-cache-dir cloudmesh-common git+https://github.com/cloudmesh/cloudmesh-gpu.git 
+RUN pip install --no-cache-dir \
+      pycocotools \
+      imagesize \
+      cloudmesh-common \
+      git+https://github.com/cloudmesh/cloudmesh-gpu.git
 
 COPY src/ ./src/
 ENV PYTHONPATH=/ultralytics/src
