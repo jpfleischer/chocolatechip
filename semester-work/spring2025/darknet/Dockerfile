@@ -36,6 +36,8 @@ RUN set -eux; \
 RUN python3 -m venv /opt/venv \
  && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
  && /opt/venv/bin/pip install --no-cache-dir \
+      pycocotools \
+      imagesize \
       cloudmesh-common \
       git+https://github.com/cloudmesh/cloudmesh-gpu.git
 
