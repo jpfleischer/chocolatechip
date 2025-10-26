@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --time=00:45:00
 #SBATCH --mem=32gb
-#SBATCH --partition=hpg-b200
+
 
 set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"
@@ -19,6 +19,4 @@ fi
 mkdir -p outputs
 nvidia-smi || true  # optional: log GPU info
 
-apptainer run --nv \
-  --bind "$PWD/outputs:/ultralytics/outputs" \
-  my_ultralytics_container.sif
+make apptainer-run
