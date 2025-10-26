@@ -19,6 +19,8 @@ class DatasetSpec:
     legos: bool = False  # special lego split
     url: str | None = None
     sha256: str | None = None 
+    # Do not create/download/normalize this dataset; fail fast if missing.
+    require_existing: bool = False
 
 @dataclass(frozen=True)
 class TrainProfile:
@@ -227,6 +229,37 @@ PROFILES = {
         ultra_model="yolo11n.pt",
         training_seed = 42,
     ),
+
+    "FisheyeTrafficDarknetLocal": TrainProfile(
+        name="FisheyeTrafficDarknetLocal",
+        backend="darknet",
+        data_path="/blue/ranka/j.fleischer/annotation_data/combined.data",
+        cfg_out="/blue/ranka/j.fleischer/annotation_data/combined.cfg",
+        width=1280, height=960,
+        batch_size=64, subdivisions=8,
+        iterations=8000, learning_rate=0.00261,
+        # templates=("yolov7-tiny",),
+        templates=("yolov4", "yolov7"),
+        val_fracs=(0.10,),
+        sweep_keys=("templates",),
+        sweep_values={},
+        dataset=DatasetSpec(
+            root="/blue/ranka/j.fleischer/annotation_data",
+            sets=tuple(),                # not needed for local-only
+            classes=5,                   # keep in sync with your names file
+            names="obj.names",           # adjust if your names file differs
+            prefix="combined",
+            split_seed=9001,
+            neg_subdirs=tuple(),
+            exts=(".jpg", ".png"),
+            url=None,
+            sha256=None,
+            require_existing=True,       # <- key behavior
+            # If you want optional re-splitting from a flat cache, set:
+            flat_dir="darkmark_image_cache/resize",
+        ),
+    ),
+
 }
 
 def get_profile(key: str) -> TrainProfile:
