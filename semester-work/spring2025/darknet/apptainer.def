@@ -24,6 +24,7 @@ From: nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
     # Install the required Python packages in the virtual environment
     pip install cloudmesh-common
     pip install git+https://github.com/cloudmesh/cloudmesh-gpu.git
+    pip install pycocotools
     # Create the working directory (for non-bound scenarios)
     mkdir -p /workspace
     # Make the script executable
