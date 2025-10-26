@@ -1,6 +1,5 @@
 FROM ultralytics/ultralytics:latest
 
-
 ARG UID=1000
 ARG GID=1000
 RUN groupadd -g ${GID} appgroup \
