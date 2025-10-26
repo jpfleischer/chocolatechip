@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --time=01:30:00
 #SBATCH --mem=32gb              # Adjust memory allocation
-
+#SBATCH --partition=hpg-b200 
 
 
 # Optionally, if you need to activate a virtual environment or set PATHs, do that here
