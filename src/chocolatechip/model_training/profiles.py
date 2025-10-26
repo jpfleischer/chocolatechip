@@ -236,7 +236,7 @@ PROFILES = {
         data_path="/blue/ranka/j.fleischer/annotation_data/combined.data",
         cfg_out="/blue/ranka/j.fleischer/annotation_data/combined.cfg",
         width=960, height=736,
-        batch_size=64, subdivisions=8,
+        batch_size=64, subdivisions=16,
         iterations=8000, learning_rate=0.00261,
         # templates=("yolov7-tiny",),
         templates=("yolov4", "yolov7"),
