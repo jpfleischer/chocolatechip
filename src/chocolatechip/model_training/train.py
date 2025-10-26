@@ -361,17 +361,28 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
 
             cmd = build_darknet_cmd(p, gpus_str)
         else:
-            # ensure we have a dataset YAML; auto-generate from DatasetSpec if provided
+            # --- ensure dataset exists before making the split/YAML ---
+            if getattr(p, "dataset", None):
+                ds = p.dataset
+                root = Path(ds.root)
+                # anchor relative roots under a writable base (inside the container this is /workspace)
+                base = Path(os.environ.get("DATA_ROOT", "/workspace"))
+                if not root.is_absolute():
+                    ds = replace(ds, root=str((base / root).resolve()))
+                # download/extract/normalize once
+                ensure_download_once(ds)
+                # keep this normalized DatasetSpec on the profile for subsequent uses
+                p = replace(p, dataset=ds)
+
+            # existing code that builds the split + YAML
             if getattr(p, "dataset", None) and (not p.ultra_data or not os.path.isfile(p.ultra_data)):
                 default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
                 data_path, _ = build_split_for(default_vf, p.dataset)
-                yaml_path = str(Path(data_path).with_suffix(".yaml"))  # dataset_setup wrote this
+                yaml_path = str(Path(data_path).with_suffix(".yaml"))
                 p = replace(p, ultra_data=yaml_path)
                 print(f"[ultra] using dataset YAML: {yaml_path}")
-            if getattr(p, "training_seed", None) is None:
-                p = replace(p, training_seed=42)
 
-            # --- stash Ultralytics dataset artifacts for provenance ---
+                    # --- stash Ultralytics dataset artifacts for provenance ---
             try:
                 ypath = Path(p.ultra_data).resolve()
                 # copy the YAML used

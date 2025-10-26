@@ -3,6 +3,7 @@ import os
 import json
 import re
 import ctypes
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -244,52 +245,77 @@ def resolve_gpu_selection(cm_gpu):
     }
 
 
-
-def fio_seq_rw(test_file=None, block_size="1M", runtime=20, size="1G"):
+def fio_seq_rw(test_file=None, block_size="1M", runtime=5, size="32M"):
     """
     Sequential write/read using fio.
     Returns (write_speed, read_speed) as strings like '1234.56 MiB/s'.
     If fio isn't available or errors occur, returns 'N/A' for that leg.
     """
+    # opt-out
+    if os.environ.get("DISABLE_FIO"):
+        return "N/A", "N/A"
+
+    # find fio
+    fio_bin = os.environ.get("FIO_BIN") or shutil.which("fio")
+    if not fio_bin:
+        return "N/A", "N/A"
+
+    # choose a writable dir
+    base = os.environ.get("DATA_ROOT") or "/workspace"
+    if not os.path.isdir(base) or not os.access(base, os.W_OK):
+        base = "/tmp"
+
     if test_file is None:
-        test_file = os.path.join("/tmp", f"fio_test_{os.getpid()}")
+        test_file = os.path.join(base, f".fio_test_{os.getpid()}")
+
+    def _run(cmd: list[str]) -> tuple[bool, dict]:
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            return True, json.loads(r.stdout)
+        except Exception:
+            return False, {}
+
+    # Common args (portable: psync + direct=1 + json)
+    common = [
+        fio_bin,
+        "--ioengine=psync", "--direct=1",
+        f"--bs={block_size}",
+        f"--runtime={runtime}", "--time_based",
+        f"--size={size}",
+        f"--filename={test_file}",
+        "--output-format=json",
+        "--group_reporting=1",
+    ]
 
     # WRITE
-    try:
-        write_cmd = (
-            f"fio --name=seqwrite --ioengine=libaio --direct=1 --rw=write "
-            f"--bs={block_size} --runtime={runtime} --time_based --size={size} "
-            f"--filename={test_file} --output-format=json"
-        )
-        r = subprocess.run(write_cmd, shell=True, capture_output=True, text=True, check=True)
-        write_output = json.loads(r.stdout)
-        write_bw_kib = write_output["jobs"][0]["write"]["bw"]  # KiB/s
-        write_speed = f"{write_bw_kib / 1024:.2f} MiB/s"
-    except Exception:
+    ok_w, out_w = _run(common + ["--name=seqwrite", "--rw=write"])
+    if ok_w:
+        try:
+            bw_kib = out_w["jobs"][0]["write"]["bw"]  # KiB/s
+            write_speed = f"{bw_kib / 1024:.2f} MiB/s"
+        except Exception:
+            write_speed = "N/A"
+    else:
         write_speed = "N/A"
 
     # READ
-    try:
-        read_cmd = (
-            f"fio --name=seqread --ioengine=libaio --direct=1 --rw=read "
-            f"--bs={block_size} --runtime={runtime} --time_based --size={size} "
-            f"--filename={test_file} --output-format=json"
-        )
-        r = subprocess.run(read_cmd, shell=True, capture_output=True, text=True, check=True)
-        read_output = json.loads(r.stdout)
-        read_bw_kib = read_output["jobs"][0]["read"]["bw"]  # KiB/s
-        read_speed = f"{read_bw_kib / 1024:.2f} MiB/s"
-    except Exception:
+    ok_r, out_r = _run(common + ["--name=seqread", "--rw=read"])
+    if ok_r:
+        try:
+            bw_kib = out_r["jobs"][0]["read"]["bw"]  # KiB/s
+            read_speed = f"{bw_kib / 1024:.2f} MiB/s"
+        except Exception:
+            read_speed = "N/A"
+    else:
         read_speed = "N/A"
 
     # Cleanup
     try:
-        os.remove(test_file)
+        Path(test_file).unlink(missing_ok=True)
     except Exception:
         pass
 
     return write_speed, read_speed
-
 
 def disk_benchmark_summary(**kwargs):
     """

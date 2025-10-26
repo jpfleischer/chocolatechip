@@ -3,43 +3,29 @@ From: ultralytics/ultralytics:latest
 
 %environment
     export DEBIAN_FRONTEND=noninteractive
-    export PYTHONPATH=/ultralytics/src
-
-%setup
-    : "${APPTAINER_SRC:?Set APPTAINER_SRC=/abs/path/to/repo/src}"
-    echo "Using APPTAINER_SRC=$APPTAINER_SRC" >&2
-    test -d "$APPTAINER_SRC" || { echo "No such dir: $APPTAINER_SRC" >&2; exit 1; }
-    mkdir -p "$SINGULARITY_ROOTFS/ultralytics/src"
-    cp -a "$APPTAINER_SRC/." "$SINGULARITY_ROOTFS/ultralytics/src/"
+    export PATH="/usr/local/bin:${PATH}"
+    export PYTHONPATH="/opt/app/src:${PYTHONPATH}"
 
 %files
-    semester-work/fall2025/ultralytics/LegoGears_v2   /ultralytics/LegoGears_v2
-    semester-work/fall2025/ultralytics/LG_v2.yaml     /ultralytics/LG_v2.yaml
+    src   /opt/app/
 
 %post
-    set -e
-    cd /ultralytics
+    set -eux
 
     apt-get update
     apt-get install -y --no-install-recommends fio
-    pip install --upgrade pip
-    pip install --no-cache-dir cloudmesh-common git+https://github.com/cloudmesh/cloudmesh-gpu.git
-
-    # Build-time PYTHONPATH so the setup step can import your package
-    export PYTHONPATH=/ultralytics/src:$PYTHONPATH
-
-    python -m chocolatechip.model_training.dataset_setup \
-        --root /ultralytics/LegoGears_v2 \
-        --sets set_01 set_02_empty set_03 \
-        --classes 5 \
-        --names LegoGears.names \
-        --prefix LegoGears
-
-    mkdir -p /ultralytics/outputs /ultralytics/.cache
-    chmod -R a+rX /ultralytics
-    chmod -R a+rwX /ultralytics/outputs /ultralytics/.cache
-
     rm -rf /var/lib/apt/lists/*
 
+    python -m pip install --no-cache-dir --upgrade pip
+    python -m pip install --no-cache-dir \
+        pycocotools \
+        imagesize \
+        cloudmesh-common \
+        git+https://github.com/cloudmesh/cloudmesh-gpu.git
+
+    mkdir -p /workspace /outputs /ultralytics/.cache
+    chmod -R a+rX /workspace /outputs /ultralytics
+    chmod -R a+rwX /workspace /outputs /ultralytics/.cache
+
 %runscript
-    exec bash -lc "python -u -m chocolatechip.model_training.train --profile LegoGearsUltra"
+    exec bash -lc "python -u -m chocolatechip.model_training.train --profile LeatherUltra"
