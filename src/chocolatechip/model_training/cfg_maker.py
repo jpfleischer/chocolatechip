@@ -26,6 +26,9 @@ TEMPLATE_URLS = {
     "yolov7-tiny": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov7-tiny.cfg",
     "yolov4-tiny": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov4-tiny.cfg",
     "yolov4-tiny-3l": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov4-tiny-3l.cfg",
+
+    "yolov4": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov4.cfg",
+    "yolov7": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov7.cfg",
 }
 
 
@@ -367,12 +370,12 @@ def transform_cfg_from_text(template_text: str, *,
 
     if anchor_clusters and anchor_clusters > 1:
         k = anchor_clusters
+    elif template_name in ("yolov7", "yolov4", "yolov7-tiny", "yolov4-tiny-3l"):
+        k = 9
     elif template_name == "yolov4-tiny":
         k = 6
-    elif template_name in ['yolov7-tiny', 'yolov4-tiny-3l']:
-        k = 9
     else:
-        k = max(3 * num_heads, 6)
+        k = max(3 * num_heads, 9 if num_heads >= 3 else 6)
 
     anchors = kmeans_iou(anchors_wh, k)
     avg_iou = avg_iou_against_anchors(anchors_wh, anchors)
@@ -387,10 +390,12 @@ def transform_cfg_from_text(template_text: str, *,
     # Map triplets to heads in file order
     if template_name == "yolov4-tiny" and num_heads == 2:
         group_order = [1, 0]        # large, small
-    elif template_name == "yolov7-tiny" and num_heads == 3:
+    elif template_name in ("yolov7", "yolov7-tiny") and num_heads == 3:
         group_order = [0, 1, 2]     # small, mid, large
-    elif template_name == "yolov4-tiny-3l" and num_heads == 3:
-        group_order = [2, 1, 0]     # large, mid, small
+    elif template_name in ("yolov4",) and num_heads == 3:
+        group_order = [0, 1, 2]     # small, mid, large
+    elif template_name in ("yolov4-tiny-3l",) and num_heads == 3:
+        group_order = [2, 1, 0]     # large, mid, small   <-- matches your cfg
     else:
         group_order = list(reversed(range(min(num_heads, len(groups)))))
 
@@ -491,7 +496,7 @@ def generate_cfg_file(
     template_text = fetch_template_text(pick_template_url(template))
 
     if anchor_clusters is None:
-        if template in ("yolov7-tiny", "yolov4-tiny-3l"):
+        if template in ("yolov7-tiny", "yolov4-tiny-3l", "yolov7", "yolov4"):
             anchor_clusters = 9
         elif template in ("yolov4-tiny", "yolov3-tiny"):
             anchor_clusters = 6
@@ -559,9 +564,14 @@ def main():
     ap.add_argument("--write-counters-per-class", action="store_true",
                     help="also write counters_per_class=<csv> into [net]")
 
-    ap.add_argument("--template", choices=["yolov7-tiny", "yolov4-tiny", "yolov4-tiny-3l"], default="yolov7-tiny")
-    ap.add_argument("--anchor-clusters", type=int, default=None,
-                    help="total anchors to compute (defaults: 9 for v7-tiny/4-tiny-3l, 6 for v4-tiny)")
+    ap.add_argument("--template",
+                    choices=["yolov7-tiny", "yolov4-tiny", "yolov4-tiny-3l", "yolov7", "yolov4"],
+                    default="yolov4-tiny")
+
+    ap.add_argument(
+        "--anchor-clusters", type=int, default=None,
+        help="total anchors to compute (defaults: 9 for yolov7/yolov7-tiny/yolov4/yolov4-tiny-3l, 6 for yolov4-tiny)"
+    )
 
     args = ap.parse_args()
 
@@ -572,9 +582,12 @@ def main():
     # Decide template + default anchor count
     template_name = args.template
     template_text = fetch_template_text(pick_template_url(template_name))
-    anchor_clusters = 9 if (args.anchor_clusters is None and template_name in ['yolov7-tiny', 'yolov4-tiny-3l']) else \
-                      6 if (args.anchor_clusters is None and template_name == "yolov4-tiny") else \
-                      args.anchor_clusters
+    anchor_clusters = (
+        9 if (args.anchor_clusters is None and template_name in ["yolov7-tiny", "yolov4-tiny-3l", "yolov7", "yolov4"])
+        else 6 if (args.anchor_clusters is None and template_name == "yolov4-tiny")
+        else args.anchor_clusters
+    )
+
 
     if anchor_clusters is None or anchor_clusters <= 1:
         sys.exit("--anchor-clusters must be > 1 (or omit it to use the template-based default)")
