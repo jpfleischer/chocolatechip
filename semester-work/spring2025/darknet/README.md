@@ -9,6 +9,14 @@ find the pid
 pgrep -af 'bash -lc .*for i in \{1\.\.10\}; do make'
 ```
 
+videos
+```bash
+yolo task=detect mode=predict model=best.pt source=../../../../../../../spring2025/darknet/docker/LegoGears_v2/DSCN1581A.MOV save=True project=runs/detect name=vid_out exist_ok=True
+
+
+darknet_05_process_videos_multithreaded LegoGears ../../../../docker/LegoGears_v2/DSCN1581A.MOV
+```
+
 
 # Apptainer
 
