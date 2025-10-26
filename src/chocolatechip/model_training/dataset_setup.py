@@ -316,6 +316,83 @@ def choose_split_legos(
         "filtering": filter_stats,
     }
     return train, valid, stats
+
+
+# Programmatic entrypoint mirroring the CLI behavior
+def make_split(
+    *,
+    root: str,
+    sets: list[str] | None,
+    classes: int,
+    names: str,
+    prefix: str,
+    val_frac: float = 0.20,
+    seed: int = 9001,
+    neg_subdirs: list[str] | None = None,
+    exts: list[str] | tuple[str, ...] = list(IMG_EXTS),
+    flat_dir: str | None = None,
+    legos: bool = False,
+) -> tuple[str, str]:
+    """
+    Returns (data_path, yaml_path). Writes the same files the CLI would:
+      <root>/<prefix>_train.txt
+      <root>/<prefix>_valid.txt
+      <root>/<prefix>.data
+      <root>/<prefix>_split.json
+      <root>/<prefix>.yaml
+    """
+    root_p = Path(root).resolve()
+    root_p.mkdir(parents=True, exist_ok=True)
+    exts = [e.lower() for e in exts]
+
+    # ----- build train/valid using the same logic the CLI uses -----
+    if flat_dir:
+        all_imgs = collect_images_flat(root_p, flat_dir, exts)
+        train_paths, valid_paths, stats = choose_split_flat(all_imgs, val_frac=val_frac, seed=seed)
+    else:
+        if not sets:
+            raise ValueError("sets is required unless flat_dir is used")
+        images_by_subdir = collect_images_by_subdir(root_p, sets, tuple(exts))
+
+        # auto-detect negatives if not provided
+        if neg_subdirs is None:
+            neg_subdirs_eff = [d for d in sets if ("empty" in d.lower() or "neg" in d.lower())]
+        else:
+            neg_subdirs_eff = neg_subdirs
+
+        if legos:
+            train_paths, valid_paths, stats = choose_split_legos(images_by_subdir, neg_subdirs=neg_subdirs_eff)
+        else:
+            train_paths, valid_paths, stats = choose_split(
+                images_by_subdir, neg_subdirs=neg_subdirs_eff, val_frac=val_frac, seed=seed
+            )
+
+    # ----- write artifacts (same names as CLI) -----
+    train_file = root_p / f"{prefix}_train.txt"
+    valid_file = root_p / f"{prefix}_valid.txt"
+    data_file  = root_p / f"{prefix}.data"
+    names_file = root_p / names
+    manifest   = root_p / f"{prefix}_split.json"
+
+    write_list(train_file, train_paths)
+    write_list(valid_file, valid_paths)
+    write_darknet_data_file(
+        data_file, classes=classes, train=train_file, valid=valid_file, names=names_file, backup=root_p
+    )
+    manifest.write_text(json.dumps(stats, indent=2), encoding="utf-8")
+
+    yaml_path = write_ultralytics_yaml(
+        root=root_p,
+        prefix=prefix,
+        classes=classes,
+        names_file=names,
+        train_file=train_file,
+        valid_file=valid_file,
+        ratio_tag=_derive_ratio_tag_from_prefix(prefix),  # keeps existing behavior
+    )
+
+    return str(data_file), str(yaml_path)
+
 # ---------------------------------------
 
 def main():

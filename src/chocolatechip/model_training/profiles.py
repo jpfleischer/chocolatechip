@@ -62,6 +62,9 @@ class TrainProfile:
     # ultralytics-only training RNG; ignored by Darknet
     training_seed: Optional[int] = None
 
+    # request N GPUs (slice of visible devices). None => use all visible.
+    num_gpus: Optional[int] = None
+
 
     sweep_keys: Tuple[str, ...] = tuple()
     sweep_values: Dict[str, Tuple[Any, ...]] = field(default_factory=dict)
@@ -143,10 +146,12 @@ PROFILES = {
         iterations=6000, learning_rate=0.00261,
         templates=("yolov4-tiny", "yolov7-tiny",),
         # templates=("yolov7-tiny",),
+        # templates=("yolov4-tiny",),
         val_fracs=(0.10, 0.15, 0.20),
-        sweep_keys=("templates", "val_fracs"),
-        # sweep_values can stay empty; we’ll use the tuples above
-        sweep_values={},
+        # val_fracs=(0.20,),
+        sweep_keys=("templates", "val_fracs", "num_gpus"),
+        
+        sweep_values={"num_gpus": (1,)},
         dataset=DatasetSpec(
             root="/workspace/LegoGears_v2",
             sets=("set_01", "set_02_empty", "set_03"),
@@ -200,7 +205,7 @@ PROFILES = {
         backend="ultralytics",
         data_path="", cfg_out="",
         width=224, height=160,
-        batch_size=64, subdivisions=8,
+        batch_size=64, subdivisions=1,
         iterations=6000, learning_rate=0.00261,
         templates=(),
         val_fracs=(0.20,),
