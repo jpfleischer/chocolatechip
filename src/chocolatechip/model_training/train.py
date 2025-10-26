@@ -19,7 +19,17 @@ from chocolatechip.model_training.hw_info import (
 from chocolatechip.model_training.cfg_maker import generate_cfg_file
 from chocolatechip.model_training.profiles import TrainProfile, get_profile, equalize_for_split
 from chocolatechip.model_training.darknet_ultralytics_translation import build_ultralytics_cmd
+from chocolatechip.model_training.dataset_setup import make_split, IMG_EXTS
 
+from chocolatechip.model_training.evaluators_darknet import (
+    parse_darknet_summary
+)
+from chocolatechip.model_training.evaluators_ultra import (
+    find_ultra_results_csv,
+    parse_ultra_map,
+    count_from_data_yaml,
+    parse_ultra_final_val,
+)
 
 from chocolatechip.model_training.datasets import ensure_download_once
 
@@ -63,14 +73,42 @@ def _color_token(p) -> str:
         return "__color_off"
     return f"__color_{slugify(str(v))}"
 
-def _find_ultra_results_csv(output_dir: str) -> str | None:
-    d = Path(output_dir)
-    for p in (d / "results.csv", d / "train" / "results.csv"):
-        if p.is_file():
-            return str(p)
-    for sub in d.glob("*/results.csv"):
-        return str(sub)
-    return None
+
+def _count_lines(path: str) -> int:
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            return sum(1 for ln in f if ln.strip())
+    except Exception:
+        return 0
+
+def read_ultra_counts(output_dir: str, yaml_path: str | None = None) -> tuple[int, int]:
+    """
+    Prefer the copies you already make: output_dir/train.txt and output_dir/valid.txt.
+    If missing, try to read paths from the Ultralytics dataset YAML.
+    """
+    train_txt = os.path.join(output_dir, "train.txt")
+    valid_txt = os.path.join(output_dir, "valid.txt")
+    if os.path.isfile(train_txt) or os.path.isfile(valid_txt):
+        return _count_lines(train_txt), _count_lines(valid_txt)
+
+    # Fallback: peek into YAML if provided and points to list files
+    try:
+        if yaml_path and os.path.isfile(yaml_path):
+            ydoc = yaml.safe_load(Path(yaml_path).read_text(encoding="utf-8"))
+            tr = ydoc.get("train"); va = ydoc.get("val")
+            if isinstance(tr, str) and os.path.isfile(tr) and tr.endswith(".txt"):
+                t = _count_lines(tr)
+            else:
+                t = 0
+            if isinstance(va, str) and os.path.isfile(va) and va.endswith(".txt"):
+                v = _count_lines(va)
+            else:
+                v = 0
+            return t, v
+    except Exception:
+        pass
+    return 0, 0
+
 
 # ---------- cfg generation (darknet) ----------
 def generate_cfg(p: TrainProfile, template: str) -> None:
@@ -115,36 +153,28 @@ def build_darknet_cmd(p: TrainProfile, gpus_str: str, *,
     )
 
 
-
 def build_split_for(vf: float, ds) -> tuple[str, str]:
-    # Make sure the dataset exists on disk (download/extract once if needed)
-    ensure_download_once(ds)
-    
-    ratio_tag = f"v{int(round(vf*100)):02d}"          # e.g., v10, v15, v20
+    # previously: shell out; now: direct call
+    ratio_tag = f"v{int(round(vf*100)):02d}"
     prefix = f"{ds.prefix}_{ratio_tag}"
 
-    exts = f"--exts {' '.join(ds.exts)}" if ds.exts else ""
-    legos = "--legos" if getattr(ds, 'legos', False) else ""
+    sets = None if getattr(ds, "flat_dir", None) else list(ds.sets)
 
-    if getattr(ds, "flat_dir", None):  # <-- FLAT MODE
-        cmd = (
-            "python -m chocolatechip.model_training.dataset_setup "
-            f"--root {ds.root} --flat-dir {ds.flat_dir} --classes {ds.classes} "
-            f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.split_seed} "
-            f"{exts}"
-        )
-    else:  # existing hierarchical mode
-        sets_str = " ".join(ds.sets)
-        neg = f"--neg-subdirs {' '.join(ds.neg_subdirs)}" if ds.neg_subdirs else ""
-        cmd = (
-            "python -m chocolatechip.model_training.dataset_setup "
-            f"--root {ds.root} --sets {sets_str} --classes {ds.classes} "
-            f"--names {ds.names} --prefix {prefix} --val-frac {vf} --seed {ds.split_seed} "
-            f"{neg} {exts} {legos}"
-        )
-
-    subprocess.check_call(cmd, shell=True)
-    return str(Path(ds.root) / f"{prefix}.data"), ratio_tag
+    data_path, yaml_path = make_split(
+        root=ds.root,
+        sets=sets,
+        classes=ds.classes,
+        names=ds.names,
+        prefix=prefix,
+        val_frac=vf,
+        seed=ds.split_seed,
+        neg_subdirs=list(getattr(ds, "neg_subdirs", ())) or None,
+        exts=list(getattr(ds, "exts", IMG_EXTS)),
+        flat_dir=getattr(ds, "flat_dir", None),
+        legos=bool(getattr(ds, "legos", False)),
+    )
+    # If you want to use the YAML immediately for Ultralytics, you can return it too.
+    return data_path, ratio_tag
 
 
 # helper to pull value-list for a given key
@@ -217,123 +247,6 @@ def read_split_counts_from_data(data_path: str) -> Tuple[int, int]:
     except Exception:
         return 0, 0
 
-# ---------- metrics parsing ----------
-def _maybe_percent_to_percent(val_str: str) -> float:
-    """Return value as percent; if <=1 treat as fraction and convert to percent."""
-    try:
-        v = float(val_str)
-    except Exception:
-        return float("nan")
-    if v <= 1.0:
-        return v * 100.0
-    return v
-
-def parse_darknet_summary(log_path: str):
-    """
-    Returns:
-      {
-        map_iou: float | None,             # e.g., 0.60
-        last_map_pct: float | None,        # mAP (last) in percent (0..100)
-        best_map_pct: float | None,        # mAP (best) in percent (0..100)
-        best_iter: int | None,
-        conf_thresh_eval: float | None,    # printed conf_thresh used for PR/F1 (0..1)
-        prec: float | None,                # at printed conf_thresh (0..1)
-        rec:  float | None,                # at printed conf_thresh (0..1)
-        f1:   float | None,                # at printed conf_thresh (0..1)
-      }
-    """
-    out = dict(
-        map_iou=None,
-        last_map_pct=None,
-        best_map_pct=None,
-        best_iter=None,
-        conf_thresh_eval=None,
-        prec=None, rec=None, f1=None
-    )
-    if not os.path.isfile(log_path):
-        return out
-
-    # Examples matched:
-    # "mean average precision (mAP@0.60)=97.46%"
-    rx_map_line = re.compile(
-        r"mean average precision\s*\(mAP@([0-9]+(?:\.[0-9]+)?)\)\s*=\s*([0-9]+(?:\.[0-9]+)?)%?",
-        re.I
-    )
-
-    # Example matched:
-    # "Last accuracy mAP@0.60=97.46%, best=99.18% at iteration #5900."
-    rx_last_best = re.compile(
-        r"Last accuracy mAP@([0-9]+(?:\.[0-9]+)?)\s*=\s*([0-9]+(?:\.[0-9]+)?)%?,\s*best\s*=\s*([0-9]+(?:\.[0-9]+)?)%?\s*at iteration\s*#\s*(\d+)",
-        re.I
-    )
-
-    # Example matched:
-    # "for conf_thresh=0.50, precision=0.94, recall=0.93, F1 score=0.93"
-    rx_prf = re.compile(
-        r"for\s+conf_thresh\s*=\s*([0-9]*\.?[0-9]+)\s*,\s*precision\s*=\s*([0-9]*\.?[0-9]+)\s*,\s*recall\s*=\s*([0-9]*\.?[0-9]+)\s*,\s*F1\s*score\s*=\s*([0-9]*\.?[0-9]+)",
-        re.I
-    )
-
-    with open(log_path, "r", errors="ignore") as f:
-        for line in f:
-            m = rx_last_best.search(line)
-            if m:
-                out["map_iou"]      = float(m.group(1))
-                out["last_map_pct"] = _maybe_percent_to_percent(m.group(2))
-                out["best_map_pct"] = _maybe_percent_to_percent(m.group(3))
-                out["best_iter"]    = int(m.group(4))
-                continue
-
-            m = rx_map_line.search(line)
-            if m:
-                out["map_iou"]      = float(m.group(1))
-                out["last_map_pct"] = _maybe_percent_to_percent(m.group(2))
-                continue
-
-            m = rx_prf.search(line)
-            if m:
-                # conf_thresh in Darknet logs is typically 0..1 or 0..100; keep it as fraction if <=1
-                ct = float(m.group(1))
-                out["conf_thresh_eval"] = ct if ct <= 1.0 else ct / 100.0
-                out["prec"] = float(m.group(2))
-                out["rec"]  = float(m.group(3))
-                out["f1"]   = float(m.group(4))
-
-    return out
-
-
-
-def parse_ultra_map(results_csv_path: str) -> tuple[float|None, float|None]:
-    """
-    Read Ultralytics results.csv and return (mAP50_pct, mAP50-95_pct).
-    """
-    if not os.path.isfile(results_csv_path):
-        return None, None
-    last = None
-    with open(results_csv_path, newline="") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            last = row
-    if not last:
-        return None, None
-
-    def _pick(*keys):
-        for k in keys:
-            if k in last and last[k] not in (None, "", "nan"):
-                try:
-                    return float(last[k])
-                except Exception:
-                    pass
-        return None
-
-    m50 = _pick("metrics/mAP50", "metrics/mAP_50", "mAP50", "metrics/mAP50(B)")
-    m95 = _pick("metrics/mAP50-95", "metrics/mAP_50-95", "mAP50-95", "metrics/mAP50-95(B)")
-
-
-    # convert to percent if present
-    m50 = (m50 * 100.0) if (m50 is not None and m50 <= 1.0) else m50
-    m95 = (m95 * 100.0) if (m95 is not None and m95 <= 1.0) else m95
-    return m50, m95
 
 # ---------- one run ----------
 def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None:
@@ -342,10 +255,25 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
 
     gpu = Gpu()
     sel = resolve_gpu_selection(gpu)
-    indices = sel["indices_abs"]
-    gpus_str = sel.get("gpus_str_for_cli", ",".join(str(i) for i in indices))
-    gpu_name = ", ".join(sel["selected_names"]) if sel["selected_names"] else "Unknown GPU"
-    vram = ", ".join(sel["selected_vram"]) if sel["selected_vram"] else "N/A"
+
+    indices_all = sel["indices_abs"]
+    requested = getattr(p, "num_gpus", None)
+
+    if isinstance(requested, int) and requested > 0:
+        effective = min(requested, len(indices_all))
+        if requested > len(indices_all):
+            print(f"[gpu] requested {requested} GPUs but only {len(indices_all)} visible; using {effective}.")
+        indices = indices_all[:effective]
+    else:
+        indices = indices_all
+
+    gpus_str = ",".join(str(i) for i in indices)
+
+    names_all = sel.get("selected_names", []) or []
+    vram_all  = sel.get("selected_vram", []) or []
+
+    gpu_name = ", ".join(names_all[:len(indices)]) if names_all else "Unknown GPU"
+    vram     = ", ".join(vram_all[:len(indices)])  if vram_all  else "N/A"
     gpu_name_safe = slugify(gpu_name.replace(",", "-"))
 
     # --- derive ratio from p.data_path and append to tag ---
@@ -354,11 +282,24 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     ratio_float = (int(ratio_pct) / 100.0) if ratio_pct else None
     ratio_suffix = f"__val{ratio_pct}" if ratio_pct else ""
 
+    # Keep size in folder names
+    size_token = ""
+    if getattr(p, "width", None) and getattr(p, "height", None):
+        try:
+            size_token = f"__{int(p.width)}x{int(p.height)}"
+        except Exception:
+            size_token = f"__{p.width}x{p.height}"
 
-    base_tag = template if (p.backend == "darknet" and template) else "ultralytics"
-    tag = base_tag + ratio_suffix + _color_token(p)
+    # One subdir per YOLO variant (template for Darknet, model name for Ultralytics)
+    yolo_variant_raw = (template if (p.backend == "darknet" and template) else p.ultra_model) or "unknown-model"
+    yolo_variant_safe = slugify(Path(yolo_variant_raw).stem)
+    variant_dir = os.path.join(out_root, yolo_variant_safe)
+    os.makedirs(variant_dir, exist_ok=True)
 
-    output_dir = os.path.join(out_root, f"benchmark__{user}__{gpu_name_safe}__{tag}__{now}")
+    base_tag = p.backend  # "darknet" or "ultralytics" (no template here)
+    tag = base_tag + ratio_suffix + size_token + _color_token(p)
+
+    output_dir = os.path.join(variant_dir, f"benchmark__{user}__{gpu_name_safe}__{tag}__{now}")
     os.makedirs(output_dir, exist_ok=True)
     os.chdir(output_dir)
     print(f"[out] {output_dir}")
@@ -450,6 +391,10 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
             except Exception as e:
                 print(f"[ultra] provenance copy failed: {e}")
 
+            # after you possibly copy train/valid lists into output_dir
+            ultra_train_count, ultra_valid_count = read_ultra_counts(output_dir, p.ultra_data)
+
+
             cmd = build_ultralytics_cmd(profile=p, device_indices=indices, run_dir=output_dir)
         print(f"[train] {cmd}")
         subprocess.call(cmd, shell=True)
@@ -484,7 +429,6 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     map_points = None
     prf = dict(prec=None, rec=None, f1=None)
     conf_thresh_eval = None
-    map5095_pct = None
 
     if p.backend == "darknet":
         summary = parse_darknet_summary(os.path.join(output_dir, "training_output.log"))
@@ -496,33 +440,197 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         prf["prec"]    = summary.get("prec")
         prf["rec"]     = summary.get("rec")
         prf["f1"]      = summary.get("f1")
-        map_points     = getattr(p, "map_points", 101)
-    else:
-        csv_path = _find_ultra_results_csv(output_dir)
-        if csv_path:
-            m50, m95 = parse_ultra_map(csv_path)
-        else:
-            print("[ultra] results.csv not found; looked in run dir and train/ subdir")
-            m50, m95 = (None, None)
+        map_points     = getattr(p, "map_points", None)
 
-        map_last_pct = m50
-        map_best_pct = None
-        map5095_pct  = m95
+        # ensure points shows up in CSV even if profile didn’t set it explicitly
+        if map_points is None:
+            map_points = 101
+
+    else:
+        # --- Ultralytics: prefer final 'Validating ... best.pt' block; fallback to results.csv ---
+        ultra_log = os.path.join(output_dir, "training_output.log")
+        m50_best, m95_best = parse_ultra_final_val(ultra_log)
+
+        if m50_best is None or m95_best is None:
+            csv_path = find_ultra_results_csv(output_dir)
+            if csv_path:
+                m50_best, m95_best = parse_ultra_map(csv_path)
+            else:
+                print("[ultra] results.csv not found; looked in run dir and train/ subdir")
+                m50_best, m95_best = (None, None)
+
+        map_last_pct = m50_best        # fill your "mAP (last %)" with the best.pt value
+        map_best_pct = None            # Ultralytics doesn't output a separate "best %" line like Darknet
         map_iou      = 0.50
-        map_points   = 101  # Ultralytics uses 101-point PR
+        map_points   = 101             # Ultralytics uses 101-point PR integration
         best_iter    = None
         conf_thresh_eval = None
+
+        ultra_train_count, ultra_valid_count = (0, 0)
+        if getattr(p, "ultra_data", None):
+            ultra_train_count, ultra_valid_count = count_from_data_yaml(p.ultra_data)
 
 
     # --- dataset sizing & effective epochs (for CSV) ---
     train_count = valid_count = 0
     approx_epochs = None
+
     if p.backend == "darknet" and p.data_path:
         train_count, valid_count = read_split_counts_from_data(p.data_path)
         if train_count > 0:
             approx_epochs = (p.iterations * p.batch_size) / float(train_count)
+    else:
+        # Ultralytics
+        train_count, valid_count = ultra_train_count, ultra_valid_count
+        # (optional) approx_epochs could be p.epochs if you want:
+        # approx_epochs = p.epochs
+
 
     color_preset_for_csv = p.color_preset if p.color_preset is not None else "off"
+
+    # defaults so names exist even on failure
+    coco_ap5095 = coco_ap50 = coco_ap75 = None
+    per_iou_cols = {}
+    gt_json = det_json = None
+    cm_csv_cols = {}   # what we'll merge into row later
+
+
+    # === External COCO evaluation (framework-agnostic, no env vars) ===
+    try:
+        from chocolatechip.model_training.export_coco_dets import (
+            export_ultra_detections, export_darknet_detections
+        )
+        from chocolatechip.model_training.coco_eval import (
+            coco_eval_bbox
+        )
+
+        # 1) make sure we have a val list
+        val_list = os.path.join(output_dir, "valid.txt")
+        if not os.path.isfile(val_list):
+            print("[coco] No valid.txt found; skipping external COCO eval")
+            raise RuntimeError("no_valid_list")
+
+        # 2) build COCO GT from DarkMark per-image JSONs (once), using the profile dataset root
+        gt_json = os.path.join(output_dir, "val.coco.gt.json")
+        if not os.path.isfile(gt_json):
+            from chocolatechip.model_training.coco_build_gt import build_coco_gt
+
+            if not getattr(p, "dataset", None) or not getattr(p.dataset, "root", None):
+                raise RuntimeError("Profile is missing dataset.root; cannot build COCO GT from DarkMark JSONs.")
+
+            ann_root = p.dataset.root                                 # e.g. /workspace/LegoGears_v2
+            # names.txt is relative to the dataset root in your profiles
+            names_path = os.path.join(p.dataset.root, p.dataset.names) if getattr(p.dataset, "names", None) else None
+            if names_path and not os.path.isfile(names_path):
+                # also try alongside data_path (if names is just a basename)
+                alt = os.path.join(os.path.dirname(p.data_path), p.dataset.names)
+                names_path = alt if os.path.isfile(alt) else None
+
+            build_coco_gt(
+                ann_root=ann_root,
+                out_json=gt_json,
+                list_file=val_list,     # include every image in valid.txt (positives + negatives)
+                names_path=names_path,  # lock category order to your names file if present
+            )
+            print(f"[coco] built GT from DarkMark JSONs: {gt_json}")
+
+
+
+        # 3) export detections to COCO results JSON
+        det_json = os.path.join(output_dir, f"dets_{p.backend}.coco.json")
+        if p.backend == "darknet":
+            # choose a weights file (best.* if present)
+            stem = Path(p.cfg_out).stem
+            candidate = os.path.join(os.path.dirname(p.cfg_out), f"{stem}_best.weights")
+            best_weights = candidate if os.path.isfile(candidate) else os.path.join(os.path.dirname(p.cfg_out), "best.weights")
+
+            export_darknet_detections(
+                darknet_bin=darknet_path(),
+                data_path=p.data_path,
+                cfg_path=p.cfg_out,
+                weights_path=best_weights,
+                ann_json=gt_json,
+                out_json=det_json,
+                images_txt=val_list,
+                thresh=0.001,
+                letter_box=True,
+            )
+        else:
+            # best.pt under Ultralytics run dir
+            best_pt = str((Path(output_dir) / "train" / "weights" / "best.pt"))
+            export_ultra_detections(
+                weights=best_pt,
+                ann_json=gt_json,
+                out_json=det_json,
+                images_txt=val_list,
+                conf=0.001,     # match Darknet export threshold for fairness
+                iou=0.45,        # NMS IoU
+                imgsz=p.width if hasattr(p, "width") else None,
+                device=indices,
+                batch=16,
+            )
+
+        coco_metrics = coco_eval_bbox(gt_json, det_json)
+        coco_ap5095 = coco_metrics["AP"]
+        coco_ap50   = coco_metrics["AP50"]
+        coco_ap75   = coco_metrics["AP75"]
+        ap_per_iou_pairs = coco_metrics["AP_per_IoU"]
+        per_iou_cols = {f"COCO AP@{int(iou*100)} (%)": ap for (iou, ap) in ap_per_iou_pairs}
+    except Exception as e:
+        coco_ap5095 = None
+        coco_ap50 = coco_ap75 = None
+        per_iou_cols = {}
+        print(f"[coco] external COCO eval skipped: {e}")
+
+
+    # Prepare defaults
+    cm = None
+    cm_csv_cols = {}
+
+    # --- Confusion matrix at deployment operating point (dataset-agnostic CSV) ---
+    try:
+        if gt_json and det_json:
+            from chocolatechip.model_training.confusion_eval import compute_confusion_from_coco
+            cm = compute_confusion_from_coco(
+                gt_json,
+                det_json,
+                iou_thresh=0.50,
+                conf_thresh=0.50,
+                csv_style="generic",  # "per-class" or "none"
+                write_json_path=os.path.join(output_dir, "confusion_matrix.json"),
+                json_indent=2,
+            )
+            print(f"[confusion] IoU>={cm['params']['iou_thresh']}, conf>={cm['params']['conf_thresh']}")
+            cm_csv_cols = cm["csv_cols"]
+        else:
+            print("[confusion] skipped: missing COCO JSONs (gt/det)")
+    except Exception as e:
+        print(f"[confusion] skipped: {e}")
+        cm = None
+        cm_csv_cols = {}
+
+    # --- optional pretty print (console only) ---
+    if cm is not None:
+        try:
+            per_cls = cm.get("per_class", [])
+            names   = [c["class"] for c in per_cls]
+            M       = cm.get("matrix", [])
+
+            print("[confusion] per-class")
+            for c in per_cls:
+                print(f"  {c['class']:<16} TP={c['TP']:>4} FP={c['FP']:>4} FN={c['FN']:>4} "
+                    f"P={c['precision']:.3f} R={c['recall']:.3f} F1={c['f1']:.3f}")
+
+            if M and names:
+                col_header = " ".join(f"{n[:8]:>9}" for n in names)
+                print("[confusion] matrix (pred rows × gt cols)")
+                print(f"           {col_header}")
+                for i, row in enumerate(M):
+                    row_str = " ".join(f"{v:>9d}" for v in row)
+                    print(f"{names[i][:10]:>10} {row_str}")
+        except Exception:
+            # don't fail the run if printing breaks
+            pass
 
     row = {
         "Backend": p.backend,
@@ -548,8 +656,11 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         "Compute Capability": env["compute_caps_str"],
 
         # Training knobs + dataset sizing
-        "Iterations": p.iterations,
-        "Batch Size": p.batch_size,
+        "Input Width":  p.width,
+        "Input Height": p.height,
+        "Input Size":   f"{p.width}x{p.height}",
+        "Iterations":   p.iterations,
+        "Batch Size":   p.batch_size,
         "Subdivisions": p.subdivisions,
         "Train Images": train_count,
         "Valid Images": valid_count,
@@ -566,7 +677,6 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         "mAP Points": map_points,
         "mAP (last %)": map_last_pct,
         "mAP (best %)": map_best_pct,
-        "mAP50-95 (%)": map5095_pct,
         "Best Iteration": best_iter,
 
         # PRF at printed conf
@@ -576,6 +686,22 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         "F1@Conf": prf["f1"],
 
     }
+
+    row.update(cm_csv_cols)
+
+
+    # If we have per-IoU APs (COCO), add them as extra columns
+    if per_iou_cols:
+        row.update({
+            "COCO AP50-95 (%)": coco_ap5095,
+            "COCO AP50 (%)": coco_ap50,
+            "COCO AP75 (%)": coco_ap75,
+        })
+        row.update(per_iou_cols)
+
+    # Only record pycocotools value; if COCO eval failed, omit the column
+    if coco_ap5095 is not None:
+        row["mAP50-95 (%)"] = coco_ap5095
 
     csv_name = f"benchmark__{user}__{gpu_name_safe}__{cpu_name_safe}__{tag}__{now}.csv"
     with open(os.path.join(output_dir, csv_name), "w", newline="") as f:
