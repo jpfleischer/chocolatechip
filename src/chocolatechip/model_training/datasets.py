@@ -145,6 +145,31 @@ def ensure_download_once(spec: DatasetSpec, *, force: bool = False) -> Path:
     Returns the dataset root Path.
     """
     root = Path(spec.root).resolve()
+
+        # -------- Local-only mode: fail fast, no writes, no marker --------
+    if getattr(spec, "require_existing", False):
+        if not root.exists():
+            raise FileNotFoundError(f"[local-only] dataset root not found: {root}")
+        # Ok if either sets/flat_dir exist OR a .data file already exists
+        def _has_expected():
+            try:
+                if getattr(spec, "flat_dir", None) and (root / spec.flat_dir).is_dir():
+                    return True
+                expected = set(spec.sets) | set(getattr(spec, "neg_subdirs", []) or [])
+                if expected and all((root / d).is_dir() for d in expected):
+                    return True
+            except Exception:
+                pass
+            return False
+        has_data = any(p.is_file() for p in root.glob("*.data"))
+        if not (_has_expected() or has_data):
+            raise RuntimeError(
+                f"[local-only] dataset not ready at {root}. "
+                f"Expected sets/flat_dir present OR an existing .data file."
+            )
+        _eprint(f"[ok] local-only dataset present at {root}")
+        return root
+
     # make both parent and root to support lock creation
     root.parent.mkdir(parents=True, exist_ok=True)
     root.mkdir(parents=True, exist_ok=True)
@@ -229,6 +254,9 @@ def ensure_splits(spec: DatasetSpec) -> None:
         _eprint("[split] existing split detected; skipping")
         return
 
+    # Use the correct field from DatasetSpec
+    seed_val = getattr(spec, "split_seed", 9001)
+
     if getattr(spec, "flat_dir", None):
         cmd = [
             sys.executable, "-m", "chocolatechip.model_training.dataset_setup",
@@ -238,11 +266,12 @@ def ensure_splits(spec: DatasetSpec) -> None:
             "--names", spec.names,
             "--prefix", spec.prefix,
             "--val-frac", "0.20",
-            "--seed", str(spec.seed),
+            "--seed", str(seed_val),
             "--exts", *[e.lower() for e in spec.exts],
         ]
     else:
         all_sets = list(set(spec.sets) | set(getattr(spec, "neg_subdirs", []) or []))
+        all_sets.sort()  # deterministic CLI ordering
         cmd = [
             sys.executable, "-m", "chocolatechip.model_training.dataset_setup",
             "--root", str(root),
@@ -251,7 +280,7 @@ def ensure_splits(spec: DatasetSpec) -> None:
             "--names", spec.names,
             "--prefix", spec.prefix,
             "--val-frac", "0.20",
-            "--seed", str(spec.seed),
+            "--seed", str(seed_val),
             "--exts", *[e.lower() for e in spec.exts],
         ]
         if spec.neg_subdirs:
