@@ -1,11 +1,10 @@
-DATASET_URL    := https://g-665dcc.55ba.08cc.data.globus.org/leather_oct_25.zip
+DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip
 DATASET_DIR    := LegoGears_v2
 DATASET_ZIP    := legogears_2_dataset.zip
 PROJ_ROOT 	   := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
 SOURCE_PATH    := semester-work/fall2025/ultralytics
 SIF_NAME	   := $(CURDIR)/my_ultralytics_container.sif
 APPTAINER_SRC := $(PROJ_ROOT)/src
-
 
 # Detect Git Bash vs Linux for a tiny path tweak (optional but nice)
 UNAME_S := $(shell uname -s)
