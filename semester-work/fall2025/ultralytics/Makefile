@@ -1,10 +1,9 @@
-DATASET_URL    := https://www.ccoderun.ca/programming/2024-05-01_LegoGears/legogears_2_dataset.zip
-DATASET_DIR    := LegoGears_v2
-DATASET_ZIP    := legogears_2_dataset.zip
 PROJ_ROOT 	   := $(shell git -C "$(CURDIR)" rev-parse --show-toplevel)
 SOURCE_PATH    := semester-work/fall2025/ultralytics
 SIF_NAME	   := $(CURDIR)/my_ultralytics_container.sif
 APPTAINER_SRC := $(PROJ_ROOT)/src
+DATASET_DIR ?= $(CURDIR)/LegoGears_v2
+ULTRA_WORKSPACE := $(CURDIR)/ultra_workspace
 
 # Detect Git Bash vs Linux for a tiny path tweak (optional but nice)
 UNAME_S := $(shell uname -s)
@@ -23,7 +22,7 @@ else
   BUILD_GID := 1000
 endif
 
-benchmark-ultra benchmarking benchmark: check-dataset
+benchmark-ultra benchmarking benchmark:
 	@mkdir -p outputs
 	docker build \
 		--build-arg UID=$(BUILD_UID) \
@@ -38,16 +37,7 @@ benchmark-ultra benchmarking benchmark: check-dataset
 		-v "$(CUR_HOST)/outputs":/outputs \
 		my-benchmark-app
 
-check-dataset:
-	@if [ ! -d $(DATASET_DIR) ]; then \
-		echo "Dataset folder '$(DATASET_DIR)' not found. Downloading dataset..."; \
-		curl -L $(DATASET_URL) -o $(DATASET_ZIP); \
-		unzip -q $(DATASET_ZIP); \
-		rm $(DATASET_ZIP); \
-		rm -f LegoGears_v2/LegoGears.cfg LegoGears_v2/LegoGears.data; \
-	fi
-
-ultra bash: check-dataset
+ultra bash:
 	@mkdir -p outputs
 	$(SHELL_ENV) docker run -it --shm-size=4gb --gpus all \
 		-v "$(CUR_HOST)/LegoGears_v2":/workspace/LegoGears_v2 \
@@ -74,9 +64,14 @@ $(SIF_NAME): apptainer.def
 	cd "$(PROJ_ROOT)"; \
 	APPTAINER_SRC="$(APPTAINER_SRC)" apptainer build --force -f "$(SIF_NAME)" "$(CURDIR)/apptainer.def"
 
+$(ULTRA_WORKSPACE):
+	mkdir -p $(ULTRA_WORKSPACE)/.home \
+	         $(ULTRA_WORKSPACE)/.cache/mpl \
+	         $(CURDIR)/artifacts/outputs
+
 apptainer-build: $(SIF_NAME)
 
-slurm: check-dataset apptainer-build
+slurm: apptainer-build
 	@if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
 	    ACCOUNT="--account=bi_dsc_community"; \
 	else \
@@ -85,6 +80,23 @@ slurm: check-dataset apptainer-build
 	echo "Submitting job with account option: $$ACCOUNT"; \
 	sbatch -J "lego_train_$$(date +%Y%m%d_%H%M%S)" $$ACCOUNT legogears.slurm
 	watch squeue -u $(USER)
+
+apptainer-run: $(ULTRA_WORKSPACE)
+	APPTAINERENV_HOME=/workspace/.home \
+	APPTAINERENV_XDG_CACHE_HOME=/workspace/.cache \
+	APPTAINERENV_XDG_CONFIG_HOME=/workspace/.config \
+	APPTAINERENV_MPLCONFIGDIR=/workspace/.cache/mpl \
+	APPTAINERENV_DATA_ROOT=/workspace \
+	APPTAINERENV_PROJECT_ROOT=/workspace/project \
+	# optional if your trainer reads it
+	APPTAINERENV_ULTRA_WORKERS=1 \
+	apptainer run --nv --fakeroot \
+		--contain --no-home --home /workspace/.home \
+		-B "$(ULTRA_WORKSPACE)":/workspace \
+		-B "$(CURDIR)":/workspace/project \
+		-B "$(CURDIR)/artifacts/outputs":/outputs \
+		my_ultralytics_container.sif
+
 
 
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=2134 batch=64
