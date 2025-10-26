@@ -235,7 +235,7 @@ PROFILES = {
         backend="darknet",
         data_path="/blue/ranka/j.fleischer/annotation_data/combined.data",
         cfg_out="/blue/ranka/j.fleischer/annotation_data/combined.cfg",
-        width=1280, height=960,
+        width=960, height=736,
         batch_size=64, subdivisions=8,
         iterations=8000, learning_rate=0.00261,
         # templates=("yolov7-tiny",),

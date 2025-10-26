@@ -163,6 +163,14 @@ slurm: delete apptainer-build
 	sbatch -J "lego_train_$$(date +%Y%m%d_%H%M%S)" $$ACCOUNT legogears.slurm
 	watch squeue -u $(USER)
 
+
+log:
+	@set -euo pipefail; \
+	latest=$$(ls -1t -- *.out 2>/dev/null | head -n1); \
+	if [ -z "$$latest" ]; then echo "No .out files found in $$(pwd)"; exit 1; fi; \
+	echo "Watching: $$latest  (Ctrl-C to exit)"; \
+	watch "tail -n 30 \"$$latest\""
+
 slurm-shell:
 	# srun -p gpu --gpus=v100:1 --account=bi_dsc_community --time=00:40:00 --mem=50gb --pty apptainer shell --nv $(SIF_NAME)
 	srun -p gpu --gpus=geforce:1 --time=01:00:00 --mem=50gb --pty apptainer shell --nv $(SIF_NAME)
