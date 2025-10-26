@@ -6,7 +6,6 @@ SOURCE_PATH    := semester-work/fall2025/ultralytics
 SIF_NAME	   := $(CURDIR)/my_ultralytics_container.sif
 APPTAINER_SRC := $(PROJ_ROOT)/src
 
-
 # Detect Git Bash vs Linux for a tiny path tweak (optional but nice)
 UNAME_S := $(shell uname -s)
 IS_WINDOWS := $(or $(findstring MINGW,$(UNAME_S)),$(findstring MSYS,$(UNAME_S)))
