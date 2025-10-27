@@ -773,6 +773,20 @@ if __name__ == "__main__":
     out_root = os.path.join(out_root_base, p.name)
     os.makedirs(out_root, exist_ok=True)
 
+    # --- make sure Darknet dataset exists at the expected path on first run ---
+    if p.backend == "darknet" and getattr(p, "dataset", None):
+        ds = p.dataset
+        base = Path(os.environ.get("DATA_ROOT", "/workspace"))
+        root = Path(ds.root)
+        # Normalize relative roots to DATA_ROOT (inside container)
+        if not root.is_absolute():
+            ds = replace(ds, root=str((base / root).resolve()))
+        # Download/extract/promote once so set_* dirs are present
+        ensure_download_once(ds)
+        # Keep normalized spec on the profile for subsequent uses
+        p = replace(p, dataset=ds)
+
+
     sweep_keys = tuple(getattr(p, "sweep_keys", ()) or ())
     if p.backend == "darknet" and sweep_keys:
         # build cartesian product of declared sweep variables
@@ -790,18 +804,15 @@ if __name__ == "__main__":
             # decide dataset split for this run
             if "val_fracs" in combo_map:
                 vf = float(combo_map["val_fracs"])
-                data_path, _ = (
-                    build_split_for(vf, p.dataset, out_dir=WRITABLE_BASE)
-                    if getattr(p, "dataset", None) else (p.data_path, None)
-                )
             else:
-                if getattr(p, "dataset", None):
-                    default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
-                    data_path, _ = build_split_for(default_vf, p.dataset, out_dir=WRITABLE_BASE)
-                elif p.data_path and os.path.isfile(p.data_path):
-                    data_path = p.data_path
-                else:
-                    data_path = p.data_path
+                # accept either a tuple/list or a single float on the profile
+                vf = (p.val_fracs[0] if isinstance(p.val_fracs, (tuple, list)) else float(p.val_fracs))
+
+            if getattr(p_variant, "dataset", None):
+                data_path, _ = build_split_for(vf, p_variant.dataset, out_dir=WRITABLE_BASE)
+            else:
+                data_path = p_variant.data_path  # must already exist
+
 
 
             # equalize per-template to keep epochs ~constant
@@ -811,8 +822,13 @@ if __name__ == "__main__":
             run_once(p=p_variant, template=p_variant.template, out_root=out_root)
 
     elif p.backend == "darknet":
-        # no sweep declared: single run using (first) template / existing data
+        # single Darknet run: still build/refresh split if using DatasetSpec
+        if getattr(p, "dataset", None):
+            vf = (p.val_fracs[0] if isinstance(p.val_fracs, (tuple, list)) else float(p.val_fracs))
+            data_path, _ = build_split_for(vf, p.dataset, out_dir=WRITABLE_BASE)
+            p = replace(p, data_path=data_path)
         run_once(p=p, template=p.template or (p.templates[0] if p.templates else None), out_root=out_root)
+
 
     else:
         # ultralytics: you can still declare sweep_keys for things like epochs/batch_size if you want
