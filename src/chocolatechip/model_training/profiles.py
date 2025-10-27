@@ -182,8 +182,8 @@ PROFILES = {
         val_fracs=(0.20,),
         color_presets=(None, "preserve"),
         tag_color_preset=True,   # <— ONLY Leather opts in
-        sweep_keys=("templates", "color_presets"),
-        sweep_values={},
+        sweep_keys=("templates", "color_presets", "num_gpus"),
+        sweep_values={"num_gpus": (1,)},
         dataset=DatasetSpec(
             root="/workspace/leather",
             sets=("color", "cut", "fold", "glue", "poke", "good_1", "good_2"),
@@ -211,6 +211,8 @@ PROFILES = {
         iterations=6000, learning_rate=0.00261,
         templates=(),
         val_fracs=(0.20,),
+        sweep_keys=("num_gpus",),
+        sweep_values={"num_gpus": (1,)},
         dataset=DatasetSpec(
             root="/workspace/LegoGears_v2",
             sets=("set_01", "set_02_empty", "set_03"),
@@ -227,7 +229,6 @@ PROFILES = {
         epochs=None,
         ultra_data="",
         ultra_model="yolo11n.pt",
-        training_seed = 42,
     ),
 
     "LeatherUltra": TrainProfile(
@@ -236,10 +237,12 @@ PROFILES = {
         data_path="", cfg_out="",
         width=256, height=256,
         batch_size=64, subdivisions=1,
-        iterations=200, learning_rate=0.00261,
+        iterations=7000, learning_rate=0.00261,
         templates=(),
         tag_color_preset=True,
         val_fracs=(0.20,),
+        sweep_keys=("num_gpus",),
+        sweep_values={"num_gpus": (1,)},
         dataset=DatasetSpec(
             root="/workspace/leather",
             sets=("color", "cut", "fold", "glue", "poke", "good_1", "good_2"),
@@ -255,7 +258,6 @@ PROFILES = {
         epochs=None,
         ultra_data="",
         ultra_model="yolo11n.pt",
-        training_seed = 42,
     ),
 
 

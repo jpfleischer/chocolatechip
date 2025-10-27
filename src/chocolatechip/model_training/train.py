@@ -33,7 +33,7 @@ from chocolatechip.model_training.evaluators_ultra import (
 
 from chocolatechip.model_training.datasets import ensure_download_once
 
-WRITABLE_BASE = Path(os.environ.get("APPTAINERENV_DARKNET_PARENT", "/host_workspace"))
+WRITABLE_BASE = Path(os.environ.get("WRITABLE_BASE", "/workspace/.cache/splits"))
 
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
