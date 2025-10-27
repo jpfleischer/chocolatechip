@@ -33,6 +33,7 @@ from chocolatechip.model_training.evaluators_ultra import (
 
 from chocolatechip.model_training.datasets import ensure_download_once
 
+WRITABLE_BASE = Path(os.environ.get("APPTAINERENV_DARKNET_PARENT", "/host_workspace"))
 
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
@@ -153,12 +154,14 @@ def build_darknet_cmd(p: TrainProfile, gpus_str: str, *,
     )
 
 
-def build_split_for(vf: float, ds) -> tuple[str, str]:
-    # previously: shell out; now: direct call
+def build_split_for(vf: float, ds, out_dir: str | Path | None = None) -> tuple[str, str]:
     ratio_tag = f"v{int(round(vf*100)):02d}"
     prefix = f"{ds.prefix}_{ratio_tag}"
 
     sets = None if getattr(ds, "flat_dir", None) else list(ds.sets)
+
+    # Default to legacy behavior if not provided
+    out_dir = Path(out_dir) if out_dir is not None else Path(ds.root)
 
     data_path, yaml_path = make_split(
         root=ds.root,
@@ -172,8 +175,10 @@ def build_split_for(vf: float, ds) -> tuple[str, str]:
         exts=list(getattr(ds, "exts", IMG_EXTS)),
         flat_dir=getattr(ds, "flat_dir", None),
         legos=bool(getattr(ds, "legos", False)),
+
+        # NEW: write outputs under out_dir (i.e., /host_workspace)
+        out_dir=out_dir,
     )
-    # If you want to use the YAML immediately for Ultralytics, you can return it too.
     return data_path, ratio_tag
 
 
@@ -377,7 +382,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
             # existing code that builds the split + YAML
             if getattr(p, "dataset", None) and (not p.ultra_data or not os.path.isfile(p.ultra_data)):
                 default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
-                data_path, _ = build_split_for(default_vf, p.dataset)
+                data_path, _ = build_split_for(default_vf, p.dataset, out_dir=WRITABLE_BASE)
                 yaml_path = str(Path(data_path).with_suffix(".yaml"))
                 p = replace(p, ultra_data=yaml_path)
                 print(f"[ultra] using dataset YAML: {yaml_path}")
@@ -773,16 +778,18 @@ if __name__ == "__main__":
             # decide dataset split for this run
             if "val_fracs" in combo_map:
                 vf = float(combo_map["val_fracs"])
-                data_path, _ = build_split_for(vf, p.dataset) if getattr(p, "dataset", None) else (p.data_path, None)
+                data_path, _ = (
+                    build_split_for(vf, p.dataset, out_dir=WRITABLE_BASE)
+                    if getattr(p, "dataset", None) else (p.data_path, None)
+                )
             else:
-                # Prefer building a fresh split if we have a DatasetSpec
                 if getattr(p, "dataset", None):
                     default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
-                    data_path, _ = build_split_for(default_vf, p.dataset)
+                    data_path, _ = build_split_for(default_vf, p.dataset, out_dir=WRITABLE_BASE)
                 elif p.data_path and os.path.isfile(p.data_path):
                     data_path = p.data_path
                 else:
-                    data_path = p.data_path  # last resort
+                    data_path = p.data_path
 
 
             # equalize per-template to keep epochs ~constant
