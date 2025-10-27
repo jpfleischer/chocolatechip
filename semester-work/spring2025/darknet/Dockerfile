@@ -46,7 +46,7 @@ COPY --chown=appuser:appgroup src/ ./src/
 ENV PYTHONPATH=$APP_DIR/src
 
 # Default in-image paths (binds will overlay these)
-RUN mkdir -p /outputs /workspace \
+RUN mkdir -p /outputs /workspace/.cache/splits \
  && chown -R appuser:appgroup /outputs /workspace
 
 # Optional: collaborative-friendly umask
