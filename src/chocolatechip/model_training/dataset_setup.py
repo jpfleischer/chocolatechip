@@ -318,37 +318,31 @@ def choose_split_legos(
     return train, valid, stats
 
 
-# Programmatic entrypoint mirroring the CLI behavior
-def make_split(
-    *,
-    root: str,
-    sets: list[str] | None,
-    classes: int,
-    names: str,
-    prefix: str,
-    val_frac: float = 0.20,
-    seed: int = 9001,
-    neg_subdirs: list[str] | None = None,
-    exts: list[str] | tuple[str, ...] = list(IMG_EXTS),
-    flat_dir: str | None = None,
-    legos: bool = False,
-) -> tuple[str, str]:
+def make_split(root, sets, classes, names, prefix, val_frac, seed,
+               neg_subdirs, exts, flat_dir, legos, out_dir: str | Path | None = None):
     """
-    Returns (data_path, yaml_path). Writes the same files the CLI would:
-      <root>/<prefix>_train.txt
-      <root>/<prefix>_valid.txt
-      <root>/<prefix>.data
-      <root>/<prefix>_split.json
-      <root>/<prefix>.yaml
+    Returns (data_path, yaml_path). Writes the same files as before, but
+    into `out_dir` (writable); the dataset under `root` is read-only input.
+
+      <out_dir>/<prefix>_train.txt
+      <out_dir>/<prefix>_valid.txt
+      <out_dir>/<prefix>.data
+      <out_dir>/<prefix>_split.json   (FULL `stats`, same as before)
+      <out_dir>/<prefix>.yaml
     """
+    out_dir = Path(out_dir) if out_dir is not None else Path(root)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     root_p = Path(root).resolve()
     root_p.mkdir(parents=True, exist_ok=True)
     exts = [e.lower() for e in exts]
 
-    # ----- build train/valid using the same logic the CLI uses -----
+    # ----- build train/valid exactly like before -----
     if flat_dir:
         all_imgs = collect_images_flat(root_p, flat_dir, exts)
-        train_paths, valid_paths, stats = choose_split_flat(all_imgs, val_frac=val_frac, seed=seed)
+        train_paths, valid_paths, stats = choose_split_flat(
+            all_imgs, val_frac=val_frac, seed=seed
+        )
     else:
         if not sets:
             raise ValueError("sets is required unless flat_dir is used")
@@ -361,37 +355,69 @@ def make_split(
             neg_subdirs_eff = neg_subdirs
 
         if legos:
-            train_paths, valid_paths, stats = choose_split_legos(images_by_subdir, neg_subdirs=neg_subdirs_eff)
+            train_paths, valid_paths, stats = choose_split_legos(
+                images_by_subdir, neg_subdirs=neg_subdirs_eff
+            )
         else:
             train_paths, valid_paths, stats = choose_split(
                 images_by_subdir, neg_subdirs=neg_subdirs_eff, val_frac=val_frac, seed=seed
             )
 
-    # ----- write artifacts (same names as CLI) -----
-    train_file = root_p / f"{prefix}_train.txt"
-    valid_file = root_p / f"{prefix}_valid.txt"
-    data_file  = root_p / f"{prefix}.data"
-    names_file = root_p / names
-    manifest   = root_p / f"{prefix}_split.json"
+    # ----- write artifacts under out_dir -----
+    train_file = out_dir / f"{prefix}_train.txt"
+    valid_file = out_dir / f"{prefix}_valid.txt"
+    data_file  = out_dir / f"{prefix}.data"
+    manifest   = out_dir / f"{prefix}_split.json"
+    yaml_file  = out_dir / f"{prefix}.yaml"
+    names_file = root_p / names   # names lives with the dataset (read-only source)
 
     write_list(train_file, train_paths)
     write_list(valid_file, valid_paths)
-    write_darknet_data_file(
-        data_file, classes=classes, train=train_file, valid=valid_file, names=names_file, backup=root_p
-    )
+
+    # Preserve OLD manifest content (full `stats`), but ensure `counts` exists
+    if "counts" not in stats:
+        stats["counts"] = {
+            "train_total": len(train_paths),
+            "valid_total": len(valid_paths),
+        }
+    stats.setdefault("val_frac", val_frac)
     manifest.write_text(json.dumps(stats, indent=2), encoding="utf-8")
 
-    yaml_path = write_ultralytics_yaml(
-        root=root_p,
-        prefix=prefix,
+    # Keep old .data semantics but make backup writable (out_dir)
+    write_darknet_data_file(
+        data_file,
         classes=classes,
-        names_file=names,
-        train_file=train_file,
-        valid_file=valid_file,
-        ratio_tag=_derive_ratio_tag_from_prefix(prefix),  # keeps existing behavior
+        train=train_file,
+        valid=valid_file,
+        names=names_file,
+        backup=out_dir,        # <-- was root_p before; avoid /blue writes
     )
 
-    return str(data_file), str(yaml_path)
+    # Write Ultralytics YAML into out_dir (absolute train/val paths, names read from names_file)
+    # If your helper can't target a different folder, write it manually:
+    try:
+        with open(names_file, "r", encoding="utf-8", errors="ignore") as nf:
+            class_names = [ln.strip() for ln in nf if ln.strip()]
+    except Exception:
+        class_names = None
+
+    ydoc = {
+        # keep dataset root for reference; Ultralytics doesn’t require it if train/val are absolute
+        "path": str(root_p),
+        "train": str(train_file),
+        "val":   str(valid_file),
+    }
+    if class_names:
+        ydoc["names"] = class_names
+        ydoc["nc"] = len(class_names)
+    else:
+        # fallback to path to names file
+        ydoc["names"] = str(names_file)
+
+    import yaml as _yaml
+    yaml_file.write_text(_yaml.safe_dump(ydoc, sort_keys=False), encoding="utf-8")
+
+    return str(data_file), str(yaml_file)
 
 # ---------------------------------------
 
