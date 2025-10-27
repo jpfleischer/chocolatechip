@@ -236,7 +236,7 @@ PROFILES = {
         data_path="", cfg_out="",
         width=256, height=256,
         batch_size=64, subdivisions=1,
-        iterations=7000, learning_rate=0.00261,
+        iterations=200, learning_rate=0.00261,
         templates=(),
         tag_color_preset=True,
         val_fracs=(0.20,),
@@ -258,32 +258,28 @@ PROFILES = {
         training_seed = 42,
     ),
 
+
     "FisheyeTrafficDarknetLocal": TrainProfile(
         name="FisheyeTrafficDarknetLocal",
         backend="darknet",
-        data_path="/blue/ranka/j.fleischer/annotation_data/combined.data",
-        cfg_out="/blue/ranka/j.fleischer/annotation_data/combined.cfg",
+        data_path="/host_workspace/combined.data",      # <- write here
+        cfg_out="/host_workspace/combined.cfg",         # <- write here
         width=960, height=736,
         batch_size=64, subdivisions=16,
         iterations=8000, learning_rate=0.00261,
-        # templates=("yolov7-tiny",),
         templates=("yolov4", "yolov7"),
         val_fracs=(0.10,),
         sweep_keys=("templates",),
         sweep_values={},
         dataset=DatasetSpec(
-            root="/blue/ranka/j.fleischer/annotation_data",
-            sets=tuple(),                # not needed for local-only
-            classes=5,                   # keep in sync with your names file
-            names="obj.names",           # adjust if your names file differs
+            root="/blue/ranka/j.fleischer/annotation_data",  # <- read-only
+            sets=tuple(),
+            classes=5,
+            names="obj.names",
             prefix="combined",
             split_seed=9001,
-            neg_subdirs=tuple(),
             exts=(".jpg", ".png"),
-            url=None,
-            sha256=None,
-            require_existing=True,       # <- key behavior
-            # If you want optional re-splitting from a flat cache, set:
+            require_existing=True,       # keep this
             flat_dir="darkmark_image_cache/resize",
         ),
     ),
