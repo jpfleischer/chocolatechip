@@ -212,14 +212,20 @@ def _values_for_key(p: TrainProfile, key: str) -> Tuple[Any, ...]:
     raise KeyError(f"sweep key '{key}' has no values (add to profile.sweep_values or provide a plural field)")
 
 def _apply_one(p: TrainProfile, key: str, val: Any) -> TrainProfile:
-    # templates: set the *active* template in the variant (don’t mutate templates tuple)
     if key == "templates":
         return replace(p, template=val)
     if key == "color_presets":
         return replace(p, color_preset=val)
+    if key == "val_fracs":
+        # Never store a scalar; keep the invariant that val_fracs is a tuple
+        if isinstance(val, (int, float)):
+            return replace(p, val_fracs=(float(val),))
+        if isinstance(val, (list, tuple)):
+            return replace(p, val_fracs=tuple(val))
+        # Unknown type → don’t change it
+        return p
     if hasattr(p, key):
         return replace(p, **{key: val})
-    # color_presets/val_fracs handled by control flow (we don’t store val_fracs per-run)
     return p
 
 
@@ -381,7 +387,13 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
 
             # existing code that builds the split + YAML
             if getattr(p, "dataset", None) and (not p.ultra_data or not os.path.isfile(p.ultra_data)):
-                default_vf = (p.val_fracs[0] if getattr(p, "val_fracs", None) else 0.20)
+                vf_field = getattr(p, "val_fracs", None)
+                if isinstance(vf_field, (list, tuple)) and vf_field:
+                    default_vf = float(vf_field[0])
+                elif isinstance(vf_field, (int, float)):
+                    default_vf = float(vf_field)
+                else:
+                    default_vf = 0.20  # fallback
                 data_path, _ = build_split_for(default_vf, p.dataset, out_dir=WRITABLE_BASE)
                 yaml_path = str(Path(data_path).with_suffix(".yaml"))
                 p = replace(p, ultra_data=yaml_path)

@@ -149,7 +149,7 @@ PROFILES = {
         templates=("yolov4-tiny", "yolov7-tiny",),
         # templates=("yolov7-tiny",),
         # templates=("yolov4-tiny",),
-        val_fracs=(0.10, 0.15, 0.20),
+        val_fracs=(0.10, 0.15, 0.20, 0.80,),
         # val_fracs=(0.20,),
         sweep_keys=("templates", "val_fracs", "num_gpus"),
         
@@ -210,8 +210,9 @@ PROFILES = {
         batch_size=64, subdivisions=1,
         iterations=6000, learning_rate=0.00261,
         templates=(),
-        val_fracs=(0.20,),
-        sweep_keys=("num_gpus",),
+        val_fracs=(0.10, 0.15, 0.20, 0.80,),
+        # val_fracs=(0.80,),
+        sweep_keys=("val_fracs", "num_gpus",),
         sweep_values={"num_gpus": (1,)},
         dataset=DatasetSpec(
             root="/workspace/LegoGears_v2",
