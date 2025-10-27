@@ -14,6 +14,11 @@ RUN apt-get update && \
 
 RUN mkdir -p /outputs /workspace && chown -R appuser:appgroup /outputs /workspace
 
+# make a datasets cache and give it to appuser
+RUN mkdir -p /workspace/.cache/datasets && chown -R appuser:appgroup /workspace/.cache
+
+ENV DATA_ROOT=/workspace/.cache/datasets
+
 RUN pip install --no-cache-dir \
       pycocotools \
       imagesize \
