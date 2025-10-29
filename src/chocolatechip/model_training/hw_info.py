@@ -7,6 +7,34 @@ import shutil
 import subprocess
 from pathlib import Path
 
+_BUS_RE = re.compile(
+    r'^(?:(?P<domain>[0-9a-fA-F]{0,8}):)?(?P<bus>[0-9a-fA-F]{2}):(?P<device>[0-9a-fA-F]{2})\.(?P<func>[0-7])$'
+)
+
+def _canon_bus_forms(s: str) -> tuple[str, str]:
+    """
+    Return two canonical forms of a PCI bus id:
+      - 8-zero domain form: '00000000:BB:DD.F'
+      - 4-zero domain form: '0000:BB:DD.F'
+    Accepts inputs like '65:00.0', '0000:65:00.0', or '00000000:65:00.0'.
+    """
+    if not s:
+        return ("(unknown)", "(unknown)")
+    s = s.strip().lower()
+    m = _BUS_RE.match(s) or _BUS_RE.match("00000000:" + s)  # allow missing domain
+    if not m:
+        return (s, s)
+    dom = m.group("domain") or "00000000"
+    if len(dom) < 8:
+        dom = dom.rjust(8, "0")
+    bus = m.group("bus").rjust(2, "0")
+    dev = m.group("device").rjust(2, "0")
+    fn  = m.group("func")
+    eight = f"{dom}:{bus}:{dev}.{fn}"
+    four  = f"{dom[-4:]}:{bus}:{dev}.{fn}"
+    return (eight, four)
+
+
 def _load_cudart():
     for name in ("libcudart.so", "libcudart.so.12", "libcudart.so.11", "libcudart.so.10.2", "libcudart.so.10.1", "libcudart.so.10.0"):
         try:
@@ -25,73 +53,76 @@ def _cuda_check(code):
 def runtime_visible_devices():
     """
     Returns the CUDA runtime-visible devices for *this process* in logical order:
-      [ {'logical': 0, 'name': 'NVIDIA ...', 'bus_id': '0000:BB:DD.F'}, ... ]
-
-    - Uses cudaGetDeviceCount/cudaDeviceGetName for stable name retrieval.
-    - Uses cudaDeviceGetPCIBusId to obtain canonical PCI bus IDs.
-    - No environment variables are modified.
+      [{'logical': 0, 'name': 'NVIDIA ...', 'bus_id': '00000000:bb:dd.f'}, ...]
+    Names are resolved by matching PCI bus IDs against nvidia-smi (host view).
     """
-    # Use already-loaded cudart if present; otherwise try to load it.
     cudart = _cudart or _load_cudart()
     if cudart is None:
         return []
 
-    # Signatures
+    # Runtime API signatures
     cudart.cudaGetDeviceCount.restype  = ctypes.c_int
     cudart.cudaGetDeviceCount.argtypes = [ctypes.POINTER(ctypes.c_int)]
-
-    cudart.cudaDeviceGetName.restype  = ctypes.c_int
-    cudart.cudaDeviceGetName.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
-
     cudart.cudaDeviceGetPCIBusId.restype  = ctypes.c_int
     cudart.cudaDeviceGetPCIBusId.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
 
-    # Count devices in the runtime view (after any CUDA_VISIBLE_DEVICES filtering)
+    # Count runtime-visible devices
     n = ctypes.c_int(0)
     _cuda_check(cudart.cudaGetDeviceCount(ctypes.byref(n)))
 
+    # Build host-view index by bus id (with both 8-zero & 4-zero forms)
+    smi_by_bus = smi_inventory_by_bus()
+
     devices = []
     for logical_idx in range(n.value):
-        # Name
-        name_buf = ctypes.create_string_buffer(256)
-        _cuda_check(cudart.cudaDeviceGetName(name_buf, 256, logical_idx))
-        name = name_buf.value.decode(errors="ignore")
+        # PCI bus id from runtime
+        buf = ctypes.create_string_buffer(64)
+        rc  = cudart.cudaDeviceGetPCIBusId(buf, 64, logical_idx)
+        raw = buf.value.decode().lower() if rc == 0 else "(unknown)"
 
-        # PCI bus id (canonical form "0000:BB:DD.F")
-        bus_buf = ctypes.create_string_buffer(64)
-        rc = cudart.cudaDeviceGetPCIBusId(bus_buf, 64, logical_idx)
-        bus = bus_buf.value.decode() if rc == 0 else "(unknown)"
+        eight, four = _canon_bus_forms(raw)
+        meta = smi_by_bus.get(eight) or smi_by_bus.get(four) or {}
+        name = meta.get("name", "Unknown")
 
-        # Normalize to lowercase for consistent joins with nvidia-smi output
-        bus = bus.lower()
-
+        # Use the 8-zero canonical string as our stored bus_id
         devices.append({
             "logical": logical_idx,
             "name": name,
-            "bus_id": bus,   # e.g., "0000:65:00.0"
+            "bus_id": eight,
         })
 
     return devices
 
 
+# --- replace your smi_inventory_by_bus() with this version ---
 def smi_inventory_by_bus():
     """
-    Returns { '0000:65:00.0': {'smi_index': 3, 'name': 'NVIDIA ...', 'uuid': 'GPU-...'} }
+    Returns a dict mapping BOTH canonical forms to metadata:
+      {
+        '00000000:65:00.0': {'smi_index': 3, 'name': 'NVIDIA ...', 'uuid': 'GPU-...'},
+        '0000:65:00.0':     {... same dict ...}
+      }
     """
     try:
         out = _sh("nvidia-smi --query-gpu=index,pci.bus_id,name,uuid --format=csv,noheader")
         table = {}
         for line in out.splitlines():
             parts = [p.strip() for p in line.split(",")]
-            if len(parts) >= 4:
-                idx = int(parts[0])
-                bus = parts[1].lower()
-                name = parts[2]
-                uuid = parts[3]
-                table[bus] = {"smi_index": idx, "name": name, "uuid": uuid}
+            if len(parts) < 4:
+                continue
+            idx  = int(parts[0])
+            bus  = parts[1].lower()
+            name = parts[2]
+            uuid = parts[3]
+            eight, four = _canon_bus_forms(bus)
+            meta = {"smi_index": idx, "name": name, "uuid": uuid}
+            # Register both keys to maximize hit rate
+            table[eight] = meta
+            table[four]  = meta
         return table
     except Exception:
         return {}
+
 
 def runtime_to_smi_map():
     """
@@ -274,23 +305,6 @@ def parse_cuda_visible_devices():
         except ValueError:
             return None, True, False  # set, but not numeric
     return ints, True, True
-
-def list_all_gpu_indices():
-    """
-    Returns a list of absolute GPU indices as reported by nvidia-smi.
-    """
-    out = _sh("nvidia-smi --query-gpu=index --format=csv,noheader")
-    inds = []
-    for line in out.splitlines():
-        s = line.strip()
-        if not s:
-            continue
-        # index is an int on each line
-        try:
-            inds.append(int(s.split(",")[0]))
-        except ValueError:
-            pass
-    return inds
 
 
 def gpu_inventory(cm_gpu):
