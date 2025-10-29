@@ -7,6 +7,107 @@ import shutil
 import subprocess
 from pathlib import Path
 
+def _load_cudart():
+    for name in ("libcudart.so", "libcudart.so.12", "libcudart.so.11", "libcudart.so.10.2", "libcudart.so.10.1", "libcudart.so.10.0"):
+        try:
+            return ctypes.CDLL(name)
+        except OSError:
+            continue
+    return None
+
+_cudart = _load_cudart()
+
+def _cuda_check(code):
+    if code != 0:
+        raise RuntimeError(f"CUDA runtime error {code}")
+
+
+def runtime_visible_devices():
+    """
+    Returns the CUDA runtime-visible devices for *this process* in logical order:
+      [ {'logical': 0, 'name': 'NVIDIA ...', 'bus_id': '0000:BB:DD.F'}, ... ]
+
+    - Uses cudaGetDeviceCount/cudaDeviceGetName for stable name retrieval.
+    - Uses cudaDeviceGetPCIBusId to obtain canonical PCI bus IDs.
+    - No environment variables are modified.
+    """
+    # Use already-loaded cudart if present; otherwise try to load it.
+    cudart = _cudart or _load_cudart()
+    if cudart is None:
+        return []
+
+    # Signatures
+    cudart.cudaGetDeviceCount.restype  = ctypes.c_int
+    cudart.cudaGetDeviceCount.argtypes = [ctypes.POINTER(ctypes.c_int)]
+
+    cudart.cudaDeviceGetName.restype  = ctypes.c_int
+    cudart.cudaDeviceGetName.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
+
+    cudart.cudaDeviceGetPCIBusId.restype  = ctypes.c_int
+    cudart.cudaDeviceGetPCIBusId.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
+
+    # Count devices in the runtime view (after any CUDA_VISIBLE_DEVICES filtering)
+    n = ctypes.c_int(0)
+    _cuda_check(cudart.cudaGetDeviceCount(ctypes.byref(n)))
+
+    devices = []
+    for logical_idx in range(n.value):
+        # Name
+        name_buf = ctypes.create_string_buffer(256)
+        _cuda_check(cudart.cudaDeviceGetName(name_buf, 256, logical_idx))
+        name = name_buf.value.decode(errors="ignore")
+
+        # PCI bus id (canonical form "0000:BB:DD.F")
+        bus_buf = ctypes.create_string_buffer(64)
+        rc = cudart.cudaDeviceGetPCIBusId(bus_buf, 64, logical_idx)
+        bus = bus_buf.value.decode() if rc == 0 else "(unknown)"
+
+        # Normalize to lowercase for consistent joins with nvidia-smi output
+        bus = bus.lower()
+
+        devices.append({
+            "logical": logical_idx,
+            "name": name,
+            "bus_id": bus,   # e.g., "0000:65:00.0"
+        })
+
+    return devices
+
+
+def smi_inventory_by_bus():
+    """
+    Returns { '0000:65:00.0': {'smi_index': 3, 'name': 'NVIDIA ...', 'uuid': 'GPU-...'} }
+    """
+    try:
+        out = _sh("nvidia-smi --query-gpu=index,pci.bus_id,name,uuid --format=csv,noheader")
+        table = {}
+        for line in out.splitlines():
+            parts = [p.strip() for p in line.split(",")]
+            if len(parts) >= 4:
+                idx = int(parts[0])
+                bus = parts[1].lower()
+                name = parts[2]
+                uuid = parts[3]
+                table[bus] = {"smi_index": idx, "name": name, "uuid": uuid}
+        return table
+    except Exception:
+        return {}
+
+def runtime_to_smi_map():
+    """
+    Returns list of rows mapping runtime logical -> smi index by bus ID.
+    [{'logical': 0, 'bus_id': '0000:bb:dd.f', 'name': '...', 'smi_index': 3}, ...]
+    """
+    vis = runtime_visible_devices()
+    smi = smi_inventory_by_bus()
+    rows = []
+    for r in vis:
+        bus = r["bus_id"].lower()
+        match = smi.get(bus, {})
+        rows.append({**r, "smi_index": match.get("smi_index", None)})
+    return rows
+
+
 def _sh(cmd):
     return subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.STDOUT).strip()
 
@@ -122,9 +223,30 @@ def get_compute_caps(indices=None):
 def summarize_env(indices=None, training_log_path=None):
     cuda_ver = get_cuda_version()
     cudnn_ver = get_cudnn_version(training_log_path=training_log_path)
-    caps = get_compute_caps(indices=indices)
-    # Use all visible GPUs when indices is None
-    num_used = len(indices) if indices is not None else len(caps)
+
+    # NEW: prefer runtime-visible view for compute caps & names
+    rt = runtime_visible_devices()
+    if rt:
+        # compute caps via nvidia-smi, but aligned by bus id → runtime order
+        smi = smi_inventory_by_bus()
+        caps = []
+        for d in rt:
+            entry = smi.get(d["bus_id"].lower())
+            if entry:
+                # nvidia-smi compute cap is X.Y; if missing fall back later
+                try:
+                    out = _sh(f"nvidia-smi --id={entry['smi_index']} --query-gpu=compute_cap --format=csv,noheader")
+                    caps.append(out.strip())
+                except Exception:
+                    caps.append("N/A")
+            else:
+                caps.append("N/A")
+        num_used = len(rt) if indices is None else len(indices)
+    else:
+        # Fallback to your old path
+        caps = get_compute_caps(indices=indices)
+        num_used = len(indices) if indices is not None else len(caps)
+
     return {
         "cuda_version": cuda_ver,
         "cudnn_version": cudnn_ver,
@@ -195,53 +317,57 @@ def gpu_inventory(cm_gpu):
 def resolve_gpu_selection(cm_gpu):
     """
     Decide which GPUs to use and how to pass them to Darknet.
-    Returns a dict with:
-      indices_abs        -> list[int] (absolute indices)
-      gpus_str_for_cli   -> str to use with '-gpus' (may be '')
-      selected_names     -> list[str] names of selected GPUs
-      selected_vram      -> list[str] VRAM of selected GPUs
-      env_set            -> bool (CUDA_VISIBLE_DEVICES set?)
-      env_numeric        -> bool (set and numeric?)
-    Rules:
-      - If CUDA_VISIBLE_DEVICES is numeric (e.g., "2,3"): use those absolute indices,
-        and for Darknet pass "0,1,..." (relative to the visible set).
-      - If env is unset: use all indices from nvidia-smi and pass them as absolute.
-      - If env is set to UUIDs: we can’t map cleanly; fall back to all indices and pass absolute.
-    """
-    env_indices, env_set, env_numeric = parse_cuda_visible_devices()
 
-    names, vram = gpu_inventory(cm_gpu)
-    all_abs = list_all_gpu_indices()
-    if not all_abs:
-        # No GPUs visible
+    Darknet's -gpus argument always expects *logical indices in the CUDA runtime view*,
+    i.e., the 0..N-1 order returned by cudaGetDeviceCount / cudaGetDeviceProperties
+    for this process (after any CUDA_VISIBLE_DEVICES filtering).
+
+    We therefore:
+      - Inspect the runtime-visible devices (names + bus IDs) to define the index set.
+      - Build a mapping to nvidia-smi indices (for reporting only).
+      - Always pass "0,1,...,K-1" to Darknet for K selected devices.
+    """
+    # Runtime view (authoritative for Darknet)
+    rt = runtime_visible_devices()  # [{'logical': i, 'name':..., 'bus_id':...}, ...]
+    if not rt:
+        # Fallback to zero devices
         return {
-            "indices_abs": [],
+            "indices_abs": [],            # deprecated; retained for compatibility
             "gpus_str_for_cli": "",
             "selected_names": [],
             "selected_vram": [],
-            "env_set": env_set,
-            "env_numeric": env_numeric,
+            "env_set": bool(os.environ.get("CUDA_VISIBLE_DEVICES")),
+            "env_numeric": parse_cuda_visible_devices()[2],
+            "runtime_devices": [],        # NEW: full runtime list
+            "runtime_smi_map": [],        # NEW: runtime <-> smi mapping
         }
 
-    if env_set and env_numeric and env_indices:
-        indices_abs = env_indices
-        # When env is numeric, frameworks typically treat indices as re-mapped 0..N-1.
-        gpus_str_for_cli = ",".join(str(i) for i in range(len(indices_abs)))
-    else:
-        # env unset or UUID/mixed -> use all absolute indices, pass as absolute
-        indices_abs = all_abs
-        gpus_str_for_cli = ",".join(str(i) for i in indices_abs)
+    # Optional: look up VRAM from cloudmesh (if available)
+    try:
+        names, vram = gpu_inventory(cm_gpu)
+    except Exception:
+        names, vram = ([], [])
 
-    selected_names = [names[i] for i in indices_abs if i < len(names)]
-    selected_vram  = [vram[i]  for i in indices_abs if i < len(vram)]
+    # Build Darknet argument: always 0..K-1
+    k = len(rt)
+    gpus_str_for_cli = ",".join(str(i) for i in range(k))
+
+    # For reporting, map runtime logical -> nvidia-smi index (by PCI bus)
+    rt_smi = runtime_to_smi_map()  # includes 'smi_index' if resolvable
+
+    # Selected names from runtime (authoritative)
+    selected_names = [d["name"] for d in rt]
 
     return {
-        "indices_abs": indices_abs,
+        # Historically your code called these 'absolute', but they are runtime logical.
+        "indices_abs": list(range(k)),
         "gpus_str_for_cli": gpus_str_for_cli,
         "selected_names": selected_names,
-        "selected_vram": selected_vram,
-        "env_set": env_set,
-        "env_numeric": env_numeric,
+        "selected_vram": vram[:k] if vram else [],
+        "env_set": bool(os.environ.get("CUDA_VISIBLE_DEVICES")),
+        "env_numeric": parse_cuda_visible_devices()[2],
+        "runtime_devices": rt,     # [{'logical', 'name', 'bus_id'}]
+        "runtime_smi_map": rt_smi, # [{'logical','bus_id','name','smi_index'}]
     }
 
 
