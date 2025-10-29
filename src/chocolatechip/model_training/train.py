@@ -342,19 +342,33 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         else:
             print("[valid] no valid file found in .data")
 
-    # GPU watcher
+    # GPU watcher (host-indexed for nvidia-smi)
     watch_log = os.path.join(output_dir, "mylogfile.log")
     stop_evt = Event()
     t = None
+
+    # Map selected CUDA logical indices -> host nvidia-smi indices for gpu.watch
+    watch_indices = None
+    rt_map = sel.get("runtime_smi_map", [])  # [{'logical','bus_id','name','smi_index'}]
+    if rt_map:
+        l2s = {row["logical"]: row.get("smi_index") for row in rt_map if row.get("smi_index") is not None}
+        mapped = [l2s.get(li) for li in indices]
+        if all(m is not None for m in mapped) and len(mapped) > 0:
+            watch_indices = mapped  # host indices that align with your selected logical indices
+
     try:
         if gpu.count > 0:
             t = Thread(target=gpu.watch, kwargs={
                 "logfile": watch_log, "delay": 1.0, "dense": True,
-                "gpu": indices if indices else None,
+                "gpu": watch_indices,  # None => watch all; else host indices
                 "install_signal_handler": False, "stop_event": stop_evt,
             })
-            t.daemon = True; t.start()
-            print(f"[gpuwatch] -> {watch_log}")
+            t.daemon = True
+            t.start()
+            if watch_indices:
+                print(f"[gpuwatch] -> {watch_log} (host idx: {','.join(map(str, watch_indices))} for logical {','.join(map(str, indices))})")
+            else:
+                print(f"[gpuwatch] -> {watch_log} (watching all)")
         else:
             print("[gpuwatch] no GPUs visible")
     except Exception as e:
