@@ -332,58 +332,165 @@ def resolve_gpu_selection(cm_gpu):
     """
     Decide which GPUs to use and how to pass them to Darknet/Ultralytics.
 
-    Priority:
-      1. Use CUDA runtime-visible devices (requires libcudart.so)
-      2. FALLBACK: use cloudmesh / nvidia-smi view (works even without libcudart)
+    Order of attempts:
+      1. CUDA runtime (libcudart.so)  ← original, best
+      2. CUDA *driver* (libcuda.so)   ← new, for images that ship driver but not runtime
+      3. SMI-only fallback            ← last resort, no logical mapping
 
-    Returns a dict like:
-      {
-        "indices_abs": [0, 1, ...],          # runtime (or fallback) logical indices
-        "gpus_str_for_cli": "0,1,...",       # string for CLI
-        "selected_names": [...],             # GPU names
-        "selected_vram": [...],              # VRAM strings (if available)
-        "env_set": True/False,               # was CUDA_VISIBLE_DEVICES set
-        "env_numeric": True/False,           # was it numeric
-        "runtime_devices": [...],            # detailed runtime view (may be empty on fallback)
-        "runtime_smi_map": [...],            # mapping (may be empty on fallback)
-      }
+    Returns a dict compatible with existing callers.
     """
-    # 1) Try the *real* runtime path (what you had before)
-    rt = runtime_visible_devices()  # [{'logical': i, 'name':..., 'bus_id':...}, ...]
-    if rt:
-        # Optional: look up VRAM from cloudmesh (if available)
+
+    # --- helpers ----------------------------------------------------------
+    def _runtime_via_cudart():
+        """Try the original libcudart-based path (your old runtime_visible_devices)."""
+        cudart = _cudart or _load_cudart()
+        if cudart is None:
+            return []
+
+        # signatures
+        cudart.cudaGetDeviceCount.restype = ctypes.c_int
+        cudart.cudaGetDeviceCount.argtypes = [ctypes.POINTER(ctypes.c_int)]
+        cudart.cudaDeviceGetPCIBusId.restype = ctypes.c_int
+        cudart.cudaDeviceGetPCIBusId.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
+
+        n = ctypes.c_int(0)
+        _cuda_check(cudart.cudaGetDeviceCount(ctypes.byref(n)))
+
+        smi_by_bus = smi_inventory_by_bus()
+        out = []
+        for logical_idx in range(n.value):
+            buf = ctypes.create_string_buffer(64)
+            rc = cudart.cudaDeviceGetPCIBusId(buf, 64, logical_idx)
+            raw = buf.value.decode().lower() if rc == 0 else "(unknown)"
+            eight, four = _canon_bus_forms(raw)
+            meta = smi_by_bus.get(eight) or smi_by_bus.get(four) or {}
+            name = meta.get("name", "Unknown")
+            out.append({
+                "logical": logical_idx,
+                "name": name,
+                "bus_id": eight,
+            })
+        return out
+
+    def _runtime_via_libcuda():
+        """
+        Same idea as cudart, but using the *driver* API, which *is* present
+        in your container (/usr/lib/x86_64-linux-gnu/libcuda.so.*).
+        """
+        lib = None
+        for name in ("libcuda.so", "libcuda.so.1"):
+            try:
+                lib = ctypes.CDLL(name)
+                break
+            except OSError:
+                continue
+        if lib is None:
+            return []
+
+        # int cuInit(unsigned int Flags);
+        # int cuDeviceGetCount(int *count);
+        # int cuDeviceGet(CUdevice *device, int ordinal);
+        # int cuDeviceGetName(char *name, int len, CUdevice dev);
+        # int cuDeviceGetPCIBusId(char *busId, int len, CUdevice dev);
+        CUdevice = ctypes.c_int
+
+        def _chk(code, where):
+            if code != 0:
+                raise RuntimeError(f"{where} failed with {code}")
+
+        _chk(lib.cuInit(0), "cuInit")
+
+        count = ctypes.c_int(0)
+        _chk(lib.cuDeviceGetCount(ctypes.byref(count)), "cuDeviceGetCount")
+
+        smi_by_bus = smi_inventory_by_bus()
+        devices = []
+        for logical_idx in range(count.value):
+            dev = CUdevice()
+            _chk(lib.cuDeviceGet(ctypes.byref(dev), logical_idx), "cuDeviceGet")
+
+            # name
+            name_buf = ctypes.create_string_buffer(100)
+            rc_name = lib.cuDeviceGetName(name_buf, 100, dev)
+            name_rt = name_buf.value.decode().strip() if rc_name == 0 else "Unknown"
+
+            # bus
+            bus_buf = ctypes.create_string_buffer(64)
+            rc_bus = lib.cuDeviceGetPCIBusId(bus_buf, 64, dev)
+            raw_bus = bus_buf.value.decode().lower() if rc_bus == 0 else "(unknown)"
+
+            eight, four = _canon_bus_forms(raw_bus)
+            meta = smi_by_bus.get(eight) or smi_by_bus.get(four) or {}
+
+            # Prefer SMI name if we can match the bus, because that’s what your CSVs
+            # and previous runs use.
+            name = meta.get("name", name_rt)
+
+            devices.append({
+                "logical": logical_idx,
+                "name": name,
+                "bus_id": eight,
+                "smi_index": meta.get("smi_index"),
+            })
+
+        return devices
+
+    # --- 1) try libcudart (original behavior) -----------------------------
+    rt = []
+    try:
+        rt = _runtime_via_cudart()
+    except Exception:
+        rt = []
+
+    # --- 2) if that failed, try the driver API ----------------------------
+    if not rt:
         try:
-            names_via_smi, vram_via_smi = gpu_inventory(cm_gpu)
+            rt = _runtime_via_libcuda()
         except Exception:
-            names_via_smi, vram_via_smi = ([], [])
+            rt = []
+
+    # If *either* of the above worked, we now have the container's real logical order.
+    if rt:
+        # we may still want VRAM from cloudmesh
+        try:
+            names_vram, vram_vram = gpu_inventory(cm_gpu)
+        except Exception:
+            names_vram, vram_vram = ([], [])
 
         k = len(rt)
         gpus_str_for_cli = ",".join(str(i) for i in range(k))
-        rt_smi = runtime_to_smi_map()
 
-        # Selected names from runtime (authoritative in this branch)
-        selected_names = [d.get("name", "Unknown") for d in rt]
+        # build runtime -> smi map (only for rows that actually have smi_index)
+        rt_smi = []
+        for d in rt:
+            if d.get("smi_index") is not None:
+                rt_smi.append({
+                    "logical": d["logical"],
+                    "bus_id": d["bus_id"],
+                    "name": d["name"],
+                    "smi_index": d["smi_index"],
+                })
+
+        selected_names = [d["name"] for d in rt]
 
         return {
-            # historically called "absolute" but they're runtime logical
             "indices_abs": list(range(k)),
             "gpus_str_for_cli": gpus_str_for_cli,
             "selected_names": selected_names,
-            "selected_vram": vram_via_smi[:k] if vram_via_smi else [],
+            "selected_vram": vram_vram[:k] if vram_vram else [],
             "env_set": bool(os.environ.get("CUDA_VISIBLE_DEVICES")),
             "env_numeric": parse_cuda_visible_devices()[2],
             "runtime_devices": rt,
             "runtime_smi_map": rt_smi,
         }
 
-    # 2) FALLBACK: libcudart is missing or runtime query failed.
-    #    Use cloudmesh / nvidia-smi view instead, so we still get "NVIDIA RTX A6000".
+    # --- 3) LAST RESORT: SMI-only fallback --------------------------------
+    # This is only hit if **both** libcudart and libcuda are absent/unusable.
     try:
-        names, vram = gpu_inventory(cm_gpu)  # this uses cm_gpu.smi(...)
+        names, vram = gpu_inventory(cm_gpu)
     except Exception:
         names, vram = ([], [])
 
-    # If that also failed, return the "empty" structure
     if not names:
         return {
             "indices_abs": [],
@@ -392,14 +499,12 @@ def resolve_gpu_selection(cm_gpu):
             "selected_vram": [],
             "env_set": bool(os.environ.get("CUDA_VISIBLE_DEVICES")),
             "env_numeric": parse_cuda_visible_devices()[2],
-            "runtime_devices": [],   # no runtime view
-            "runtime_smi_map": [],   # no mapping
+            "runtime_devices": [],
+            "runtime_smi_map": [],
         }
 
-    # We have names from nvidia-smi → pretend they are runtime 0..N-1
     k = len(names)
     gpus_str_for_cli = ",".join(str(i) for i in range(k))
-
     return {
         "indices_abs": list(range(k)),
         "gpus_str_for_cli": gpus_str_for_cli,
@@ -407,8 +512,8 @@ def resolve_gpu_selection(cm_gpu):
         "selected_vram": vram[:k] if vram else [],
         "env_set": bool(os.environ.get("CUDA_VISIBLE_DEVICES")),
         "env_numeric": parse_cuda_visible_devices()[2],
-        "runtime_devices": [],      # we didn't have libcudart, so nothing here
-        "runtime_smi_map": [],      # can't map without runtime bus IDs
+        "runtime_devices": [],
+        "runtime_smi_map": [],
     }
 
 
