@@ -26,17 +26,7 @@ CONTAINER_NAME := ultralytics-run
 
 .PHONY: outputs logs stop benchmark-ultra benchmarking benchmark ultra bash apptainer-build slurm apptainer-run
 
-outputs:
-	@mkdir -p outputs
-
-logs:
-	@docker logs -f $(CONTAINER_NAME)
-
-stop:
-	@docker rm -f $(CONTAINER_NAME) >/dev/null 2>&1 || true
-
-benchmark-ultra benchmarking benchmark: outputs
-	@$(MAKE) stop
+benchmark-ultra benchmarking benchmark: outputs stop
 	docker build \
 		--build-arg UID=$(BUILD_UID) \
 		--build-arg GID=$(BUILD_GID) \
@@ -50,6 +40,16 @@ benchmark-ultra benchmarking benchmark: outputs
 		-v "$(CUR_HOST)/outputs":/outputs \
 		my-benchmark-app
 	@$(MAKE) logs
+
+outputs:
+	@mkdir -p outputs
+
+logs:
+	@docker logs -f $(CONTAINER_NAME)
+
+stop:
+	@docker rm -f $(CONTAINER_NAME) >/dev/null 2>&1 || true
+
 
 # keep interactive shell separate for debugging; this uses -it on purpose
 ultra bash:
