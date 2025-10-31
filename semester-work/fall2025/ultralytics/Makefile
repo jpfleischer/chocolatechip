@@ -22,21 +22,36 @@ else
   BUILD_GID := 1000
 endif
 
-benchmark-ultra benchmarking benchmark:
+CONTAINER_NAME := ultralytics-run
+
+.PHONY: outputs logs stop benchmark-ultra benchmarking benchmark ultra bash apptainer-build slurm apptainer-run
+
+outputs:
 	@mkdir -p outputs
+
+logs:
+	@docker logs -f $(CONTAINER_NAME)
+
+stop:
+	@docker rm -f $(CONTAINER_NAME) >/dev/null 2>&1 || true
+
+benchmark-ultra benchmarking benchmark: outputs
+	@$(MAKE) stop
 	docker build \
 		--build-arg UID=$(BUILD_UID) \
 		--build-arg GID=$(BUILD_GID) \
 		-t my-benchmark-app \
 		-f "$(CURDIR)/Dockerfile" "$(PROJ_ROOT)"
-	$(SHELL_ENV) docker run --rm -it --shm-size=4gb --gpus all \
+	$(SHELL_ENV) docker run --rm -d --name $(CONTAINER_NAME) --shm-size=4gb --gpus all \
 		-e TRUE_USER=$$(id -un) \
 		-e HOME=/home/appuser \
 		-e ACTUAL_PWD="$(CUR_HOST)" \
 		-v "$(CUR_HOST)/LegoGears_v2":/workspace/LegoGears_v2 \
 		-v "$(CUR_HOST)/outputs":/outputs \
 		my-benchmark-app
+	@$(MAKE) logs
 
+# keep interactive shell separate for debugging; this uses -it on purpose
 ultra bash:
 	@mkdir -p outputs
 	$(SHELL_ENV) docker run -it --shm-size=4gb --gpus all \
@@ -52,9 +67,7 @@ UVA_VIRGINIA_RUNNING := $(shell \
 	else \
 		echo false; \
 	fi)
-
 DOCKER_UVA_ENV := --env UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING)
-
 MODULE_LOAD_APPTAINER = if [ "$(UVA_VIRGINIA_RUNNING)" = "true" ]; then \
 		. /etc/profile.d/modules.sh && module load apptainer; \
 	fi
@@ -66,16 +79,16 @@ $(SIF_NAME): apptainer.def
 
 $(ULTRA_WORKSPACE):
 	mkdir -p $(ULTRA_WORKSPACE)/.home \
-	         $(ULTRA_WORKSPACE)/.cache/mpl \
-	         $(CURDIR)/artifacts/outputs
+			 $(ULTRA_WORKSPACE)/.cache/mpl \
+			 $(CURDIR)/artifacts/outputs
 
 apptainer-build: $(SIF_NAME)
 
 slurm: apptainer-build
 	@if echo "$$(dig -x $$(dig +short myip.opendns.com @resolver1.opendns.com) +short)" | grep -q "virginia.edu"; then \
-	    ACCOUNT="--account=bi_dsc_community"; \
+		ACCOUNT="--account=bi_dsc_community"; \
 	else \
-	    ACCOUNT=""; \
+		ACCOUNT=""; \
 	fi; \
 	echo "Submitting job with account option: $$ACCOUNT"; \
 	sbatch -J "lego_train_$$(date +%Y%m%d_%H%M%S)" $$ACCOUNT legogears.slurm
@@ -97,10 +110,7 @@ apptainer-run: $(ULTRA_WORKSPACE)
 		-B "$(CURDIR)/artifacts/outputs":/outputs \
 		my_ultralytics_container.sif
 
-
-
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=2134 batch=64
 # yolo detect train data=LG_v2.yaml model=yolo11n.pt epochs=1 batch=64
-
-#make apptainer.def and whatever is in it
-#make legogears.slurm
+# make apptainer.def and whatever is in it
+# make legogears.slurm
