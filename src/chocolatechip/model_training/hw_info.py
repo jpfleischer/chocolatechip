@@ -330,58 +330,85 @@ def gpu_inventory(cm_gpu):
 
 def resolve_gpu_selection(cm_gpu):
     """
-    Decide which GPUs to use and how to pass them to Darknet.
+    Decide which GPUs to use and how to pass them to Darknet/Ultralytics.
 
-    Darknet's -gpus argument always expects *logical indices in the CUDA runtime view*,
-    i.e., the 0..N-1 order returned by cudaGetDeviceCount / cudaGetDeviceProperties
-    for this process (after any CUDA_VISIBLE_DEVICES filtering).
+    Priority:
+      1. Use CUDA runtime-visible devices (requires libcudart.so)
+      2. FALLBACK: use cloudmesh / nvidia-smi view (works even without libcudart)
 
-    We therefore:
-      - Inspect the runtime-visible devices (names + bus IDs) to define the index set.
-      - Build a mapping to nvidia-smi indices (for reporting only).
-      - Always pass "0,1,...,K-1" to Darknet for K selected devices.
+    Returns a dict like:
+      {
+        "indices_abs": [0, 1, ...],          # runtime (or fallback) logical indices
+        "gpus_str_for_cli": "0,1,...",       # string for CLI
+        "selected_names": [...],             # GPU names
+        "selected_vram": [...],              # VRAM strings (if available)
+        "env_set": True/False,               # was CUDA_VISIBLE_DEVICES set
+        "env_numeric": True/False,           # was it numeric
+        "runtime_devices": [...],            # detailed runtime view (may be empty on fallback)
+        "runtime_smi_map": [...],            # mapping (may be empty on fallback)
+      }
     """
-    # Runtime view (authoritative for Darknet)
+    # 1) Try the *real* runtime path (what you had before)
     rt = runtime_visible_devices()  # [{'logical': i, 'name':..., 'bus_id':...}, ...]
-    if not rt:
-        # Fallback to zero devices
+    if rt:
+        # Optional: look up VRAM from cloudmesh (if available)
+        try:
+            names_via_smi, vram_via_smi = gpu_inventory(cm_gpu)
+        except Exception:
+            names_via_smi, vram_via_smi = ([], [])
+
+        k = len(rt)
+        gpus_str_for_cli = ",".join(str(i) for i in range(k))
+        rt_smi = runtime_to_smi_map()
+
+        # Selected names from runtime (authoritative in this branch)
+        selected_names = [d.get("name", "Unknown") for d in rt]
+
         return {
-            "indices_abs": [],            # deprecated; retained for compatibility
+            # historically called "absolute" but they're runtime logical
+            "indices_abs": list(range(k)),
+            "gpus_str_for_cli": gpus_str_for_cli,
+            "selected_names": selected_names,
+            "selected_vram": vram_via_smi[:k] if vram_via_smi else [],
+            "env_set": bool(os.environ.get("CUDA_VISIBLE_DEVICES")),
+            "env_numeric": parse_cuda_visible_devices()[2],
+            "runtime_devices": rt,
+            "runtime_smi_map": rt_smi,
+        }
+
+    # 2) FALLBACK: libcudart is missing or runtime query failed.
+    #    Use cloudmesh / nvidia-smi view instead, so we still get "NVIDIA RTX A6000".
+    try:
+        names, vram = gpu_inventory(cm_gpu)  # this uses cm_gpu.smi(...)
+    except Exception:
+        names, vram = ([], [])
+
+    # If that also failed, return the "empty" structure
+    if not names:
+        return {
+            "indices_abs": [],
             "gpus_str_for_cli": "",
             "selected_names": [],
             "selected_vram": [],
             "env_set": bool(os.environ.get("CUDA_VISIBLE_DEVICES")),
             "env_numeric": parse_cuda_visible_devices()[2],
-            "runtime_devices": [],        # NEW: full runtime list
-            "runtime_smi_map": [],        # NEW: runtime <-> smi mapping
+            "runtime_devices": [],   # no runtime view
+            "runtime_smi_map": [],   # no mapping
         }
 
-    # Optional: look up VRAM from cloudmesh (if available)
-    try:
-        names, vram = gpu_inventory(cm_gpu)
-    except Exception:
-        names, vram = ([], [])
-
-    # Build Darknet argument: always 0..K-1
-    k = len(rt)
+    # We have names from nvidia-smi → pretend they are runtime 0..N-1
+    k = len(names)
     gpus_str_for_cli = ",".join(str(i) for i in range(k))
 
-    # For reporting, map runtime logical -> nvidia-smi index (by PCI bus)
-    rt_smi = runtime_to_smi_map()  # includes 'smi_index' if resolvable
-
-    # Selected names from runtime (authoritative)
-    selected_names = [d["name"] for d in rt]
-
     return {
-        # Historically your code called these 'absolute', but they are runtime logical.
         "indices_abs": list(range(k)),
         "gpus_str_for_cli": gpus_str_for_cli,
-        "selected_names": selected_names,
+        "selected_names": names,
         "selected_vram": vram[:k] if vram else [],
         "env_set": bool(os.environ.get("CUDA_VISIBLE_DEVICES")),
         "env_numeric": parse_cuda_visible_devices()[2],
-        "runtime_devices": rt,     # [{'logical', 'name', 'bus_id'}]
-        "runtime_smi_map": rt_smi, # [{'logical','bus_id','name','smi_index'}]
+        "runtime_devices": [],      # we didn't have libcudart, so nothing here
+        "runtime_smi_map": [],      # can't map without runtime bus IDs
     }
 
 
