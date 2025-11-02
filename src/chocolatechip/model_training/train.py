@@ -82,6 +82,72 @@ def _count_lines(path: str) -> int:
     except Exception:
         return 0
 
+
+def copy_darknet_weights_into_output(p, output_dir: str) -> None:
+    """
+    Copy any relevant Darknet weights into this run's output directory.
+    We look in:
+      - directory of p.cfg_out
+      - WRITABLE_BASE (/workspace/.cache/splits) where Darknet actually saved
+    """
+    outp = Path(output_dir)
+    outp.mkdir(parents=True, exist_ok=True)
+
+    cfg_dir = Path(p.cfg_out).parent if getattr(p, "cfg_out", None) else Path(".")
+    splits_dir = Path(os.environ.get("WRITABLE_BASE", "/workspace/.cache/splits"))
+
+    stem = Path(p.cfg_out).stem if getattr(p, "cfg_out", None) else "weights"
+
+    candidates = [
+        splits_dir / f"{stem}_last.weights",
+        splits_dir / "last.weights",
+        cfg_dir / f"{stem}_last.weights",
+        cfg_dir / "last.weights",
+    ]
+
+
+    for src in candidates:
+        if src.is_file():
+            dst = outp / src.name
+            try:
+                shutil.copy2(src, dst)
+                print(f"[weights] copied {src} -> {dst}")
+            except Exception as e:
+                print(f"[weights] copy failed for {src}: {e}")
+
+
+
+def _find_darknet_weights_for_export(p) -> str | None:
+    """
+    Try to find the best/last weights in the usual places.
+    """
+    cfg_path = Path(p.cfg_out).resolve()
+    cfg_dir = cfg_path.parent
+    stem = cfg_path.stem  # e.g. "LegoGears"
+
+    # 1) where Darknet actually saved in your log
+    splits_dir = Path(os.environ.get("WRITABLE_BASE", "/workspace/.cache/splits"))
+
+    candidates = [
+        cfg_dir / f"{stem}_best.weights",
+        cfg_dir / "best.weights",
+        splits_dir / f"{stem}_best.weights",
+        splits_dir / "best.weights",
+        splits_dir / f"{stem}_last.weights",
+        splits_dir / "last.weights",
+        splits_dir / f"{stem}_final.weights",
+        splits_dir / "final.weights",
+    ]
+
+    for c in candidates:
+        if c.is_file():
+            print(f"[coco] using weights: {c}")
+            return str(c)
+
+    print("[coco] no weights found in cfg_dir or splits_dir; skipping export")
+    return None
+
+
 def read_ultra_counts(output_dir: str, yaml_path: str | None = None) -> tuple[int, int]:
     """
     Prefer the copies you already make: output_dir/train.txt and output_dir/valid.txt.
@@ -581,22 +647,22 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
         # 3) export detections to COCO results JSON
         det_json = os.path.join(output_dir, f"dets_{p.backend}.coco.json")
         if p.backend == "darknet":
-            # choose a weights file (best.* if present)
-            stem = Path(p.cfg_out).stem
-            candidate = os.path.join(os.path.dirname(p.cfg_out), f"{stem}_best.weights")
-            best_weights = candidate if os.path.isfile(candidate) else os.path.join(os.path.dirname(p.cfg_out), "best.weights")
+            weights = _find_darknet_weights_for_export(p)
+            if not weights:
+                print("[coco] external COCO eval skipped: no weights to export")
+            else:
+                export_darknet_detections(
+                    darknet_bin=darknet_path(),
+                    data_path=p.data_path,
+                    cfg_path=p.cfg_out,
+                    weights_path=weights,
+                    ann_json=gt_json,
+                    out_json=det_json,
+                    images_txt=val_list,
+                    thresh=0.001,
+                    letter_box=True,
+                )
 
-            export_darknet_detections(
-                darknet_bin=darknet_path(),
-                data_path=p.data_path,
-                cfg_path=p.cfg_out,
-                weights_path=best_weights,
-                ann_json=gt_json,
-                out_json=det_json,
-                images_txt=val_list,
-                thresh=0.001,
-                letter_box=True,
-            )
         else:
             # best.pt under Ultralytics run dir
             best_pt = str((Path(output_dir) / "train" / "weights" / "best.pt"))
@@ -758,6 +824,9 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
                 shutil.move(f, output_dir)
             except Exception:
                 pass
+
+        copy_darknet_weights_into_output(p, output_dir)
+
 
     # Zip (exclude .weights)
     bundle = f"benchmark_bundle__{user}__{gpu_name_safe}__{cpu_name_safe}__{tag}__{now}.zip"
