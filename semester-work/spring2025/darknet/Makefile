@@ -149,8 +149,17 @@ arun-cars-command:
 		-B ${CURDIR}/CollabFiles:/workspace \
 		$(SIF_NAME)
 
-ashell:
-	@$(MODULE_LOAD_APPTAINER); apptainer shell $(SIF_NAME)
+ashell: $(DARKNET_WORKSPACE)
+	@$(MODULE_LOAD_APPTAINER); \
+	APPTAINERENV_UVA_VIRGINIA_RUNNING=$(UVA_VIRGINIA_RUNNING) \
+	APPTAINERENV_ACTUAL_PWD=$(ACTUAL_PWD) \
+	APPTAINERENV_YOLO_TEMPLATES=$(YOLO_TEMPLATES) \
+	APPTAINERENV_DARKNET_PARENT=/host_workspace \
+	apptainer shell --nv --fakeroot \
+		-B $(DARKNET_WORKSPACE):/host_workspace \
+		-B ${CURDIR}/docker:/workspace \
+		-B ${CURDIR}/artifacts/outputs:/outputs \
+		$(SIF_NAME)
 
 
 slurm: delete apptainer-build
@@ -160,8 +169,25 @@ slurm: delete apptainer-build
 	    ACCOUNT=""; \
 	fi; \
 	echo "Submitting job with account option: $$ACCOUNT"; \
-	sbatch -J "lego_train_$$(date +%Y%m%d_%H%M%S)" $$ACCOUNT legogears.slurm
-	watch squeue -u $(USER)
+	jobline=$$(sbatch -J "lego_train_$$(date +%Y%m%d_%H%M%S)" $$ACCOUNT legogears.slurm); \
+	echo "$$jobline"; \
+	jobid=$$(echo "$$jobline" | awk '{print $$4}'); \
+	if [ -z "$$jobid" ]; then echo "Could not parse jobid"; exit 1; fi; \
+	echo "Submitted job $$jobid. Waiting for it to start running..."; \
+	while :; do \
+	    state=$$(squeue -h -j $$jobid -o "%T"); \
+	    if [ -z "$$state" ]; then \
+	        echo "Job $$jobid disappeared from the queue (finished/cancelled before RUNNING)."; \
+	        break; \
+	    fi; \
+	    echo "Job $$jobid state: $$state"; \
+	    if [ "$$state" = "R" ] || [ "$$state" = "RUNNING" ]; then \
+	        echo "Job $$jobid is running. Attaching logs..."; \
+	        $(MAKE) log; \
+	        break; \
+	    fi; \
+	    sleep 5; \
+	done
 
 
 log:
