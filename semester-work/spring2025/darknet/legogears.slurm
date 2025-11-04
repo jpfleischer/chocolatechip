@@ -3,7 +3,7 @@
 #SBATCH --output=%u_%x_%j.out
 #SBATCH --error=%u_%x_%j.out
 #SBATCH --gres=gpu:1
-#SBATCH --time=4-23:00:00
+#SBATCH --time=1-23:00:00
 #SBATCH --mem=32gb              # Adjust memory allocation
 #SBATCH --partition=hpg-b200 
 #SBATCH --cpus-per-task=8

@@ -112,17 +112,21 @@ def _run_darknet_list(
     Use hank-ai/AB-compatible JSON output: `-out result.json` reading an image list from stdin.
     This produces a per-image JSON we will convert to COCO results.
     """
-    flags = ["-dont_show", "-ext_output", "-thresh", f"{thresh:.3f}", "-out", out_json_raw]
+    #
+    # jp is unsure about this
+    #
+    flags = ["-dont_show", "-thresh", f"{thresh:.3f}", "-out", out_json_raw]
     if letter_box:
         flags.append("-letter_box")
-    cmd = [
-        darknet_bin, "detector", "test",
-        data_path, cfg_path, weights_path,
-        *flags
-    ]
-    # feed the image list on stdin so Darknet runs all images once
-    with open(images_txt, "r", encoding="utf-8", errors="ignore") as fin:
-        subprocess.run(cmd, stdin=fin, check=True, text=True)
+    cmd = [darknet_bin, "detector", "test", data_path, cfg_path, weights_path, *flags]
+
+    with open(images_txt, "r", encoding="utf-8", errors="ignore") as fin, \
+        open("darknet_export.log", "w", encoding="utf-8") as log:
+        subprocess.run(cmd, stdin=fin, check=True, text=True,
+                    stdout=log, stderr=log)   # or DEVNULL if you don’t want a log
+    #
+    #
+    #
 
 
 def _convert_darknet_json_to_coco(
