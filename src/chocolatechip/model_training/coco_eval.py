@@ -129,10 +129,25 @@ def build_coco_gt_from_yolo(val_list_path: str, class_names: List[str], out_json
                 ann_id += 1
 
     Path(out_json).parent.mkdir(parents=True, exist_ok=True)
+
+    # COCO-compliant header + body
+    coco = {
+        "info": {
+            "description": "YOLO TXT → COCO GT",
+            "version": "1.0",
+            "year": 2025
+        },
+        "licenses": [],
+        "images": images,
+        "annotations": annotations,
+        "categories": categories,
+    }
+
+    # Ensure each category has supercategory (not required, but many tools expect it)
+    for c in coco["categories"]:
+        c.setdefault("supercategory", "none")
+
     with open(out_json, "w", encoding="utf-8") as f:
-        json.dump({
-            "images": images,
-            "annotations": annotations,
-            "categories": categories,
-        }, f)
+        json.dump(coco, f)
     return out_json
+
