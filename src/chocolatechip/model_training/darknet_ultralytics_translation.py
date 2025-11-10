@@ -6,6 +6,8 @@ import math
 import yaml  # requires PyYAML
 from typing import Iterable, Dict, Any, List, Tuple
 import os
+import time
+import random
 
 # ---------- dataset size helpers (Ultralytics YAML) ----------
 
@@ -167,6 +169,7 @@ def auto_ultra_epochs_from_darknet(
 
 # ---------- Ultralytics CLI builder (no ultra_args string) ----------
 
+
 def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -> str:
     device_str = ",".join(str(i) for i in device_indices) if device_indices else "0"
     imgsz = max(profile.width, profile.height)
@@ -188,18 +191,22 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
     project = run_dir
     run_name = "train"
 
-    # --- RNG + determinism logic ---
+    # --- RNG + determinism policy ---
     if getattr(profile, "training_seed", None) is not None:
-        # Deterministic, reproducible mode
-        seed_arg    = f"seed={int(profile.training_seed)} "
+        # Reproducible mode
+        seed = int(profile.training_seed)
+        seed_arg    = f"seed={seed} "
         det_arg     = "deterministic=True "
         workers_arg = "workers=0 "
     else:
-        # Non-deterministic, normal mode
-        seed_arg    = ""              # no seed => let Ultralytics/PyTorch choose
-        det_arg     = ""              # don't force deterministic algorithms
-        workers_arg = ""              # or e.g. "workers=8 " if you want
-        # workers>0 introduces typical dataloader randomness
+        # Non-deterministic: randomize seed and explicitly turn off deterministic
+        # (otherwise Ultralytics defaults to seed=0, deterministic=True)
+        rand_seed = int(time.time()) ^ os.getpid() ^ random.getrandbits(16)
+        seed_arg    = f"seed={rand_seed} "
+        det_arg     = "deterministic=False "
+        # let workers be something >0; or read from env
+        workers = os.environ.get("ULTRA_WORKERS", "8")
+        workers_arg = f"workers={workers} "
 
     core = (
         f"task=detect mode=train "
