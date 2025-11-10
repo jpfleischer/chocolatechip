@@ -185,19 +185,21 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
         )
     )
 
-    # Point project at the specific benchmark run directory; keep a simple name
     project = run_dir
-    run_name = "train"  # or f"{profile.name}_train" if you prefer
+    run_name = "train"
 
-    seed_arg = (
-        f"seed={int(profile.training_seed)} "
-        if getattr(profile, "training_seed", None) is not None
-        else ""
-    )
-    # Ultralytics supports deterministic mode; helps make seeds meaningful.
-    det_arg = "deterministic=True "
-    # Fewer workers also reduces nondeterministic dataloader timing effects.
-    workers_arg = "workers=0 "
+    # --- RNG + determinism logic ---
+    if getattr(profile, "training_seed", None) is not None:
+        # Deterministic, reproducible mode
+        seed_arg    = f"seed={int(profile.training_seed)} "
+        det_arg     = "deterministic=True "
+        workers_arg = "workers=0 "
+    else:
+        # Non-deterministic, normal mode
+        seed_arg    = ""              # no seed => let Ultralytics/PyTorch choose
+        det_arg     = ""              # don't force deterministic algorithms
+        workers_arg = ""              # or e.g. "workers=8 " if you want
+        # workers>0 introduces typical dataloader randomness
 
     core = (
         f"task=detect mode=train "
@@ -215,7 +217,7 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
     return (
         "bash -lc "
         f"'set -o pipefail; "
-        f"mkdir -p {project}; "                              # ensure run dir exists
-        f"yolo settings runs_dir={project}; "                # align yolo’s default runs_dir too
+        f"mkdir -p {project}; "
+        f"yolo settings runs_dir={project}; "
         f"yolo {core} 2>&1 | tee training_output.log'"
     )
