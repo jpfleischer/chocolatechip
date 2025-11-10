@@ -353,11 +353,6 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     vram     = ", ".join(vram_all[:len(indices)])  if vram_all  else "N/A"
     gpu_name_safe = slugify(gpu_name.replace(",", "-"))
 
-    # --- derive ratio from p.data_path and append to tag ---
-    m = re.search(r"_v(\d{2})(?:\.data)?$", os.path.basename(p.data_path or ""))
-    ratio_pct = m.group(1) if m else None                   # e.g. "10", "15", "20"
-    ratio_float = (int(ratio_pct) / 100.0) if ratio_pct else None
-    ratio_suffix = f"__val{ratio_pct}" if ratio_pct else ""
 
     # Keep size in folder names
     size_token = ""
@@ -374,6 +369,40 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     os.makedirs(variant_dir, exist_ok=True)
 
     base_tag = p.backend  # "darknet" or "ultralytics" (no template here)
+
+        # --- derive ratio ("Val Fraction") for naming and CSV ---
+    ratio_pct = None
+    ratio_float = None
+
+    # 1) Primary: profile.val_fracs
+    vf_field = getattr(p, "val_fracs", None)
+    if isinstance(vf_field, (list, tuple)) and vf_field:
+        try:
+            ratio_float = float(vf_field[0])
+        except (TypeError, ValueError):
+            pass
+    elif isinstance(vf_field, (int, float)):
+        ratio_float = float(vf_field)
+
+    # 2) Secondary: infer from data_path or ultra_data filename if still unknown
+    for path_attr, pattern in (
+        ("data_path",  r"_v(\d{2})(?:\.data)?$"),
+        ("ultra_data", r"_v(\d{2})(?:\.ya?ml)?$"),
+    ):
+        if ratio_float is None:
+            pth = getattr(p, path_attr, None)
+            if pth:
+                m = re.search(pattern, os.path.basename(pth))
+                if m:
+                    ratio_pct = m.group(1)
+                    ratio_float = int(ratio_pct) / 100.0
+
+    # 3) If we only know the float, format it as XX for naming
+    if ratio_float is not None and ratio_pct is None:
+        ratio_pct = f"{int(round(ratio_float * 100)):02d}"
+
+    ratio_suffix = f"__val{ratio_pct}" if ratio_pct is not None else ""
+
     tag = base_tag + ratio_suffix + size_token + _color_token(p)
 
     output_dir = os.path.join(variant_dir, f"benchmark__{user}__{gpu_name_safe}__{tag}__{now}")
@@ -476,7 +505,8 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
                     default_vf = 0.20  # fallback
                 data_path, _ = build_split_for(default_vf, p.dataset, out_dir=WRITABLE_BASE)
                 yaml_path = str(Path(data_path).with_suffix(".yaml"))
-                p = replace(p, ultra_data=yaml_path)
+                p = replace(p, ultra_data=yaml_path, data_path=data_path)
+
                 print(f"[ultra] using dataset YAML: {yaml_path}")
 
                     # --- stash Ultralytics dataset artifacts for provenance ---
@@ -927,21 +957,19 @@ if __name__ == "__main__":
         # build cartesian product of declared sweep variables
         grid_lists = [ _values_for_key(p, k) for k in sweep_keys ]
         for combo in itertools.product(*grid_lists):
-            # make a concrete variant for this combo
             p_variant = p
             combo_map = dict(zip(sweep_keys, combo))
 
-            # apply non-split fields to the profile (e.g., template, color_preset, iterations, etc.)
+            # apply *all* sweep keys, including val_fracs
             for k, v in combo_map.items():
-                if k not in ("val_fracs",):  # val_fracs handled via split below
-                    p_variant = _apply_one(p_variant, k, v)
+                p_variant = _apply_one(p_variant, k, v)
 
             # decide dataset split for this run
             if "val_fracs" in combo_map:
                 vf = float(combo_map["val_fracs"])
             else:
-                # accept either a tuple/list or a single float on the profile
-                vf = (p.val_fracs[0] if isinstance(p.val_fracs, (tuple, list)) else float(p.val_fracs))
+                vf = (p_variant.val_fracs[0] if isinstance(p_variant.val_fracs, (tuple, list)) else float(p_variant.val_fracs))
+
 
             if getattr(p_variant, "dataset", None):
                 data_path, _ = build_split_for(vf, p_variant.dataset, out_dir=WRITABLE_BASE)
