@@ -1,0 +1,131 @@
+{
+  "params": {
+    "iou_thresh": 0.5,
+    "conf_thresh": 0.5
+  },
+  "classes": [
+    "red light",
+    "pin",
+    "center",
+    "small gear",
+    "medium gear"
+  ],
+  "matrix": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      25,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      32
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "red light",
+      "TP": 0,
+      "FP": 0,
+      "FN": 22,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "GT_total": 22
+    },
+    {
+      "class": "pin",
+      "TP": 0,
+      "FP": 0,
+      "FN": 25,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "GT_total": 25
+    },
+    {
+      "class": "center",
+      "TP": 0,
+      "FP": 0,
+      "FN": 32,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "GT_total": 32
+    },
+    {
+      "class": "small gear",
+      "TP": 25,
+      "FP": 7,
+      "FN": 0,
+      "precision": 0.78125,
+      "recall": 1.0,
+      "f1": 0.8771929824561403,
+      "GT_total": 25
+    },
+    {
+      "class": "medium gear",
+      "TP": 32,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 32
+    }
+  ],
+  "totals": {
+    "TP": 57,
+    "FP": 7,
+    "FN": 79
+  },
+  "micro": {
+    "precision": 0.890625,
+    "recall": 0.41911764705882354,
+    "f1": 0.57
+  },
+  "macro": {
+    "precision": 0.35625,
+    "recall": 0.4,
+    "f1": 0.37543859649122807
+  },
+  "csv_cols": {
+    "CM_IoU_Thresh": 0.5,
+    "CM_Conf_Thresh": 0.5,
+    "CM_Classes": 5,
+    "CM_TotalTP": 57,
+    "CM_TotalFP": 7,
+    "CM_TotalFN": 79,
+    "CM_MicroPrecision": 0.890625,
+    "CM_MicroRecall": 0.41911764705882354,
+    "CM_MicroF1": 0.57,
+    "CM_MacroPrecision": 0.35625,
+    "CM_MacroRecall": 0.4,
+    "CM_MacroF1": 0.37543859649122807
+  }
+}
