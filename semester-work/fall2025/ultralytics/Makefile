@@ -104,7 +104,7 @@ apptainer-run: $(ULTRA_WORKSPACE)
 	# optional if your trainer reads it
 	APPTAINERENV_ULTRA_WORKERS=1 \
 	apptainer run --nv --fakeroot \
-		--contain --no-home --home /workspace/.home \
+		--no-home --home /workspace/.home \
 		-B "$(ULTRA_WORKSPACE)":/workspace \
 		-B "$(CURDIR)":/workspace/project \
 		-B "$(CURDIR)/artifacts/outputs":/outputs \
