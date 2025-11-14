@@ -212,8 +212,11 @@ PROFILES = {
         templates=(),
         val_fracs=(0.10, 0.15, 0.20, 0.80,),
         # val_fracs=(0.80,),
-        sweep_keys=("val_fracs", "num_gpus",),
-        sweep_values={"num_gpus": (1,)},
+        sweep_keys=("val_fracs", "num_gpus", "ultra_model"),
+        sweep_values={
+            "num_gpus": (1,),
+            "ultra_model": ("yolo11n.pt", "yolo11s.pt"),
+        },
         dataset=DatasetSpec(
             root="LegoGears_v2",
             sets=("set_01", "set_02_empty", "set_03"),
