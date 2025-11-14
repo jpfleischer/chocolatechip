@@ -1,0 +1,3482 @@
+Darknet V5 "Moonlit" [1;37mv5.0-158-gb0e55463[0m [[1;37mfeature/map-reporting-fixes-superclean[0m]
+CUDA runtime version 12010 ([1;37mv12.1[0m), driver version 12080 ([1;37mv12.8[0m)
+cuDNN version 12010 ([1;37mv8.9.0[0m), use of half-size floats is [1;37mENABLED[0m
+=> 0: [1;32mNVIDIA TITAN V[0m [#7.0], [1;33m11.8 GiB[0m
+=> 1: [1;32mNVIDIA TITAN Xp[0m [#6.1], [1;33m11.9 GiB[0m
+=> 2: [1;32mNVIDIA TITAN Xp[0m [#6.1], [1;33m11.9 GiB[0m
+=> 3: [1;32mNVIDIA TITAN Xp[0m [#6.1], [1;33m11.9 GiB[0m
+OpenCV [1;37m4.5.4[0m, Ubuntu [1;37m22.04[0m, docker
+0: compute_capability=700, cudnn_half=1, GPU=NVIDIA TITAN V
+Allocating workspace to transfer between CPU and GPU:  128.0 MiB
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=1.695986%	x=-36	y=92	w=114	h=135
+small gear: 1.682851%	x=-36 y=92 w=114 h=135
+medium gear	c=5.214272%	x=-19	y=33	w=204	h=231
+small gear: 1.597088%	x=-19 y=33 w=204 h=231
+red light	c=3.010255%	x=-13	y=123	w=44	h=31
+red light	c=8.022316%	x=-11	y=135	w=58	h=47
+red light	c=1.861620%	x=3	y=175	w=48	h=40
+red light	c=2.412855%	x=38	y=167	w=65	h=39
+medium gear	c=1.127732%	x=39	y=109	w=137	h=164
+red light	c=66.543839%	x=42	y=134	w=46	h=42
+pin: 1.631866%	x=42 y=134 w=46 h=42
+center: 3.158301%	x=42 y=134 w=46 h=42
+small gear: 2.374086%	x=42 y=134 w=46 h=42
+medium gear	c=1.570935%	x=56	y=23	w=127	h=137
+small gear: 1.162952%	x=56 y=23 w=127 h=137
+red light	c=23.273592%	x=59	y=137	w=35	h=35
+center: 1.483566%	x=59 y=137 w=35 h=35
+medium gear	c=4.258840%	x=63	y=44	w=123	h=170
+small gear: 1.644290%	x=63 y=44 w=123 h=170
+red light	c=6.612290%	x=67	y=130	w=33	h=34
+red light	c=1.640790%	x=79	y=176	w=32	h=26
+red light	c=2.539711%	x=124	y=147	w=25	h=27
+pin	c=2.562186%	x=175	y=5	w=24	h=25
+center: 1.203932%	x=175 y=5 w=24 h=25
+red light	c=1.103563%	x=176	y=156	w=33	h=27
+small gear	c=1.282312%	x=197	y=50	w=239	h=160
+small gear	c=1.403488%	x=200	y=98	w=134	h=118
+small gear	c=6.032362%	x=204	y=62	w=275	h=248
+red light	c=1.188199%	x=232	y=183	w=29	h=35
+small gear	c=1.661164%	x=233	y=21	w=185	h=140
+red light	c=1.067300%	x=246	y=290	w=33	h=18
+small gear	c=5.105956%	x=255	y=86	w=136	h=130
+small gear	c=1.879958%	x=255	y=137	w=132	h=121
+small gear	c=2.527119%	x=278	y=-23	w=152	h=235
+red light	c=1.389888%	x=281	y=149	w=35	h=22
+red light	c=1.438177%	x=285	y=183	w=27	h=27
+medium gear	c=3.021060%	x=286	y=90	w=149	h=138
+pin: 1.383209%	x=286 y=90 w=149 h=138
+center: 1.416819%	x=286 y=90 w=149 h=138
+red light	c=1.420845%	x=295	y=101	w=133	h=114
+small gear	c=68.733887%	x=305	y=85	w=113	h=140
+small gear	c=6.367563%	x=322	y=104	w=106	h=160
+small gear	c=1.017733%	x=335	y=34	w=160	h=132
+pin	c=1.117909%	x=341	y=94	w=33	h=34
+pin	c=2.497529%	x=346	y=141	w=32	h=22
+red light: 1.081847%	x=346 y=141 w=32 h=22
+medium gear	c=3.580342%	x=352	y=32	w=349	h=138
+small gear	c=1.624198%	x=359	y=-20	w=112	h=240
+medium gear	c=1.211474%	x=376	y=57	w=132	h=180
+small gear: 1.045572%	x=376 y=57 w=132 h=180
+pin	c=1.435675%	x=404	y=133	w=38	h=29
+medium gear	c=2.545045%	x=415	y=-19	w=164	h=219
+center	c=1.228690%	x=415	y=71	w=165	h=193
+red light	c=2.481569%	x=418	y=59	w=206	h=173
+pin: 2.296290%	x=418 y=59 w=206 h=173
+small gear: 1.700282%	x=418 y=59 w=206 h=173
+small gear	c=2.252695%	x=427	y=66	w=220	h=259
+pin: 1.123232%	x=427 y=66 w=220 h=259
+medium gear	c=84.825409%	x=433	y=38	w=188	h=235
+pin	c=3.530670%	x=435	y=118	w=34	h=27
+center: 1.011857%	x=435 y=118 w=34 h=27
+medium gear	c=6.257024%	x=442	y=133	w=171	h=136
+pin	c=6.899896%	x=447	y=142	w=34	h=27
+pin	c=81.663338%	x=459	y=143	w=26	h=25
+small gear: 2.670394%	x=459 y=143 w=26 h=25
+medium gear	c=3.061021%	x=459	y=145	w=25	h=24
+red light: 2.021711%	x=459 y=145 w=25 h=24
+pin	c=5.247830%	x=460	y=133	w=29	h=31
+center	c=4.141219%	x=461	y=147	w=25	h=24
+pin	c=11.104428%	x=461	y=150	w=23	h=26
+pin	c=4.255037%	x=475	y=172	w=32	h=28
+pin	c=3.097934%	x=481	y=177	w=20	h=32
+pin	c=10.202578%	x=483	y=128	w=27	h=29
+center: 9.691483%	x=483 y=128 w=27 h=29
+center	c=1.736477%	x=497	y=81	w=22	h=29
+center	c=1.178363%	x=522	y=75	w=23	h=33
+center	c=15.943493%	x=523	y=128	w=28	h=30
+center	c=14.616351%	x=527	y=136	w=30	h=28
+center	c=3.202345%	x=527	y=184	w=26	h=23
+center	c=2.176100%	x=547	y=122	w=31	h=32
+center	c=8.182143%	x=548	y=143	w=29	h=27
+pin: 1.714741%	x=548 y=143 w=29 h=27
+pin	c=1.022953%	x=556	y=217	w=32	h=18
+center	c=1.226212%	x=610	y=156	w=27	h=27
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.628583%	x=-35	y=93	w=112	h=132
+medium gear: 1.596047%	x=-35 y=93 w=112 h=132
+medium gear	c=5.306573%	x=-20	y=35	w=205	h=228
+red light: 1.038920%	x=-20 y=35 w=205 h=228
+small gear: 1.633850%	x=-20 y=35 w=205 h=228
+red light	c=3.211363%	x=-13	y=123	w=44	h=31
+red light	c=7.674606%	x=-11	y=134	w=58	h=47
+red light	c=1.747341%	x=3	y=174	w=48	h=41
+red light	c=2.446729%	x=39	y=167	w=63	h=40
+red light	c=66.325172%	x=41	y=134	w=47	h=42
+pin: 1.709031%	x=41 y=134 w=47 h=42
+center: 3.096342%	x=41 y=134 w=47 h=42
+small gear: 2.378525%	x=41 y=134 w=47 h=42
+medium gear	c=1.046753%	x=43	y=108	w=130	h=168
+red light	c=22.997128%	x=60	y=137	w=35	h=35
+medium gear	c=4.285173%	x=62	y=42	w=126	h=174
+small gear: 1.649250%	x=62 y=42 w=126 h=174
+center	c=1.506259%	x=64	y=141	w=28	h=25
+red light	c=7.045166%	x=68	y=129	w=33	h=35
+red light	c=1.002157%	x=75	y=167	w=51	h=43
+red light	c=1.607704%	x=79	y=177	w=31	h=26
+red light	c=2.530210%	x=125	y=147	w=24	h=27
+red light	c=1.113024%	x=175	y=187	w=39	h=34
+pin	c=2.171318%	x=175	y=5	w=24	h=24
+center: 1.110417%	x=175 y=5 w=24 h=24
+red light	c=1.169716%	x=178	y=156	w=32	h=28
+small gear	c=1.400233%	x=196	y=102	w=139	h=116
+small gear	c=1.465753%	x=199	y=49	w=237	h=164
+small gear	c=6.450517%	x=206	y=59	w=268	h=256
+red light	c=1.141202%	x=232	y=183	w=30	h=35
+red light	c=1.068060%	x=246	y=288	w=35	h=20
+small gear	c=5.480062%	x=250	y=83	w=147	h=139
+small gear	c=2.042882%	x=255	y=138	w=130	h=118
+small gear	c=2.706121%	x=279	y=-20	w=153	h=228
+red light	c=1.435254%	x=282	y=150	w=34	h=22
+center	c=1.392061%	x=284	y=90	w=150	h=138
+pin: 1.298757%	x=284 y=90 w=150 h=138
+red light	c=1.554648%	x=285	y=184	w=29	h=26
+red light	c=1.400956%	x=289	y=93	w=143	h=123
+small gear	c=1.478851%	x=299	y=122	w=176	h=92
+small gear	c=70.052116%	x=302	y=83	w=124	h=141
+medium gear	c=3.070003%	x=309	y=105	w=129	h=113
+small gear	c=2.225652%	x=332	y=141	w=98	h=93
+small gear	c=1.034683%	x=339	y=33	w=154	h=135
+pin	c=1.133397%	x=340	y=94	w=33	h=34
+pin	c=2.628973%	x=347	y=141	w=32	h=23
+red light: 1.056803%	x=347 y=141 w=32 h=23
+medium gear	c=3.988852%	x=355	y=33	w=343	h=137
+small gear	c=1.739839%	x=359	y=-28	w=110	h=257
+small gear	c=1.027510%	x=378	y=53	w=130	h=185
+medium gear	c=1.273607%	x=383	y=101	w=105	h=128
+pin	c=1.351190%	x=404	y=134	w=38	h=29
+center	c=1.143118%	x=412	y=68	w=170	h=197
+red light	c=2.195391%	x=414	y=54	w=212	h=179
+pin: 1.990637%	x=414 y=54 w=212 h=179
+small gear: 1.572054%	x=414 y=54 w=212 h=179
+medium gear	c=2.794531%	x=415	y=-18	w=167	h=220
+small gear	c=1.987430%	x=424	y=63	w=222	h=265
+medium gear	c=85.144150%	x=428	y=32	w=201	h=244
+pin	c=3.789536%	x=435	y=118	w=34	h=27
+center: 1.019346%	x=435 y=118 w=34 h=27
+medium gear	c=8.170609%	x=447	y=102	w=144	h=154
+pin	c=7.936546%	x=450	y=138	w=30	h=37
+pin	c=81.020012%	x=458	y=144	w=26	h=25
+small gear: 2.541440%	x=458 y=144 w=26 h=25
+medium gear	c=2.960356%	x=459	y=145	w=26	h=24
+red light: 1.996410%	x=459 y=145 w=26 h=24
+pin	c=5.233761%	x=459	y=133	w=29	h=31
+center	c=3.915815%	x=459	y=147	w=25	h=24
+pin	c=11.177833%	x=461	y=150	w=24	h=26
+pin	c=4.271810%	x=475	y=171	w=32	h=29
+pin	c=2.899808%	x=481	y=177	w=21	h=32
+pin	c=9.995856%	x=484	y=127	w=27	h=29
+center: 9.784346%	x=484 y=127 w=27 h=29
+center	c=1.809217%	x=497	y=81	w=21	h=30
+center	c=1.286986%	x=521	y=74	w=24	h=34
+center	c=16.221008%	x=523	y=128	w=28	h=29
+center	c=13.190381%	x=527	y=135	w=30	h=28
+center	c=3.006591%	x=527	y=184	w=26	h=23
+center	c=2.318837%	x=547	y=121	w=31	h=33
+center	c=7.410205%	x=548	y=143	w=30	h=27
+pin: 1.576679%	x=548 y=143 w=30 h=27
+center	c=1.140837%	x=556	y=218	w=32	h=18
+pin	c=1.552669%	x=562	y=219	w=21	h=19
+pin	c=1.229089%	x=566	y=214	w=15	h=20
+pin	c=1.060497%	x=566	y=186	w=29	h=23
+center	c=1.395036%	x=611	y=155	w=27	h=28
+pin: 1.038646%	x=611 y=155 w=27 h=28
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.654816%	x=-35	y=92	w=111	h=133
+medium gear: 1.648537%	x=-35 y=92 w=111 h=133
+medium gear	c=5.182792%	x=-20	y=34	w=207	h=230
+small gear: 1.582692%	x=-20 y=34 w=207 h=230
+red light	c=3.047472%	x=-13	y=123	w=43	h=31
+red light	c=7.988229%	x=-11	y=135	w=58	h=47
+red light	c=1.778172%	x=3	y=174	w=48	h=40
+red light	c=2.375055%	x=39	y=167	w=63	h=39
+red light	c=66.836098%	x=42	y=135	w=46	h=41
+pin: 1.672728%	x=42 y=135 w=46 h=41
+center: 3.040643%	x=42 y=135 w=46 h=41
+small gear: 2.287970%	x=42 y=135 w=46 h=41
+red light	c=22.751579%	x=59	y=138	w=35	h=35
+center: 1.469198%	x=59 y=138 w=35 h=35
+medium gear	c=4.117564%	x=64	y=43	w=123	h=172
+small gear: 1.579935%	x=64 y=43 w=123 h=172
+red light	c=6.621937%	x=67	y=129	w=32	h=35
+red light	c=1.453785%	x=78	y=176	w=32	h=26
+red light	c=2.352757%	x=124	y=148	w=25	h=27
+red light	c=1.131242%	x=174	y=187	w=39	h=34
+pin	c=2.045803%	x=175	y=5	w=24	h=24
+center: 1.075204%	x=175 y=5 w=24 h=24
+red light	c=1.069896%	x=176	y=157	w=33	h=27
+small gear	c=1.217453%	x=191	y=103	w=147	h=114
+small gear	c=1.143258%	x=193	y=49	w=248	h=158
+small gear	c=6.048490%	x=196	y=54	w=288	h=270
+red light	c=1.149048%	x=231	y=184	w=32	h=34
+small gear	c=1.651127%	x=234	y=21	w=185	h=144
+red light	c=1.414362%	x=244	y=288	w=36	h=22
+small gear	c=4.360421%	x=254	y=86	w=137	h=130
+small gear	c=1.709399%	x=255	y=136	w=132	h=121
+red light	c=1.043582%	x=276	y=156	w=52	h=22
+red light	c=1.353010%	x=281	y=151	w=34	h=22
+small gear	c=2.643423%	x=281	y=-23	w=149	h=231
+center	c=1.423916%	x=285	y=91	w=154	h=135
+pin: 1.309564%	x=285 y=91 w=154 h=135
+red light	c=1.546537%	x=285	y=183	w=27	h=26
+small gear	c=6.157668%	x=294	y=104	w=138	h=167
+red light	c=1.436109%	x=297	y=100	w=133	h=116
+small gear	c=69.274826%	x=307	y=87	w=114	h=139
+medium gear	c=3.115532%	x=309	y=103	w=131	h=117
+small gear	c=2.454904%	x=332	y=144	w=97	h=94
+small gear	c=1.004068%	x=338	y=33	w=158	h=136
+pin	c=1.144231%	x=339	y=94	w=34	h=33
+pin	c=2.459129%	x=345	y=142	w=31	h=23
+red light: 1.102070%	x=345 y=142 w=31 h=23
+medium gear	c=3.853105%	x=355	y=31	w=341	h=142
+small gear	c=1.647599%	x=362	y=-27	w=108	h=254
+medium gear	c=1.277878%	x=378	y=55	w=130	h=181
+small gear: 1.087868%	x=378 y=55 w=130 h=181
+pin	c=1.463706%	x=404	y=135	w=38	h=29
+center	c=1.189883%	x=416	y=70	w=164	h=194
+red light	c=2.317267%	x=417	y=56	w=209	h=178
+pin: 2.177415%	x=417 y=56 w=209 h=178
+small gear: 1.630704%	x=417 y=56 w=209 h=178
+medium gear	c=2.738486%	x=418	y=-17	w=159	h=215
+small gear	c=2.075281%	x=426	y=65	w=221	h=262
+pin: 1.049678%	x=426 y=65 w=221 h=262
+medium gear	c=84.479309%	x=430	y=38	w=193	h=235
+pin	c=3.428353%	x=435	y=118	w=34	h=27
+center: 1.007143%	x=435 y=118 w=34 h=27
+medium gear	c=8.462174%	x=446	y=108	w=144	h=148
+pin	c=7.174980%	x=450	y=138	w=31	h=37
+pin	c=81.361458%	x=458	y=144	w=26	h=25
+small gear: 2.592026%	x=458 y=144 w=26 h=25
+medium gear	c=3.028687%	x=459	y=145	w=25	h=24
+red light: 2.038839%	x=459 y=145 w=25 h=24
+pin	c=5.212692%	x=460	y=133	w=29	h=32
+center	c=4.084915%	x=460	y=147	w=25	h=24
+pin	c=11.849126%	x=461	y=150	w=24	h=26
+pin	c=4.309998%	x=475	y=171	w=32	h=29
+pin	c=2.948545%	x=481	y=177	w=20	h=32
+pin	c=10.386655%	x=483	y=128	w=27	h=29
+center: 9.686414%	x=483 y=128 w=27 h=29
+center	c=1.758347%	x=497	y=81	w=21	h=29
+center	c=1.259108%	x=522	y=75	w=23	h=32
+center	c=15.831038%	x=523	y=128	w=28	h=29
+center	c=14.010135%	x=527	y=136	w=30	h=28
+center	c=3.087294%	x=527	y=185	w=26	h=23
+center	c=2.156426%	x=547	y=121	w=32	h=33
+center	c=7.851439%	x=548	y=143	w=30	h=27
+pin: 1.646891%	x=548 y=143 w=30 h=27
+pin	c=1.328271%	x=557	y=217	w=31	h=18
+center: 1.034879%	x=557 y=217 w=31 h=18
+pin	c=1.010971%	x=566	y=186	w=29	h=23
+pin	c=1.013976%	x=567	y=213	w=15	h=19
+center	c=1.367473%	x=611	y=156	w=27	h=26
+pin: 1.039104%	x=611 y=156 w=27 h=26
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=1.731539%	x=-36	y=93	w=113	h=131
+small gear: 1.707202%	x=-36 y=93 w=113 h=131
+medium gear	c=5.233157%	x=-20	y=34	w=205	h=230
+small gear: 1.620046%	x=-20 y=34 w=205 h=230
+red light	c=3.171780%	x=-13	y=123	w=44	h=31
+red light	c=8.209032%	x=-12	y=135	w=58	h=47
+medium gear	c=1.002052%	x=2	y=21	w=150	h=166
+red light	c=1.776244%	x=3	y=174	w=49	h=41
+red light	c=2.419695%	x=39	y=167	w=63	h=39
+red light	c=66.787407%	x=42	y=135	w=46	h=41
+pin: 1.713460%	x=42 y=135 w=46 h=41
+center: 3.056700%	x=42 y=135 w=46 h=41
+small gear: 2.268463%	x=42 y=135 w=46 h=41
+red light	c=22.403799%	x=59	y=138	w=35	h=35
+center: 1.495104%	x=59 y=138 w=35 h=35
+medium gear	c=4.057740%	x=63	y=45	w=124	h=168
+small gear: 1.552514%	x=63 y=45 w=124 h=168
+red light	c=6.713347%	x=68	y=129	w=32	h=34
+red light	c=1.530690%	x=78	y=177	w=31	h=26
+red light	c=2.293655%	x=123	y=148	w=24	h=27
+red light	c=1.116766%	x=174	y=186	w=39	h=35
+pin	c=1.908688%	x=175	y=5	w=24	h=24
+center: 1.033428%	x=175 y=5 w=24 h=24
+red light	c=1.021148%	x=176	y=157	w=32	h=26
+small gear	c=1.186521%	x=192	y=102	w=147	h=119
+small gear	c=1.118292%	x=193	y=51	w=245	h=154
+small gear	c=6.104244%	x=200	y=57	w=284	h=260
+red light	c=1.120524%	x=231	y=184	w=32	h=33
+small gear	c=1.673552%	x=236	y=18	w=182	h=145
+red light	c=1.146901%	x=246	y=289	w=34	h=20
+small gear	c=3.854074%	x=254	y=86	w=137	h=130
+small gear	c=1.707148%	x=256	y=140	w=131	h=114
+small gear	c=4.659390%	x=274	y=105	w=170	h=182
+small gear	c=2.687202%	x=280	y=-25	w=151	h=234
+red light	c=1.224329%	x=280	y=150	w=35	h=22
+red light	c=1.479716%	x=285	y=184	w=27	h=25
+center	c=1.451063%	x=286	y=93	w=153	h=131
+pin: 1.309565%	x=286 y=93 w=153 h=131
+red light	c=1.453024%	x=293	y=95	w=139	h=121
+small gear	c=69.065300%	x=303	y=87	w=120	h=139
+medium gear	c=3.013642%	x=309	y=104	w=131	h=116
+small gear	c=1.022728%	x=316	y=28	w=160	h=152
+small gear	c=2.550227%	x=331	y=142	w=99	h=96
+pin	c=1.088138%	x=340	y=94	w=33	h=33
+pin	c=2.406673%	x=345	y=142	w=31	h=22
+red light: 1.080406%	x=345 y=142 w=31 h=22
+medium gear	c=3.837579%	x=351	y=29	w=348	h=143
+small gear	c=1.746888%	x=361	y=-25	w=108	h=251
+small gear	c=1.027403%	x=379	y=55	w=128	h=182
+medium gear	c=1.211661%	x=383	y=103	w=106	h=125
+pin	c=1.466653%	x=404	y=134	w=37	h=30
+red light	c=2.323524%	x=415	y=55	w=211	h=180
+pin: 2.154279%	x=415 y=55 w=211 h=180
+small gear: 1.674221%	x=415 y=55 w=211 h=180
+center	c=1.220734%	x=415	y=71	w=164	h=193
+medium gear	c=2.693993%	x=416	y=-15	w=161	h=211
+small gear	c=2.093952%	x=425	y=67	w=223	h=260
+pin: 1.076590%	x=425 y=67 w=223 h=260
+medium gear	c=84.699837%	x=429	y=36	w=197	h=241
+pin	c=3.390541%	x=435	y=118	w=34	h=28
+medium gear	c=8.907403%	x=445	y=98	w=147	h=162
+pin	c=7.257040%	x=450	y=138	w=30	h=37
+pin	c=81.816475%	x=459	y=144	w=26	h=25
+small gear: 2.614460%	x=459 y=144 w=26 h=25
+medium gear	c=3.025542%	x=459	y=145	w=25	h=24
+red light: 2.000538%	x=459 y=145 w=25 h=24
+pin	c=5.182454%	x=460	y=133	w=29	h=32
+center	c=4.125299%	x=460	y=147	w=25	h=24
+pin	c=11.383775%	x=461	y=150	w=24	h=26
+pin	c=4.200875%	x=475	y=171	w=32	h=29
+pin	c=2.909020%	x=481	y=177	w=21	h=32
+pin	c=10.003665%	x=483	y=128	w=27	h=29
+center: 9.754375%	x=483 y=128 w=27 h=29
+center	c=1.794442%	x=498	y=81	w=21	h=29
+center	c=1.341601%	x=521	y=75	w=23	h=33
+center	c=16.155193%	x=523	y=128	w=28	h=29
+center	c=14.390084%	x=527	y=136	w=30	h=28
+center	c=3.221168%	x=527	y=185	w=26	h=23
+center	c=2.238845%	x=547	y=121	w=32	h=32
+center	c=7.830187%	x=548	y=143	w=30	h=27
+pin: 1.661973%	x=548 y=143 w=30 h=27
+pin	c=1.092305%	x=557	y=217	w=32	h=19
+pin	c=1.026813%	x=566	y=185	w=29	h=24
+center	c=1.375973%	x=611	y=156	w=27	h=27
+pin: 1.003378%	x=611 y=156 w=27 h=27
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.790321%	x=-37	y=94	w=115	h=133
+medium gear: 1.776001%	x=-37 y=94 w=115 h=133
+medium gear	c=5.052877%	x=-26	y=33	w=216	h=235
+red light: 1.015114%	x=-26 y=33 w=216 h=235
+small gear: 1.503887%	x=-26 y=33 w=216 h=235
+red light	c=7.944994%	x=-13	y=135	w=60	h=46
+red light	c=3.224179%	x=-13	y=123	w=43	h=31
+medium gear	c=1.114572%	x=1	y=19	w=152	h=171
+red light	c=2.076612%	x=2	y=174	w=50	h=44
+medium gear	c=1.073927%	x=36	y=112	w=148	h=156
+red light	c=2.682385%	x=39	y=167	w=66	h=41
+red light	c=65.105331%	x=43	y=135	w=48	h=42
+pin: 1.540501%	x=43 y=135 w=48 h=42
+center: 3.292272%	x=43 y=135 w=48 h=42
+small gear: 2.035970%	x=43 y=135 w=48 h=42
+red light	c=16.943316%	x=48	y=129	w=37	h=37
+center: 1.171956%	x=48 y=129 w=37 h=37
+medium gear	c=4.422388%	x=57	y=47	w=133	h=164
+small gear: 1.789325%	x=57 y=47 w=133 h=164
+red light	c=19.844528%	x=62	y=141	w=29	h=24
+center: 1.645498%	x=62 y=141 w=29 h=24
+red light	c=6.507190%	x=68	y=129	w=32	h=34
+red light	c=1.447353%	x=78	y=177	w=30	h=25
+red light	c=2.196527%	x=123	y=144	w=24	h=28
+pin	c=1.335181%	x=176	y=6	w=27	h=25
+red light	c=1.277299%	x=178	y=154	w=30	h=27
+small gear	c=1.382898%	x=189	y=97	w=152	h=139
+small gear	c=8.381626%	x=203	y=80	w=283	h=202
+small gear	c=2.071691%	x=232	y=8	w=175	h=196
+red light	c=1.046014%	x=233	y=186	w=27	h=35
+small gear	c=1.863194%	x=250	y=138	w=139	h=119
+small gear	c=5.661500%	x=254	y=87	w=136	h=138
+red light	c=1.199054%	x=281	y=148	w=37	h=25
+small gear	c=3.013079%	x=283	y=-26	w=155	h=243
+center	c=1.329279%	x=287	y=96	w=144	h=132
+pin: 1.229473%	x=287 y=96 w=144 h=132
+red light	c=1.102658%	x=289	y=184	w=27	h=25
+red light	c=1.231466%	x=291	y=103	w=142	h=112
+medium gear	c=2.899876%	x=307	y=108	w=132	h=113
+small gear	c=71.450768%	x=308	y=93	w=113	h=131
+small gear	c=2.575454%	x=313	y=43	w=161	h=283
+small gear	c=3.204248%	x=319	y=153	w=113	h=73
+small gear	c=1.056255%	x=336	y=37	w=149	h=133
+pin	c=1.140712%	x=343	y=92	w=32	h=36
+medium gear	c=3.952327%	x=345	y=19	w=360	h=162
+pin	c=2.354276%	x=349	y=139	w=33	h=23
+small gear	c=1.764997%	x=366	y=-20	w=102	h=245
+medium gear	c=1.261899%	x=385	y=106	w=104	h=121
+pin	c=1.350908%	x=406	y=134	w=36	h=31
+medium gear	c=2.227762%	x=406	y=-16	w=183	h=218
+center	c=1.250115%	x=412	y=71	w=169	h=193
+red light	c=2.142586%	x=416	y=53	w=213	h=183
+pin: 2.005846%	x=416 y=53 w=213 h=183
+small gear: 1.612322%	x=416 y=53 w=213 h=183
+small gear	c=2.247624%	x=424	y=69	w=220	h=258
+pin: 1.168381%	x=424 y=69 w=220 h=258
+medium gear	c=85.881187%	x=430	y=35	w=199	h=243
+pin	c=4.041170%	x=434	y=120	w=34	h=28
+center: 1.045990%	x=434 y=120 w=34 h=28
+pin	c=9.840862%	x=450	y=138	w=31	h=38
+center: 1.070119%	x=450 y=138 w=31 h=38
+pin	c=80.561775%	x=457	y=144	w=27	h=26
+small gear: 2.517621%	x=457 y=144 w=27 h=26
+medium gear	c=3.063768%	x=458	y=145	w=27	h=25
+red light: 2.100382%	x=458 y=145 w=27 h=25
+pin	c=4.604429%	x=459	y=133	w=30	h=32
+center	c=4.463187%	x=459	y=147	w=26	h=25
+pin	c=9.940960%	x=463	y=153	w=24	h=26
+pin	c=4.588251%	x=474	y=171	w=33	h=30
+pin	c=2.901031%	x=481	y=178	w=20	h=30
+center	c=8.990744%	x=484	y=127	w=27	h=29
+pin: 8.886330%	x=484 y=127 w=27 h=29
+center	c=1.626864%	x=499	y=80	w=20	h=30
+center	c=1.354967%	x=520	y=76	w=24	h=34
+center	c=14.650084%	x=524	y=129	w=28	h=30
+center	c=12.998240%	x=527	y=135	w=30	h=29
+center	c=3.482518%	x=528	y=185	w=26	h=24
+center	c=2.185625%	x=544	y=123	w=34	h=32
+center	c=7.515937%	x=548	y=144	w=30	h=27
+pin: 1.388526%	x=548 y=144 w=30 h=27
+center	c=1.434568%	x=555	y=216	w=31	h=19
+pin	c=1.874716%	x=561	y=217	w=22	h=20
+pin	c=1.079485%	x=564	y=186	w=28	h=23
+pin	c=1.403067%	x=565	y=213	w=15	h=20
+center: 1.047568%	x=565 y=213 w=15 h=20
+center	c=1.173556%	x=610	y=155	w=28	h=28
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=2.146053%	x=-49	y=76	w=154	h=173
+small gear: 1.193460%	x=-49 y=76 w=154 h=173
+red light	c=1.113598%	x=-16	y=69	w=46	h=47
+medium gear	c=2.698513%	x=2	y=30	w=146	h=125
+small gear: 1.201293%	x=2 y=30 w=146 h=125
+red light	c=7.782125%	x=2	y=125	w=43	h=36
+medium gear	c=1.414725%	x=4	y=130	w=115	h=119
+red light	c=43.424362%	x=12	y=134	w=41	h=36
+pin: 1.453364%	x=12 y=134 w=41 h=36
+center: 3.449679%	x=12 y=134 w=41 h=36
+small gear: 1.628464%	x=12 y=134 w=41 h=36
+medium gear	c=8.171043%	x=13	y=68	w=132	h=137
+red light: 1.672907%	x=13 y=68 w=132 h=137
+pin: 1.263458%	x=13 y=68 w=132 h=137
+small gear: 2.485579%	x=13 y=68 w=132 h=137
+center	c=1.975310%	x=23	y=127	w=34	h=32
+small gear: 1.550965%	x=23 y=127 w=34 h=32
+red light	c=20.967129%	x=23	y=130	w=31	h=33
+pin: 1.955197%	x=23 y=130 w=31 h=33
+red light	c=1.423656%	x=30	y=161	w=51	h=49
+red light	c=1.041874%	x=37	y=67	w=26	h=39
+red light	c=1.592410%	x=41	y=171	w=30	h=31
+red light	c=1.231885%	x=73	y=116	w=28	h=30
+red light	c=4.370345%	x=76	y=144	w=22	h=23
+center: 1.136123%	x=76 y=144 w=22 h=23
+red light	c=1.743722%	x=83	y=149	w=28	h=18
+red light	c=1.041542%	x=117	y=103	w=41	h=43
+red light	c=1.440918%	x=126	y=189	w=42	h=32
+red light	c=2.059794%	x=135	y=156	w=25	h=27
+red light	c=1.288700%	x=178	y=182	w=32	h=34
+red light	c=1.339532%	x=178	y=154	w=31	h=24
+small gear	c=10.699550%	x=207	y=68	w=204	h=155
+small gear	c=4.559433%	x=207	y=112	w=131	h=114
+red light	c=1.395309%	x=235	y=151	w=30	h=26
+pin	c=1.350801%	x=235	y=92	w=157	h=143
+red light: 1.248039%	x=235 y=92 w=157 h=143
+center: 1.085766%	x=235 y=92 w=157 h=143
+small gear	c=2.436700%	x=236	y=-41	w=156	h=254
+small gear	c=8.582788%	x=237	y=78	w=213	h=215
+red light	c=1.216685%	x=242	y=185	w=27	h=26
+small gear	c=2.231250%	x=248	y=123	w=88	h=77
+small gear	c=75.141510%	x=263	y=95	w=131	h=135
+medium gear	c=2.477617%	x=266	y=94	w=135	h=138
+pin	c=2.172200%	x=294	y=144	w=32	h=22
+red light: 1.296335%	x=294 y=144 w=32 h=22
+small gear	c=3.650445%	x=295	y=15	w=114	h=159
+small gear	c=3.751287%	x=326	y=101	w=94	h=122
+medium gear: 2.501423%	x=326 y=101 w=94 h=122
+medium gear	c=13.243664%	x=338	y=50	w=177	h=204
+small gear: 4.605083%	x=338 y=50 w=177 h=204
+medium gear	c=1.366807%	x=354	y=98	w=201	h=205
+pin	c=1.894549%	x=358	y=132	w=35	h=35
+medium gear	c=1.228054%	x=369	y=18	w=297	h=114
+pin	c=1.058049%	x=370	y=68	w=162	h=200
+red light	c=1.668898%	x=374	y=70	w=215	h=151
+medium gear	c=80.159348%	x=384	y=53	w=222	h=227
+pin	c=1.612729%	x=390	y=112	w=33	h=28
+medium gear	c=13.841252%	x=393	y=125	w=197	h=119
+pin	c=1.671319%	x=400	y=141	w=32	h=23
+medium gear	c=1.277119%	x=407	y=-16	w=135	h=206
+pin	c=2.261747%	x=410	y=69	w=219	h=182
+small gear: 1.592922%	x=410 y=69 w=219 h=182
+pin	c=3.738149%	x=417	y=132	w=28	h=33
+pin	c=3.642978%	x=418	y=135	w=35	h=20
+center	c=2.551500%	x=418	y=149	w=28	h=24
+pin	c=82.978401%	x=419	y=147	w=26	h=24
+red light: 2.358165%	x=419 y=147 w=26 h=24
+small gear: 3.848853%	x=419 y=147 w=26 h=24
+medium gear	c=4.246049%	x=419	y=147	w=24	h=25
+pin	c=8.815109%	x=422	y=152	w=20	h=30
+pin	c=7.224189%	x=423	y=150	w=33	h=20
+pin	c=3.749407%	x=424	y=174	w=34	h=23
+pin	c=5.145941%	x=427	y=153	w=20	h=22
+pin	c=4.161134%	x=434	y=175	w=20	h=27
+medium gear	c=3.841538%	x=435	y=43	w=177	h=130
+pin	c=7.405324%	x=440	y=135	w=30	h=26
+center: 6.415699%	x=440 y=135 w=30 h=26
+center	c=2.719559%	x=478	y=187	w=29	h=19
+medium gear	c=2.020004%	x=483	y=91	w=183	h=169
+center	c=11.276962%	x=490	y=135	w=26	h=28
+center	c=4.387609%	x=498	y=127	w=35	h=31
+center	c=9.689572%	x=502	y=139	w=31	h=22
+pin: 1.038415%	x=502 y=139 w=31 h=22
+pin	c=1.344736%	x=514	y=183	w=29	h=25
+center: 1.011850%	x=514 y=183 w=29 h=25
+pin	c=1.023958%	x=515	y=216	w=16	h=16
+center	c=2.281031%	x=557	y=159	w=26	h=25
+pin: 1.705592%	x=557 y=159 w=26 h=25
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=1.148239%	x=-50	y=79	w=152	h=174
+small gear: 1.019267%	x=-50 y=79 w=152 h=174
+red light	c=2.752323%	x=-3	y=125	w=44	h=32
+red light	c=8.798010%	x=4	y=133	w=51	h=43
+red light	c=1.438976%	x=4	y=169	w=51	h=40
+medium gear	c=12.209623%	x=7	y=59	w=147	h=164
+red light: 2.549605%	x=7 y=59 w=147 h=164
+pin: 1.826448%	x=7 y=59 w=147 h=164
+center: 1.048295%	x=7 y=59 w=147 h=164
+small gear: 3.460016%	x=7 y=59 w=147 h=164
+medium gear	c=1.641859%	x=7	y=32	w=138	h=132
+medium gear	c=1.063932%	x=13	y=138	w=98	h=105
+red light	c=77.746330%	x=28	y=138	w=44	h=39
+pin: 2.872894%	x=28 y=138 w=44 h=39
+center: 3.691921%	x=28 y=138 w=44 h=39
+small gear: 3.513054%	x=28 y=138 w=44 h=39
+medium gear: 1.253805%	x=28 y=138 w=44 h=39
+red light	c=1.072443%	x=28	y=64	w=33	h=47
+red light	c=1.632580%	x=31	y=158	w=56	h=47
+red light	c=21.516117%	x=32	y=128	w=35	h=40
+pin: 2.489784%	x=32 y=128 w=35 h=40
+center	c=1.257389%	x=34	y=128	w=37	h=39
+small gear: 1.056996%	x=34 y=128 w=37 h=39
+medium gear	c=1.558335%	x=36	y=33	w=166	h=201
+red light	c=1.387527%	x=67	y=139	w=48	h=13
+red light	c=13.439916%	x=71	y=140	w=27	h=35
+center: 2.169497%	x=71 y=140 w=27 h=35
+red light	c=1.191208%	x=72	y=181	w=37	h=26
+red light	c=2.532669%	x=72	y=128	w=30	h=28
+red light	c=5.540060%	x=76	y=152	w=23	h=19
+center: 1.146198%	x=76 y=152 w=23 h=19
+red light	c=2.622116%	x=127	y=149	w=24	h=30
+red light	c=1.220965%	x=175	y=153	w=35	h=28
+small gear	c=6.195145%	x=201	y=67	w=223	h=145
+small gear	c=3.954884%	x=218	y=107	w=100	h=112
+small gear	c=10.019044%	x=227	y=93	w=223	h=182
+small gear	c=2.503522%	x=235	y=-25	w=167	h=236
+small gear	c=72.185562%	x=265	y=96	w=141	h=129
+pin: 1.234756%	x=265 y=96 w=141 h=129
+small gear	c=3.724446%	x=271	y=5	w=166	h=173
+medium gear	c=2.861888%	x=275	y=89	w=136	h=143
+red light: 1.045327%	x=275 y=89 w=136 h=143
+center: 1.295548%	x=275 y=89 w=136 h=143
+pin	c=1.175259%	x=288	y=91	w=35	h=37
+pin	c=1.641013%	x=291	y=142	w=31	h=23
+red light: 1.635899%	x=291 y=142 w=31 h=23
+medium gear	c=1.298609%	x=304	y=19	w=406	h=110
+small gear	c=13.296323%	x=310	y=114	w=99	h=143
+medium gear	c=2.375922%	x=314	y=111	w=109	h=108
+small gear	c=1.038553%	x=316	y=126	w=202	h=81
+small gear	c=3.660467%	x=319	y=67	w=127	h=154
+medium gear	c=4.055758%	x=325	y=63	w=146	h=193
+medium gear	c=1.295158%	x=339	y=-37	w=184	h=268
+small gear: 1.188698%	x=339 y=-37 w=184 h=268
+pin	c=1.390158%	x=350	y=99	w=34	h=30
+small gear	c=6.518377%	x=353	y=94	w=118	h=129
+pin	c=1.931724%	x=356	y=134	w=34	h=33
+medium gear	c=1.765885%	x=381	y=-7	w=191	h=194
+medium gear	c=11.168747%	x=384	y=86	w=133	h=176
+small gear: 1.532385%	x=384 y=86 w=133 h=176
+pin	c=1.458565%	x=395	y=106	w=33	h=27
+center: 1.085519%	x=395 y=106 w=33 h=27
+medium gear	c=18.617601%	x=401	y=135	w=172	h=107
+pin	c=1.072029%	x=402	y=139	w=35	h=24
+medium gear	c=81.910187%	x=402	y=52	w=198	h=226
+pin	c=3.863919%	x=403	y=80	w=231	h=170
+red light: 2.132859%	x=403 y=80 w=231 h=170
+center: 1.477891%	x=403 y=80 w=231 h=170
+small gear: 2.923424%	x=403 y=80 w=231 h=170
+pin	c=5.260896%	x=417	y=153	w=39	h=18
+center	c=2.387192%	x=425	y=145	w=28	h=30
+pin	c=5.566832%	x=427	y=149	w=26	h=38
+medium gear	c=4.185896%	x=430	y=28	w=179	h=163
+pin	c=60.567249%	x=430	y=148	w=27	h=24
+small gear	c=2.455261%	x=430	y=148	w=28	h=25
+medium gear	c=3.473780%	x=431	y=147	w=26	h=26
+red light: 2.964297%	x=431 y=147 w=26 h=26
+pin	c=2.145396%	x=432	y=131	w=28	h=29
+center	c=2.164321%	x=433	y=151	w=26	h=28
+pin	c=2.686838%	x=433	y=174	w=26	h=30
+pin	c=14.266184%	x=438	y=157	w=23	h=22
+small gear: 1.288076%	x=438 y=157 w=23 h=22
+pin	c=12.412935%	x=439	y=131	w=27	h=24
+center: 4.394451%	x=439 y=131 w=27 h=24
+center	c=2.515136%	x=482	y=182	w=25	h=21
+medium gear	c=2.747144%	x=484	y=86	w=171	h=187
+small gear: 1.029561%	x=484 y=86 w=171 h=187
+medium gear	c=1.010394%	x=487	y=-8	w=125	h=262
+center	c=9.745205%	x=490	y=131	w=23	h=25
+center	c=15.523664%	x=497	y=141	w=27	h=24
+center	c=4.646972%	x=505	y=126	w=30	h=31
+center	c=1.256999%	x=516	y=184	w=29	h=22
+center	c=2.363857%	x=555	y=158	w=25	h=22
+pin: 1.460425%	x=555 y=158 w=25 h=22
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.494218%	x=-43	y=90	w=128	h=144
+medium gear: 1.479482%	x=-43 y=90 w=128 h=144
+medium gear	c=7.210489%	x=-9	y=49	w=181	h=197
+red light: 1.700096%	x=-9 y=49 w=181 h=197
+pin: 1.045946%	x=-9 y=49 w=181 h=197
+small gear: 2.233891%	x=-9 y=49 w=181 h=197
+red light	c=2.939461%	x=-6	y=123	w=41	h=32
+red light	c=7.545692%	x=-3	y=133	w=54	h=44
+red light	c=1.406757%	x=3	y=173	w=50	h=41
+medium gear	c=1.342864%	x=8	y=24	w=135	h=158
+red light	c=1.516516%	x=34	y=169	w=66	h=39
+red light	c=69.353691%	x=35	y=136	w=46	h=38
+pin: 2.285177%	x=35 y=136 w=46 h=38
+center: 4.192405%	x=35 y=136 w=46 h=38
+small gear: 3.166725%	x=35 y=136 w=46 h=38
+medium gear: 1.528298%	x=35 y=136 w=46 h=38
+red light	c=18.760725%	x=41	y=127	w=36	h=39
+center: 1.210178%	x=41 y=127 w=36 h=39
+red light	c=1.220029%	x=55	y=174	w=40	h=35
+medium gear	c=1.043733%	x=56	y=-8	w=121	h=203
+red light	c=15.264093%	x=66	y=137	w=28	h=31
+center: 2.011610%	x=66 y=137 w=28 h=31
+red light	c=2.457924%	x=69	y=139	w=45	h=17
+red light	c=3.761756%	x=71	y=130	w=31	h=32
+red light	c=1.351159%	x=78	y=181	w=30	h=26
+red light	c=2.496432%	x=128	y=147	w=24	h=25
+pin	c=1.049708%	x=144	y=17	w=45	h=15
+pin	c=2.019394%	x=155	y=8	w=25	h=23
+pin	c=1.146249%	x=159	y=17	w=18	h=23
+small gear	c=1.232935%	x=162	y=52	w=208	h=146
+red light	c=1.467865%	x=176	y=154	w=31	h=27
+red light	c=1.083751%	x=178	y=187	w=36	h=32
+small gear	c=1.212102%	x=215	y=154	w=113	h=97
+small gear	c=8.091407%	x=220	y=83	w=263	h=196
+small gear	c=2.233495%	x=222	y=113	w=109	h=113
+red light	c=1.244365%	x=233	y=150	w=33	h=28
+red light	c=1.050424%	x=237	y=186	w=29	h=30
+small gear	c=3.938359%	x=247	y=-4	w=205	h=190
+small gear	c=4.439681%	x=252	y=110	w=130	h=165
+small gear	c=72.524734%	x=258	y=93	w=162	h=128
+pin: 1.398618%	x=258 y=93 w=162 h=128
+medium gear	c=3.453395%	x=276	y=92	w=132	h=137
+center: 1.418196%	x=276 y=92 w=132 h=137
+red light	c=1.134393%	x=283	y=80	w=129	h=142
+pin	c=1.512967%	x=286	y=144	w=31	h=23
+red light: 1.512514%	x=286 y=144 w=31 h=23
+small gear	c=14.541660%	x=295	y=107	w=120	h=160
+medium gear	c=1.484340%	x=297	y=20	w=436	h=121
+small gear	c=8.778524%	x=317	y=75	w=134	h=180
+medium gear: 2.713108%	x=317 y=75 w=134 h=180
+pin	c=1.483124%	x=350	y=100	w=33	h=32
+pin	c=2.102563%	x=355	y=134	w=34	h=32
+medium gear	c=1.247487%	x=385	y=-13	w=179	h=212
+medium gear	c=8.088552%	x=386	y=84	w=122	h=179
+small gear: 1.096887%	x=386 y=84 w=122 h=179
+pin	c=1.188049%	x=393	y=106	w=34	h=28
+medium gear	c=10.118344%	x=395	y=149	w=223	h=94
+center	c=1.053309%	x=403	y=138	w=33	h=28
+pin: 1.046355%	x=403 y=138 w=33 h=28
+pin	c=3.591341%	x=403	y=81	w=229	h=166
+red light: 2.570110%	x=403 y=81 w=229 h=166
+center: 1.228221%	x=403 y=81 w=229 h=166
+small gear: 2.294316%	x=403 y=81 w=229 h=166
+medium gear	c=81.891342%	x=405	y=66	w=200	h=201
+medium gear	c=11.529059%	x=417	y=118	w=138	h=132
+medium gear	c=5.484381%	x=421	y=33	w=195	h=165
+pin	c=3.816979%	x=423	y=141	w=34	h=29
+pin	c=1.847444%	x=424	y=172	w=42	h=31
+pin	c=51.582260%	x=434	y=152	w=26	h=26
+small gear	c=3.037650%	x=434	y=146	w=29	h=26
+pin	c=4.138134%	x=435	y=132	w=30	h=33
+center: 1.034131%	x=435 y=132 w=30 h=33
+medium gear	c=3.671842%	x=435	y=146	w=27	h=26
+red light: 2.319097%	x=435 y=146 w=27 h=26
+center: 2.194124%	x=435 y=146 w=27 h=26
+pin	c=76.853722%	x=435	y=146	w=27	h=26
+pin	c=10.378164%	x=440	y=127	w=27	h=28
+center: 3.033761%	x=440 y=127 w=27 h=28
+small gear	c=1.464234%	x=440	y=154	w=25	h=25
+medium gear	c=3.380216%	x=476	y=73	w=186	h=214
+center	c=1.951233%	x=485	y=179	w=25	h=30
+center	c=1.451930%	x=488	y=79	w=22	h=34
+center	c=11.065878%	x=491	y=128	w=24	h=23
+center	c=14.273052%	x=498	y=145	w=27	h=24
+center	c=20.819954%	x=504	y=139	w=29	h=26
+pin: 1.055344%	x=504 y=139 w=29 h=26
+center	c=8.347363%	x=505	y=127	w=28	h=30
+center	c=1.812861%	x=522	y=184	w=29	h=21
+pin: 1.801938%	x=522 y=184 w=29 h=21
+pin	c=1.406178%	x=537	y=217	w=25	h=15
+center: 1.342108%	x=537 y=217 w=25 h=15
+center	c=3.314038%	x=555	y=158	w=21	h=19
+pin: 1.751267%	x=555 y=158 w=21 h=19
+center	c=1.343096%	x=564	y=199	w=25	h=20
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.162152%	x=-36	y=95	w=113	h=124
+medium gear: 2.152185%	x=-36 y=95 w=113 h=124
+medium gear	c=2.626881%	x=-22	y=32	w=209	h=246
+red light	c=7.652261%	x=-17	y=139	w=58	h=43
+small gear: 1.011156%	x=-17 y=139 w=58 h=43
+red light	c=2.413965%	x=-9	y=117	w=33	h=43
+red light	c=2.092821%	x=-5	y=174	w=45	h=51
+red light	c=1.909407%	x=50	y=171	w=48	h=36
+red light	c=8.673857%	x=54	y=131	w=40	h=29
+medium gear	c=1.381545%	x=54	y=24	w=130	h=130
+small gear: 1.136400%	x=54 y=24 w=130 h=130
+red light	c=50.023304%	x=55	y=136	w=41	h=37
+center: 3.205484%	x=55 y=136 w=41 h=37
+small gear	c=1.569553%	x=58	y=135	w=37	h=32
+pin: 1.063000%	x=58 y=135 w=37 h=32
+medium gear	c=4.690534%	x=65	y=48	w=125	h=165
+small gear: 2.134341%	x=65 y=48 w=125 h=165
+red light	c=8.451504%	x=66	y=128	w=34	h=34
+red light	c=1.074721%	x=77	y=178	w=36	h=28
+red light	c=2.309787%	x=123	y=142	w=27	h=27
+red light	c=1.003815%	x=127	y=152	w=36	h=15
+red light	c=1.931603%	x=179	y=156	w=31	h=29
+small gear	c=3.741999%	x=205	y=120	w=150	h=97
+small gear	c=1.819118%	x=222	y=94	w=105	h=112
+red light	c=1.169602%	x=227	y=150	w=36	h=31
+red light	c=1.103995%	x=234	y=184	w=27	h=34
+small gear	c=22.492958%	x=237	y=75	w=162	h=162
+pin: 1.031861%	x=237 y=75 w=162 h=162
+small gear	c=1.833451%	x=248	y=-3	w=127	h=190
+small gear	c=3.339234%	x=275	y=26	w=169	h=134
+medium gear	c=2.595589%	x=280	y=96	w=124	h=124
+center: 1.367928%	x=280 y=96 w=124 h=124
+small gear	c=76.721031%	x=280	y=103	w=120	h=109
+pin: 1.446172%	x=280 y=103 w=120 h=109
+pin	c=1.375538%	x=285	y=144	w=34	h=24
+red light: 1.191476%	x=285 y=144 w=34 h=24
+red light	c=1.101181%	x=297	y=114	w=96	h=121
+small gear	c=9.943665%	x=300	y=115	w=108	h=140
+small gear	c=7.058734%	x=318	y=107	w=106	h=105
+medium gear: 2.158470%	x=318 y=107 w=106 h=105
+pin	c=1.450096%	x=353	y=100	w=30	h=34
+medium gear	c=8.233093%	x=357	y=65	w=117	h=165
+small gear: 7.275749%	x=357 y=65 w=117 h=165
+pin	c=1.506407%	x=358	y=133	w=33	h=34
+medium gear	c=1.017087%	x=370	y=-31	w=132	h=247
+medium gear	c=81.021622%	x=377	y=65	w=214	h=195
+red light	c=2.332133%	x=385	y=69	w=202	h=148
+medium gear	c=16.890625%	x=386	y=87	w=125	h=159
+pin: 1.412088%	x=386 y=87 w=125 h=159
+small gear: 2.151438%	x=386 y=87 w=125 h=159
+pin	c=1.884144%	x=393	y=111	w=31	h=22
+center: 1.209478%	x=393 y=111 w=31 h=22
+medium gear	c=1.657030%	x=398	y=-20	w=150	h=195
+pin	c=1.072143%	x=399	y=140	w=36	h=21
+medium gear	c=3.838901%	x=414	y=38	w=216	h=149
+pin	c=3.335645%	x=416	y=76	w=209	h=168
+center: 1.468257%	x=416 y=76 w=209 h=168
+small gear: 2.855029%	x=416 y=76 w=209 h=168
+pin	c=7.449187%	x=418	y=153	w=38	h=15
+pin	c=1.174315%	x=418	y=133	w=31	h=31
+medium gear	c=9.794043%	x=422	y=140	w=146	h=98
+pin	c=1.148160%	x=423	y=137	w=32	h=18
+medium gear	c=3.708192%	x=425	y=147	w=26	h=24
+center	c=3.014015%	x=426	y=151	w=25	h=21
+pin	c=72.499504%	x=426	y=146	w=25	h=24
+red light: 3.036449%	x=426 y=146 w=25 h=24
+small gear: 4.985436%	x=426 y=146 w=25 h=24
+pin	c=7.552198%	x=427	y=150	w=22	h=32
+pin	c=2.684330%	x=429	y=134	w=29	h=27
+pin	c=1.951874%	x=430	y=151	w=29	h=23
+medium gear	c=1.014539%	x=432	y=74	w=206	h=251
+pin	c=2.639639%	x=437	y=175	w=27	h=28
+pin	c=13.920465%	x=438	y=135	w=27	h=25
+center: 4.495498%	x=438 y=135 w=27 h=25
+center	c=1.622463%	x=477	y=189	w=27	h=17
+medium gear	c=3.548994%	x=482	y=89	w=178	h=170
+small gear: 1.279738%	x=482 y=89 w=178 h=170
+center	c=1.426933%	x=483	y=129	w=34	h=24
+center	c=1.265591%	x=485	y=78	w=21	h=35
+center	c=13.938486%	x=492	y=135	w=26	h=25
+center	c=14.547792%	x=503	y=140	w=32	h=21
+pin: 2.183919%	x=503 y=140 w=32 h=21
+center	c=6.307521%	x=504	y=125	w=30	h=30
+pin: 1.046606%	x=504 y=125 w=30 h=30
+pin	c=1.190956%	x=518	y=181	w=18	h=30
+pin	c=1.678329%	x=520	y=185	w=27	h=24
+center	c=3.730569%	x=557	y=158	w=27	h=22
+pin: 2.372064%	x=557 y=158 w=27 h=22
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=2.788077%	x=-44	y=92	w=133	h=126
+red light: 1.055157%	x=-44 y=92 w=133 h=126
+small gear: 2.407799%	x=-44 y=92 w=133 h=126
+medium gear	c=2.676564%	x=-35	y=27	w=233	h=259
+small gear: 1.056574%	x=-35 y=27 w=233 h=259
+red light	c=11.824627%	x=-17	y=140	w=51	h=39
+pin: 1.322765%	x=-17 y=140 w=51 h=39
+small gear: 1.702093%	x=-17 y=140 w=51 h=39
+medium gear: 1.005677%	x=-17 y=140 w=51 h=39
+red light	c=3.418704%	x=-15	y=122	w=38	h=33
+red light	c=2.087837%	x=-5	y=175	w=41	h=48
+red light	c=2.245266%	x=46	y=166	w=61	h=47
+medium gear	c=1.336709%	x=49	y=14	w=143	h=157
+red light	c=9.087203%	x=53	y=129	w=42	h=28
+center	c=2.382346%	x=56	y=136	w=42	h=37
+red light	c=43.028755%	x=60	y=135	w=43	h=32
+pin: 1.390454%	x=60 y=135 w=43 h=32
+small gear: 2.044115%	x=60 y=135 w=43 h=32
+medium gear	c=5.975032%	x=70	y=47	w=119	h=172
+small gear: 2.713920%	x=70 y=47 w=119 h=172
+red light	c=10.665716%	x=70	y=130	w=34	h=31
+pin: 1.350623%	x=70 y=130 w=34 h=31
+red light	c=1.036575%	x=74	y=165	w=54	h=45
+red light	c=1.152667%	x=81	y=177	w=37	h=32
+red light	c=3.849370%	x=127	y=144	w=25	h=28
+red light	c=1.804644%	x=128	y=150	w=33	h=17
+red light	c=1.223732%	x=177	y=187	w=40	h=30
+red light	c=2.414512%	x=180	y=158	w=28	h=27
+small gear	c=1.005686%	x=200	y=49	w=148	h=189
+small gear	c=2.080259%	x=211	y=112	w=132	h=105
+small gear	c=4.398648%	x=220	y=83	w=262	h=181
+red light	c=1.449336%	x=227	y=152	w=33	h=27
+red light	c=1.143052%	x=231	y=182	w=28	h=33
+small gear	c=1.266481%	x=234	y=76	w=97	h=130
+small gear	c=2.033126%	x=249	y=-27	w=119	h=234
+small gear	c=1.941244%	x=249	y=117	w=143	h=151
+small gear	c=13.688458%	x=259	y=77	w=129	h=143
+small gear	c=3.627578%	x=273	y=9	w=167	h=163
+medium gear	c=2.499564%	x=283	y=95	w=128	h=125
+center: 1.120686%	x=283 y=95 w=128 h=125
+medium gear	c=1.045347%	x=285	y=43	w=413	h=93
+small gear	c=78.440628%	x=288	y=106	w=123	h=109
+pin: 1.156091%	x=288 y=106 w=123 h=109
+red light	c=1.254036%	x=289	y=102	w=113	h=130
+small gear	c=4.150706%	x=327	y=78	w=106	h=138
+medium gear: 1.457525%	x=327 y=78 w=106 h=138
+small gear	c=2.200608%	x=332	y=82	w=187	h=138
+medium gear	c=3.299013%	x=351	y=51	w=136	h=186
+pin	c=1.339680%	x=352	y=100	w=33	h=29
+pin	c=1.743823%	x=353	y=131	w=40	h=33
+small gear	c=3.647279%	x=356	y=110	w=121	h=114
+medium gear	c=1.361055%	x=365	y=-12	w=204	h=213
+medium gear	c=13.166068%	x=384	y=77	w=137	h=168
+medium gear	c=11.608906%	x=394	y=139	w=195	h=83
+medium gear	c=86.232582%	x=395	y=60	w=194	h=195
+pin	c=1.086181%	x=398	y=111	w=34	h=25
+red light	c=1.554742%	x=399	y=64	w=179	h=160
+medium gear	c=3.236022%	x=405	y=41	w=222	h=143
+small gear	c=2.032291%	x=420	y=29	w=185	h=223
+pin: 1.780909%	x=420 y=29 w=185 h=223
+center: 1.066342%	x=420 y=29 w=185 h=223
+medium gear	c=3.247119%	x=425	y=127	w=25	h=24
+pin	c=70.410553%	x=426	y=127	w=24	h=24
+center	c=2.271502%	x=427	y=128	w=24	h=21
+small gear	c=3.439441%	x=428	y=125	w=24	h=25
+red light: 3.211216%	x=428 y=125 w=24 h=25
+small gear	c=1.549373%	x=428	y=130	w=19	h=27
+red light: 1.408515%	x=428 y=130 w=19 h=27
+pin	c=12.312242%	x=430	y=130	w=29	h=24
+center: 2.673015%	x=430 y=130 w=29 h=24
+center	c=1.423967%	x=445	y=84	w=31	h=31
+pin: 1.139824%	x=445 y=84 w=31 h=31
+center	c=1.229137%	x=479	y=74	w=23	h=42
+center	c=1.224886%	x=481	y=185	w=25	h=17
+medium gear	c=2.533416%	x=486	y=73	w=164	h=209
+center	c=12.705935%	x=486	y=139	w=27	h=22
+center	c=12.620573%	x=492	y=132	w=26	h=29
+center	c=6.030344%	x=496	y=124	w=36	h=31
+center	c=8.955617%	x=501	y=142	w=32	h=22
+pin: 1.260091%	x=501 y=142 w=32 h=22
+center	c=1.463437%	x=504	y=144	w=22	h=26
+pin	c=1.235679%	x=518	y=186	w=25	h=18
+center: 1.008856%	x=518 y=186 w=25 h=18
+center	c=2.407436%	x=554	y=165	w=28	h=20
+pin: 1.357598%	x=554 y=165 w=28 h=20
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.740443%	x=-36	y=92	w=116	h=136
+medium gear: 1.575578%	x=-36 y=92 w=116 h=136
+medium gear	c=4.190847%	x=-18	y=44	w=200	h=211
+small gear: 1.304554%	x=-18 y=44 w=200 h=211
+red light	c=3.364896%	x=-13	y=122	w=44	h=32
+red light	c=7.980225%	x=-12	y=137	w=59	h=42
+small gear: 1.112920%	x=-12 y=137 w=59 h=42
+red light	c=2.166299%	x=6	y=181	w=44	h=36
+red light	c=56.222630%	x=47	y=138	w=43	h=36
+pin: 1.458847%	x=47 y=138 w=43 h=36
+center: 3.513415%	x=47 y=138 w=43 h=36
+small gear: 1.922852%	x=47 y=138 w=43 h=36
+red light	c=1.732384%	x=51	y=173	w=43	h=35
+medium gear	c=1.395271%	x=54	y=27	w=128	h=128
+small gear: 1.155345%	x=54 y=27 w=128 h=128
+medium gear	c=3.707875%	x=60	y=36	w=133	h=190
+small gear: 1.735326%	x=60 y=36 w=133 h=190
+red light	c=17.340380%	x=61	y=139	w=31	h=25
+center: 1.308756%	x=61 y=139 w=31 h=25
+red light	c=6.155600%	x=69	y=130	w=32	h=33
+red light	c=1.022707%	x=76	y=182	w=30	h=24
+red light	c=1.574260%	x=125	y=144	w=30	h=27
+red light	c=1.535756%	x=179	y=154	w=31	h=28
+small gear	c=2.615973%	x=219	y=89	w=108	h=137
+small gear	c=3.643603%	x=219	y=-41	w=168	h=258
+red light	c=1.204965%	x=229	y=182	w=27	h=35
+small gear	c=4.510407%	x=231	y=29	w=162	h=115
+small gear	c=11.650326%	x=256	y=87	w=133	h=137
+small gear	c=4.530298%	x=261	y=99	w=155	h=184
+pin	c=1.462845%	x=266	y=82	w=159	h=145
+center	c=1.572417%	x=275	y=75	w=149	h=130
+medium gear: 1.185280%	x=275 y=75 w=149 h=130
+small gear	c=71.064606%	x=290	y=103	w=112	h=102
+red light	c=1.696818%	x=295	y=80	w=106	h=138
+small gear	c=5.302742%	x=303	y=-3	w=101	h=177
+small gear	c=10.790768%	x=312	y=78	w=111	h=162
+medium gear	c=4.590746%	x=315	y=74	w=158	h=162
+medium gear	c=1.009125%	x=322	y=4	w=185	h=170
+small gear	c=1.105974%	x=327	y=-32	w=171	h=250
+small gear	c=3.287086%	x=333	y=119	w=108	h=127
+small gear	c=1.533562%	x=334	y=37	w=128	h=138
+pin	c=1.143981%	x=348	y=136	w=43	h=26
+pin	c=1.442363%	x=351	y=93	w=33	h=31
+medium gear	c=12.868831%	x=372	y=47	w=273	h=270
+medium gear	c=7.526900%	x=372	y=28	w=277	h=170
+medium gear	c=1.943542%	x=373	y=79	w=142	h=182
+medium gear	c=3.598309%	x=396	y=78	w=100	h=117
+medium gear	c=2.697009%	x=400	y=6	w=160	h=182
+medium gear	c=82.472908%	x=406	y=49	w=167	h=199
+pin	c=3.426766%	x=408	y=47	w=177	h=167
+center: 1.829786%	x=408 y=47 w=177 h=167
+red light	c=2.646230%	x=417	y=62	w=210	h=192
+small gear: 2.482545%	x=417 y=62 w=210 h=192
+medium gear	c=10.010118%	x=419	y=125	w=133	h=120
+pin	c=1.478390%	x=431	y=175	w=42	h=36
+pin	c=1.809432%	x=434	y=79	w=34	h=39
+center: 1.077551%	x=434 y=79 w=34 h=39
+pin	c=2.198289%	x=445	y=134	w=30	h=24
+medium gear	c=1.592978%	x=449	y=-22	w=155	h=222
+pin	c=17.912468%	x=451	y=94	w=26	h=31
+center: 1.375164%	x=451 y=94 w=26 h=31
+pin	c=4.616454%	x=451	y=75	w=31	h=43
+center: 1.896051%	x=451 y=75 w=31 h=43
+red light	c=2.894260%	x=454	y=91	w=24	h=23
+center: 2.721056%	x=454 y=91 w=24 h=23
+small gear: 2.476009%	x=454 y=91 w=24 h=23
+medium gear: 2.774198%	x=454 y=91 w=24 h=23
+pin	c=81.117470%	x=455	y=91	w=23	h=23
+pin	c=15.144764%	x=458	y=85	w=25	h=27
+pin	c=28.645811%	x=461	y=102	w=24	h=28
+center: 10.373193%	x=461 y=102 w=24 h=28
+center	c=3.579028%	x=464	y=85	w=21	h=24
+medium gear	c=2.064985%	x=483	y=73	w=176	h=205
+center	c=1.346149%	x=487	y=185	w=26	h=25
+pin: 1.059533%	x=487 y=185 w=26 h=25
+center	c=11.878417%	x=494	y=135	w=26	h=27
+pin: 2.310426%	x=494 y=135 w=26 h=27
+center	c=1.793033%	x=499	y=137	w=17	h=18
+center	c=5.400280%	x=507	y=123	w=27	h=22
+center	c=14.757964%	x=509	y=139	w=27	h=21
+pin: 1.163879%	x=509 y=139 w=27 h=21
+center	c=1.033039%	x=521	y=180	w=23	h=21
+center	c=2.664802%	x=556	y=155	w=24	h=25
+pin: 2.009977%	x=556 y=155 w=24 h=25
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=3.048960%	x=-49	y=81	w=146	h=146
+red light: 1.169553%	x=-49 y=81 w=146 h=146
+small gear: 2.327230%	x=-49 y=81 w=146 h=146
+medium gear	c=3.470982%	x=-28	y=26	w=212	h=243
+small gear: 1.570156%	x=-28 y=26 w=212 h=243
+red light	c=16.086470%	x=-12	y=140	w=50	h=38
+pin: 1.446271%	x=-12 y=140 w=50 h=38
+small gear: 2.309889%	x=-12 y=140 w=50 h=38
+medium gear: 1.173260%	x=-12 y=140 w=50 h=38
+red light	c=3.980143%	x=-8	y=123	w=33	h=35
+red light	c=1.683884%	x=0	y=174	w=37	h=46
+medium gear	c=1.193343%	x=13	y=30	w=132	h=167
+red light	c=26.556686%	x=44	y=136	w=43	h=34
+center: 1.649898%	x=44 y=136 w=43 h=34
+small gear: 1.271368%	x=44 y=136 w=43 h=34
+red light	c=2.202021%	x=44	y=173	w=47	h=32
+red light	c=8.668283%	x=46	y=131	w=42	h=22
+medium gear	c=5.670252%	x=59	y=21	w=144	h=239
+small gear: 2.644686%	x=59 y=21 w=144 h=239
+medium gear	c=1.417141%	x=65	y=16	w=113	h=160
+red light	c=48.567024%	x=78	y=138	w=38	h=27
+center: 2.982788%	x=78 y=138 w=38 h=27
+small gear: 2.787849%	x=78 y=138 w=38 h=27
+pin	c=1.592235%	x=78	y=131	w=34	h=36
+red light	c=1.247029%	x=82	y=175	w=50	h=36
+red light	c=1.260015%	x=93	y=185	w=38	h=22
+red light	c=1.483806%	x=119	y=121	w=30	h=30
+red light	c=5.386481%	x=120	y=140	w=25	h=30
+red light	c=2.677772%	x=126	y=146	w=24	h=18
+red light	c=1.254960%	x=177	y=148	w=28	h=27
+small gear	c=1.426155%	x=183	y=-47	w=143	h=219
+small gear	c=2.428788%	x=206	y=86	w=122	h=128
+small gear	c=2.287138%	x=235	y=35	w=180	h=283
+small gear	c=3.649189%	x=235	y=-34	w=134	h=246
+small gear	c=72.292496%	x=270	y=102	w=141	h=94
+center: 1.064654%	x=270 y=102 w=141 h=94
+small gear	c=6.143011%	x=276	y=116	w=159	h=141
+red light	c=1.668813%	x=278	y=102	w=138	h=111
+pin: 1.151609%	x=278 y=102 w=138 h=111
+small gear	c=4.997656%	x=282	y=14	w=116	h=146
+small gear	c=16.009945%	x=308	y=42	w=158	h=209
+medium gear: 7.299686%	x=308 y=42 w=158 h=209
+small gear	c=1.494568%	x=310	y=-9	w=195	h=219
+medium gear	c=1.814620%	x=329	y=-11	w=168	h=208
+medium gear	c=4.800204%	x=341	y=14	w=348	h=149
+pin	c=1.070942%	x=346	y=133	w=45	h=31
+small gear	c=2.470335%	x=347	y=28	w=125	h=158
+medium gear	c=7.984347%	x=360	y=67	w=170	h=145
+small gear: 1.408957%	x=360 y=67 w=170 h=145
+medium gear	c=7.993472%	x=365	y=50	w=294	h=270
+medium gear	c=5.010589%	x=393	y=-16	w=193	h=213
+medium gear	c=10.346298%	x=395	y=99	w=196	h=186
+small gear: 1.310103%	x=395 y=99 w=196 h=186
+pin	c=1.954018%	x=404	y=69	w=171	h=179
+pin	c=3.891317%	x=427	y=28	w=194	h=195
+red light: 2.495360%	x=427 y=28 w=194 h=195
+center: 2.082012%	x=427 y=28 w=194 h=195
+small gear: 3.036750%	x=427 y=28 w=194 h=195
+medium gear	c=80.279716%	x=429	y=42	w=164	h=193
+center	c=1.508529%	x=442	y=70	w=38	h=32
+pin	c=1.866045%	x=446	y=137	w=26	h=29
+center	c=2.138486%	x=453	y=106	w=26	h=31
+pin: 1.020436%	x=453 y=106 w=26 h=31
+medium gear	c=3.168489%	x=466	y=20	w=208	h=196
+medium gear	c=9.387697%	x=471	y=18	w=114	h=142
+red light: 1.010768%	x=471 y=18 w=114 h=142
+pin: 1.567067%	x=471 y=18 w=114 h=142
+center: 1.246126%	x=471 y=18 w=114 h=142
+small gear: 1.382115%	x=471 y=18 w=114 h=142
+center	c=1.776378%	x=482	y=184	w=25	h=22
+pin: 1.374752%	x=482 y=184 w=25 h=22
+center	c=2.430344%	x=487	y=75	w=26	h=32
+pin	c=27.254560%	x=490	y=70	w=24	h=37
+medium gear: 1.501743%	x=490 y=70 w=24 h=37
+pin	c=15.151724%	x=491	y=99	w=29	h=29
+center: 9.190837%	x=491 y=99 w=29 h=29
+medium gear	c=1.213210%	x=492	y=73	w=173	h=170
+pin	c=73.473549%	x=493	y=74	w=28	h=27
+red light: 3.741817%	x=493 y=74 w=28 h=27
+small gear: 5.353096%	x=493 y=74 w=28 h=27
+center	c=10.941257%	x=493	y=134	w=27	h=25
+pin: 1.610593%	x=493 y=134 w=27 h=25
+center	c=3.320766%	x=494	y=74	w=27	h=26
+pin	c=1.245556%	x=495	y=59	w=39	h=35
+medium gear	c=2.987144%	x=496	y=-15	w=146	h=183
+pin	c=9.958555%	x=497	y=94	w=25	h=29
+center: 3.963327%	x=497 y=94 w=25 h=29
+medium gear	c=5.155238%	x=501	y=76	w=23	h=24
+pin	c=13.708536%	x=504	y=74	w=24	h=32
+center: 5.473123%	x=504 y=74 w=24 h=32
+small gear: 1.149055%	x=504 y=74 w=24 h=32
+center	c=19.788963%	x=512	y=111	w=26	h=25
+pin: 5.277991%	x=512 y=111 w=26 h=25
+medium gear: 1.226004%	x=512 y=111 w=26 h=25
+center	c=2.180422%	x=514	y=138	w=27	h=28
+center	c=1.582052%	x=520	y=186	w=26	h=22
+pin: 1.377892%	x=520 y=186 w=26 h=22
+center	c=13.861960%	x=525	y=139	w=18	h=27
+pin: 1.497945%	x=525 y=139 w=18 h=27
+center	c=2.807743%	x=552	y=111	w=31	h=30
+center	c=4.397192%	x=556	y=143	w=28	h=18
+pin: 2.461358%	x=556 y=143 w=28 h=18
+center	c=2.417908%	x=557	y=71	w=30	h=32
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=2.833985%	x=-43	y=87	w=132	h=137
+red light: 1.125090%	x=-43 y=87 w=132 h=137
+small gear: 2.615169%	x=-43 y=87 w=132 h=137
+medium gear	c=3.288327%	x=-33	y=22	w=227	h=262
+small gear: 1.291425%	x=-33 y=22 w=227 h=262
+red light	c=12.512597%	x=-16	y=139	w=54	h=40
+pin: 1.310462%	x=-16 y=139 w=54 h=40
+small gear: 1.928078%	x=-16 y=139 w=54 h=40
+medium gear: 1.039441%	x=-16 y=139 w=54 h=40
+red light	c=4.253064%	x=-14	y=120	w=38	h=36
+red light	c=1.699309%	x=-4	y=177	w=41	h=45
+medium gear	c=1.472899%	x=10	y=22	w=146	h=179
+medium gear	c=1.196331%	x=40	y=120	w=130	h=141
+red light	c=2.191622%	x=42	y=169	w=62	h=44
+red light	c=31.177643%	x=54	y=134	w=42	h=37
+center: 2.084350%	x=54 y=134 w=42 h=37
+small gear: 1.380311%	x=54 y=134 w=42 h=37
+red light	c=13.554086%	x=54	y=128	w=42	h=28
+center: 1.254298%	x=54 y=128 w=42 h=28
+medium gear	c=2.947609%	x=65	y=24	w=116	h=138
+small gear: 1.797657%	x=65 y=24 w=116 h=138
+medium gear	c=7.384828%	x=65	y=47	w=126	h=179
+red light: 1.084315%	x=65 y=47 w=126 h=179
+pin: 1.081583%	x=65 y=47 w=126 h=179
+small gear: 3.343108%	x=65 y=47 w=126 h=179
+red light	c=43.918697%	x=66	y=133	w=39	h=33
+pin: 1.701363%	x=66 y=133 w=39 h=33
+center: 2.300772%	x=66 y=133 w=39 h=33
+small gear: 2.573850%	x=66 y=133 w=39 h=33
+red light	c=19.895876%	x=74	y=127	w=38	h=35
+center: 1.103761%	x=74 y=127 w=38 h=35
+small gear: 1.486106%	x=74 y=127 w=38 h=35
+pin	c=1.898794%	x=76	y=129	w=35	h=33
+red light	c=1.028001%	x=78	y=167	w=49	h=44
+red light	c=1.239852%	x=79	y=69	w=27	h=36
+red light	c=1.133186%	x=88	y=182	w=35	h=23
+red light	c=2.459841%	x=122	y=133	w=26	h=29
+red light	c=1.764852%	x=124	y=117	w=33	h=30
+red light	c=1.381769%	x=130	y=124	w=38	h=16
+red light	c=1.077614%	x=131	y=137	w=29	h=23
+red light	c=1.345011%	x=177	y=102	w=36	h=37
+red light	c=1.240899%	x=181	y=147	w=34	h=27
+small gear	c=4.131250%	x=211	y=75	w=249	h=200
+small gear	c=2.574224%	x=221	y=93	w=113	h=121
+small gear	c=1.877086%	x=224	y=129	w=173	h=130
+red light	c=1.009407%	x=235	y=98	w=32	h=32
+small gear	c=2.861284%	x=249	y=4	w=129	h=197
+small gear	c=72.072533%	x=260	y=55	w=153	h=180
+small gear	c=79.405312%	x=278	y=107	w=120	h=100
+center	c=1.344317%	x=283	y=75	w=126	h=129
+medium gear: 1.074369%	x=283 y=75 w=126 h=129
+small gear	c=3.906559%	x=287	y=14	w=119	h=150
+red light	c=1.089704%	x=288	y=88	w=108	h=120
+red light	c=1.117727%	x=289	y=96	w=27	h=32
+small gear	c=1.390996%	x=291	y=48	w=229	h=301
+medium gear	c=5.654443%	x=300	y=76	w=200	h=153
+small gear: 4.802760%	x=300 y=76 w=200 h=153
+small gear	c=8.146242%	x=317	y=93	w=127	h=114
+small gear	c=1.038732%	x=327	y=-36	w=172	h=256
+small gear	c=1.597323%	x=335	y=86	w=109	h=191
+medium gear	c=1.263500%	x=338	y=9	w=228	h=141
+pin	c=1.453499%	x=352	y=84	w=33	h=37
+medium gear	c=1.922817%	x=358	y=37	w=277	h=131
+small gear	c=9.017513%	x=358	y=77	w=108	h=115
+medium gear: 3.317315%	x=358 y=77 w=108 h=115
+medium gear	c=1.336819%	x=361	y=35	w=145	h=137
+medium gear	c=1.287592%	x=361	y=49	w=186	h=268
+red light	c=1.494903%	x=381	y=30	w=207	h=219
+medium gear	c=4.904923%	x=393	y=138	w=224	h=94
+medium gear	c=83.761078%	x=402	y=66	w=187	h=186
+pin	c=1.513232%	x=419	y=26	w=186	h=234
+small gear: 1.224136%	x=419 y=26 w=186 h=234
+medium gear	c=3.244253%	x=425	y=-5	w=177	h=237
+pin	c=1.325982%	x=439	y=178	w=40	h=43
+pin	c=1.164863%	x=439	y=149	w=29	h=20
+pin	c=4.553173%	x=442	y=134	w=24	h=29
+center: 1.658518%	x=442 y=134 w=24 h=29
+medium gear	c=4.516445%	x=444	y=111	w=122	h=136
+center	c=2.063776%	x=457	y=115	w=17	h=29
+pin: 1.435097%	x=457 y=115 w=17 h=29
+medium gear	c=5.321035%	x=463	y=49	w=215	h=255
+center	c=1.064319%	x=485	y=85	w=26	h=37
+center	c=10.691059%	x=487	y=136	w=22	h=27
+center	c=10.329396%	x=489	y=130	w=25	h=23
+center	c=1.267008%	x=490	y=140	w=26	h=19
+center	c=2.287906%	x=492	y=183	w=25	h=22
+medium gear	c=6.185383%	x=502	y=112	w=150	h=183
+small gear: 1.643149%	x=502 y=112 w=150 h=183
+center	c=9.448917%	x=508	y=130	w=33	h=23
+pin: 1.188148%	x=508 y=130 w=33 h=23
+center	c=21.040966%	x=519	y=165	w=23	h=24
+pin: 15.927068%	x=519 y=165 w=23 h=24
+pin	c=1.418971%	x=526	y=210	w=27	h=47
+medium gear	c=4.443776%	x=527	y=191	w=23	h=21
+red light: 3.683114%	x=527 y=191 w=23 h=21
+center: 3.115058%	x=527 y=191 w=23 h=21
+pin	c=75.758270%	x=528	y=190	w=22	h=21
+small gear: 3.614420%	x=528 y=190 w=22 h=21
+pin	c=8.083755%	x=530	y=182	w=25	h=25
+center	c=4.662158%	x=547	y=157	w=25	h=20
+pin: 1.125530%	x=547 y=157 w=25 h=20
+center	c=1.545021%	x=562	y=119	w=26	h=30
+center	c=3.109632%	x=563	y=196	w=25	h=25
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.213964%	x=-65	y=89	w=191	h=97
+pin	c=1.009490%	x=-19	y=256	w=40	h=24
+red light	c=1.288430%	x=-14	y=262	w=24	h=22
+red light	c=1.154476%	x=-13	y=238	w=25	h=21
+pin: 1.103292%	x=-13 y=238 w=25 h=21
+small gear: 1.055184%	x=-13 y=238 w=25 h=21
+pin	c=1.832363%	x=-12	y=259	w=26	h=28
+small gear: 1.334388%	x=-12 y=259 w=26 h=28
+pin	c=1.058208%	x=-12	y=281	w=25	h=27
+red light	c=1.079050%	x=-10	y=189	w=51	h=41
+red light	c=1.557712%	x=-10	y=111	w=43	h=35
+red light	c=1.658932%	x=-7	y=139	w=53	h=41
+red light	c=1.446697%	x=-5	y=98	w=43	h=41
+medium gear	c=2.265401%	x=-4	y=76	w=156	h=179
+small gear: 1.990226%	x=-4 y=76 w=156 h=179
+red light	c=1.362032%	x=2	y=242	w=32	h=19
+red light	c=1.137786%	x=3	y=264	w=30	h=14
+pin	c=1.145338%	x=4	y=263	w=33	h=26
+red light: 1.031373%	x=4 y=263 w=33 h=26
+medium gear	c=1.169024%	x=12	y=51	w=126	h=135
+medium gear	c=6.716603%	x=29	y=41	w=196	h=217
+red light: 1.410371%	x=29 y=41 w=196 h=217
+small gear: 1.905014%	x=29 y=41 w=196 h=217
+red light	c=3.840684%	x=39	y=121	w=45	h=28
+red light	c=8.188273%	x=50	y=142	w=53	h=40
+red light	c=1.728204%	x=55	y=184	w=46	h=29
+red light	c=2.116853%	x=60	y=171	w=41	h=37
+red light	c=65.722748%	x=93	y=136	w=38	h=37
+pin: 2.369958%	x=93 y=136 w=38 h=37
+center: 4.422851%	x=93 y=136 w=38 h=37
+small gear: 3.219644%	x=93 y=136 w=38 h=37
+medium gear: 1.232755%	x=93 y=136 w=38 h=37
+medium gear	c=3.931637%	x=96	y=33	w=152	h=196
+small gear: 1.949376%	x=96 y=33 w=152 h=196
+red light	c=2.016541%	x=101	y=171	w=41	h=37
+red light	c=21.521326%	x=109	y=136	w=34	h=33
+pin: 1.018477%	x=109 y=136 w=34 h=33
+center: 1.863429%	x=109 y=136 w=34 h=33
+red light	c=2.962619%	x=112	y=136	w=43	h=22
+small gear	c=1.001593%	x=115	y=141	w=25	h=23
+red light	c=1.549301%	x=132	y=178	w=31	h=27
+red light	c=3.038841%	x=177	y=145	w=22	h=26
+red light	c=1.232127%	x=184	y=154	w=31	h=14
+pin	c=8.639105%	x=205	y=5	w=22	h=21
+center: 3.123416%	x=205 y=5 w=22 h=21
+small gear: 2.468846%	x=205 y=5 w=22 h=21
+medium gear	c=2.979242%	x=205	y=5	w=21	h=23
+red light	c=3.327461%	x=207	y=7	w=21	h=17
+pin	c=1.617281%	x=218	y=9	w=27	h=20
+red light	c=1.059440%	x=220	y=153	w=47	h=19
+small gear	c=1.804578%	x=223	y=-21	w=194	h=240
+small gear	c=2.237322%	x=223	y=72	w=222	h=243
+red light	c=1.874721%	x=227	y=153	w=29	h=27
+red light	c=1.015175%	x=228	y=185	w=36	h=38
+pin	c=1.117999%	x=232	y=6	w=30	h=28
+pin	c=1.069302%	x=238	y=15	w=28	h=27
+pin	c=7.841309%	x=248	y=14	w=32	h=23
+red light: 1.665913%	x=248 y=14 w=32 h=23
+center: 2.716630%	x=248 y=14 w=32 h=23
+small gear: 2.380047%	x=248 y=14 w=32 h=23
+medium gear: 1.640951%	x=248 y=14 w=32 h=23
+pin	c=2.564953%	x=252	y=11	w=22	h=23
+center: 1.003002%	x=252 y=11 w=22 h=23
+pin	c=6.790184%	x=254	y=16	w=16	h=26
+center: 1.912439%	x=254 y=16 w=16 h=26
+small gear: 1.655760%	x=254 y=16 w=16 h=26
+medium gear: 1.253716%	x=254 y=16 w=16 h=26
+red light	c=1.425224%	x=256	y=17	w=16	h=24
+pin	c=1.656844%	x=262	y=13	w=34	h=28
+center: 1.125189%	x=262 y=13 w=34 h=28
+small gear	c=3.022845%	x=264	y=62	w=195	h=141
+red light	c=1.067205%	x=265	y=10	w=23	h=20
+medium gear: 1.033875%	x=265 y=10 w=23 h=20
+pin	c=1.365401%	x=268	y=20	w=21	h=21
+pin	c=3.321995%	x=270	y=6	w=17	h=26
+center: 1.404531%	x=270 y=6 w=17 h=26
+red light	c=1.190670%	x=273	y=150	w=34	h=24
+small gear	c=4.507505%	x=274	y=75	w=255	h=216
+small gear	c=1.549928%	x=279	y=5	w=153	h=181
+small gear	c=2.388752%	x=291	y=127	w=151	h=139
+medium gear	c=2.064763%	x=327	y=101	w=122	h=124
+center: 1.313406%	x=327 y=101 w=122 h=124
+small gear	c=66.100769%	x=329	y=101	w=111	h=116
+medium gear	c=2.666784%	x=341	y=-13	w=356	h=226
+small gear	c=7.226030%	x=350	y=124	w=101	h=120
+small gear	c=3.205301%	x=364	y=7	w=121	h=192
+small gear	c=4.139502%	x=367	y=100	w=106	h=133
+medium gear: 1.162914%	x=367 y=100 w=106 h=133
+pin	c=1.553257%	x=402	y=134	w=35	h=34
+red light	c=2.291919%	x=417	y=58	w=235	h=160
+pin: 2.122769%	x=417 y=58 w=235 h=160
+small gear: 1.866798%	x=417 y=58 w=235 h=160
+medium gear	c=13.300639%	x=432	y=88	w=133	h=170
+pin: 1.052029%	x=432 y=88 w=133 h=170
+small gear: 1.224604%	x=432 y=88 w=133 h=170
+medium gear	c=1.930950%	x=436	y=-12	w=170	h=208
+medium gear	c=4.558010%	x=445	y=140	w=186	h=129
+medium gear	c=80.882286%	x=446	y=53	w=199	h=191
+small gear	c=1.335753%	x=456	y=62	w=175	h=249
+pin	c=8.623564%	x=474	y=152	w=25	h=32
+pin	c=68.106033%	x=479	y=153	w=25	h=23
+medium gear	c=2.910059%	x=480	y=153	w=24	h=23
+center	c=2.615856%	x=481	y=153	w=24	h=25
+small gear	c=2.500832%	x=482	y=154	w=24	h=24
+red light: 2.462794%	x=482 y=154 w=24 h=24
+pin	c=1.072551%	x=485	y=131	w=26	h=29
+medium gear	c=3.266836%	x=485	y=20	w=129	h=335
+pin	c=3.024663%	x=486	y=170	w=25	h=33
+pin	c=7.412390%	x=495	y=128	w=24	h=29
+center: 5.972027%	x=495 y=128 w=24 h=29
+center	c=1.510989%	x=531	y=78	w=21	h=33
+center	c=11.266330%	x=535	y=128	w=23	h=25
+center	c=12.054087%	x=543	y=140	w=24	h=24
+center	c=2.970502%	x=546	y=124	w=28	h=29
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=6.306082%	x=-1	y=58	w=168	h=162
+red light: 1.315182%	x=-1 y=58 w=168 h=162
+small gear: 1.595160%	x=-1 y=58 w=168 h=162
+red light	c=7.014285%	x=0	y=117	w=55	h=39
+medium gear	c=5.546682%	x=10	y=21	w=140	h=145
+red light: 1.222276%	x=10 y=21 w=140 h=145
+pin: 1.093535%	x=10 y=21 w=140 h=145
+small gear: 1.964918%	x=10 y=21 w=140 h=145
+red light	c=59.289680%	x=24	y=123	w=41	h=38
+small gear: 1.943108%	x=24 y=123 w=41 h=38
+center	c=3.549733%	x=25	y=123	w=39	h=37
+pin	c=2.070221%	x=29	y=121	w=39	h=40
+red light	c=3.357558%	x=34	y=76	w=26	h=42
+medium gear	c=1.602435%	x=65	y=-23	w=104	h=227
+red light	c=4.358964%	x=66	y=130	w=32	h=32
+center: 1.153561%	x=66 y=130 w=32 h=32
+red light	c=3.727927%	x=68	y=126	w=39	h=18
+red light	c=6.095913%	x=74	y=122	w=25	h=37
+center: 1.197011%	x=74 y=122 w=25 h=37
+red light	c=1.229002%	x=120	y=113	w=29	h=34
+red light	c=1.194658%	x=123	y=140	w=27	h=27
+red light	c=1.057476%	x=172	y=150	w=44	h=26
+small gear	c=1.372207%	x=195	y=108	w=146	h=102
+small gear	c=2.286077%	x=219	y=59	w=241	h=256
+small gear	c=4.355144%	x=237	y=31	w=179	h=155
+red light	c=1.290802%	x=239	y=140	w=36	h=31
+red light	c=1.151525%	x=239	y=99	w=34	h=26
+small gear	c=1.097407%	x=254	y=130	w=286	h=83
+red light	c=1.281778%	x=279	y=58	w=137	h=144
+small gear	c=2.402764%	x=282	y=130	w=153	h=116
+center	c=1.146503%	x=287	y=60	w=139	h=149
+medium gear: 1.062010%	x=287 y=60 w=139 h=149
+small gear	c=67.846313%	x=287	y=77	w=135	h=140
+small gear	c=1.183344%	x=303	y=77	w=183	h=215
+small gear	c=1.100495%	x=314	y=81	w=87	h=190
+small gear	c=1.349596%	x=338	y=-4	w=116	h=230
+small gear	c=6.010902%	x=342	y=102	w=107	h=166
+medium gear	c=1.304892%	x=382	y=59	w=130	h=178
+medium gear	c=6.247413%	x=384	y=16	w=291	h=166
+small gear	c=1.964701%	x=386	y=35	w=248	h=241
+small gear	c=2.809942%	x=389	y=79	w=117	h=205
+medium gear	c=88.624153%	x=401	y=33	w=266	h=254
+pin	c=1.459013%	x=408	y=58	w=258	h=214
+red light	c=1.797756%	x=414	y=31	w=223	h=220
+medium gear	c=4.588471%	x=417	y=147	w=202	h=54
+medium gear	c=2.347439%	x=422	y=-35	w=187	h=268
+pin	c=1.123140%	x=440	y=134	w=38	h=31
+pin	c=1.241467%	x=449	y=101	w=26	h=29
+medium gear	c=2.874788%	x=451	y=118	w=164	h=132
+pin	c=1.889821%	x=476	y=177	w=33	h=32
+medium gear	c=1.112355%	x=481	y=86	w=184	h=231
+pin	c=1.108482%	x=485	y=185	w=37	h=22
+center	c=1.654948%	x=491	y=147	w=38	h=24
+center	c=7.299614%	x=493	y=139	w=27	h=29
+pin: 5.313330%	x=493 y=139 w=27 h=29
+center	c=1.305351%	x=501	y=79	w=24	h=37
+center	c=6.498178%	x=504	y=111	w=20	h=39
+pin: 1.230594%	x=504 y=111 w=20 h=39
+center	c=2.178807%	x=526	y=85	w=30	h=34
+center	c=15.099218%	x=530	y=124	w=30	h=27
+center	c=14.613085%	x=533	y=130	w=29	h=31
+center	c=2.607207%	x=533	y=170	w=26	h=29
+center	c=15.969378%	x=552	y=119	w=28	h=34
+pin: 7.660147%	x=552 y=119 w=28 h=34
+medium gear	c=1.208736%	x=555	y=85	w=166	h=156
+center	c=1.258946%	x=556	y=75	w=36	h=35
+pin	c=2.361758%	x=578	y=168	w=31	h=27
+center: 1.219474%	x=578 y=168 w=31 h=27
+pin	c=18.997963%	x=587	y=147	w=27	h=30
+center	c=2.964002%	x=593	y=148	w=25	h=29
+pin	c=74.126656%	x=594	y=149	w=29	h=26
+small gear: 2.265161%	x=594 y=149 w=29 h=26
+pin	c=2.623095%	x=594	y=133	w=33	h=33
+medium gear	c=3.634039%	x=595	y=147	w=28	h=27
+red light: 2.840322%	x=595 y=147 w=28 h=27
+pin	c=2.811223%	x=610	y=126	w=27	h=33
+center: 1.885968%	x=610 y=126 w=27 h=33
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=7.127936%	x=-5	y=56	w=172	h=162
+red light: 1.342080%	x=-5 y=56 w=172 h=162
+small gear: 1.827880%	x=-5 y=56 w=172 h=162
+red light	c=9.080704%	x=0	y=115	w=55	h=41
+medium gear	c=5.845857%	x=7	y=23	w=147	h=139
+red light: 1.306505%	x=7 y=23 w=147 h=139
+pin: 1.179512%	x=7 y=23 w=147 h=139
+small gear: 2.072048%	x=7 y=23 w=147 h=139
+medium gear	c=1.178793%	x=7	y=15	w=212	h=247
+red light	c=59.089989%	x=23	y=122	w=42	h=37
+small gear: 2.037048%	x=23 y=122 w=42 h=37
+center	c=3.472042%	x=27	y=122	w=36	h=38
+pin	c=2.144356%	x=27	y=119	w=40	h=41
+red light	c=3.435333%	x=32	y=77	w=27	h=40
+medium gear	c=1.412997%	x=62	y=-23	w=114	h=225
+red light	c=4.266210%	x=68	y=129	w=30	h=34
+center: 1.116704%	x=68 y=129 w=30 h=34
+red light	c=3.533554%	x=68	y=125	w=42	h=20
+red light	c=6.172304%	x=77	y=122	w=25	h=37
+center: 1.351352%	x=77 y=122 w=25 h=37
+red light	c=1.583657%	x=119	y=111	w=28	h=34
+red light	c=1.189701%	x=121	y=142	w=28	h=26
+small gear	c=1.129663%	x=193	y=104	w=155	h=98
+small gear	c=2.320405%	x=225	y=38	w=218	h=311
+small gear	c=4.992338%	x=231	y=39	w=192	h=147
+red light	c=1.136552%	x=232	y=141	w=36	h=29
+small gear	c=1.080665%	x=238	y=120	w=305	h=101
+small gear	c=4.667913%	x=239	y=94	w=166	h=109
+red light	c=1.620140%	x=281	y=74	w=145	h=126
+small gear	c=4.378303%	x=285	y=-1	w=127	h=174
+small gear	c=1.988540%	x=291	y=89	w=146	h=216
+small gear	c=71.053490%	x=291	y=68	w=132	h=141
+center	c=1.323464%	x=292	y=58	w=126	h=150
+medium gear: 1.177727%	x=292 y=58 w=126 h=150
+small gear	c=1.107212%	x=313	y=101	w=102	h=149
+small gear	c=3.928144%	x=334	y=109	w=119	h=145
+small gear	c=1.576513%	x=338	y=-8	w=159	h=221
+pin	c=1.088162%	x=349	y=87	w=35	h=31
+small gear	c=2.123079%	x=359	y=52	w=156	h=204
+medium gear	c=1.434471%	x=379	y=56	w=132	h=183
+small gear	c=2.169686%	x=395	y=38	w=233	h=228
+medium gear	c=8.262218%	x=396	y=-5	w=268	h=201
+pin	c=1.382731%	x=408	y=58	w=250	h=207
+red light	c=1.815146%	x=414	y=26	w=226	h=231
+medium gear	c=89.265755%	x=419	y=36	w=217	h=228
+medium gear	c=3.966595%	x=429	y=137	w=189	h=80
+medium gear	c=7.513992%	x=451	y=80	w=231	h=156
+pin	c=1.371749%	x=451	y=101	w=26	h=30
+medium gear	c=1.009340%	x=481	y=90	w=182	h=223
+pin	c=1.299001%	x=482	y=176	w=32	h=33
+center	c=1.444312%	x=492	y=145	w=38	h=24
+center	c=6.379454%	x=495	y=137	w=29	h=29
+pin: 3.598512%	x=495 y=137 w=29 h=29
+center	c=1.577987%	x=499	y=79	w=24	h=37
+center	c=7.099830%	x=503	y=110	w=22	h=38
+pin: 1.190153%	x=503 y=110 w=22 h=38
+center	c=2.552924%	x=523	y=85	w=30	h=34
+center	c=14.598712%	x=528	y=124	w=29	h=27
+center	c=14.232709%	x=532	y=129	w=26	h=30
+center	c=1.637023%	x=534	y=172	w=28	h=25
+center	c=13.221756%	x=554	y=123	w=29	h=29
+pin: 7.630633%	x=554 y=123 w=29 h=29
+medium gear	c=1.662247%	x=558	y=83	w=162	h=159
+center	c=1.444205%	x=559	y=75	w=34	h=33
+pin	c=2.381904%	x=578	y=168	w=32	h=27
+pin	c=2.245667%	x=593	y=133	w=33	h=32
+small gear	c=2.905173%	x=594	y=150	w=27	h=25
+center	c=2.457247%	x=594	y=148	w=26	h=27
+medium gear	c=3.208711%	x=594	y=147	w=27	h=26
+red light: 3.141227%	x=594 y=147 w=27 h=26
+pin	c=73.893822%	x=595	y=148	w=26	h=27
+pin	c=6.552375%	x=602	y=158	w=22	h=18
+pin	c=2.641169%	x=609	y=127	w=29	h=29
+center: 1.982727%	x=609 y=127 w=29 h=29
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=1.096274%	x=-47	y=66	w=149	h=185
+red light	c=3.742038%	x=0	y=128	w=45	h=31
+medium gear	c=7.707731%	x=14	y=61	w=136	h=156
+red light: 1.938195%	x=14 y=61 w=136 h=156
+pin: 1.396770%	x=14 y=61 w=136 h=156
+center: 1.040594%	x=14 y=61 w=136 h=156
+small gear: 2.672113%	x=14 y=61 w=136 h=156
+red light	c=54.554718%	x=19	y=135	w=43	h=37
+pin: 2.342051%	x=19 y=135 w=43 h=37
+center: 3.278347%	x=19 y=135 w=43 h=37
+small gear: 3.185809%	x=19 y=135 w=43 h=37
+medium gear: 1.146030%	x=19 y=135 w=43 h=37
+medium gear	c=2.519493%	x=21	y=37	w=105	h=118
+small gear: 1.257059%	x=21 y=37 w=105 h=118
+red light	c=21.731369%	x=32	y=130	w=31	h=33
+pin: 2.426360%	x=32 y=130 w=31 h=33
+center	c=2.036879%	x=33	y=126	w=33	h=37
+small gear: 1.310840%	x=33 y=126 w=33 h=37
+red light	c=1.166925%	x=44	y=174	w=31	h=30
+red light	c=3.031873%	x=66	y=135	w=29	h=27
+red light	c=1.533806%	x=71	y=127	w=28	h=27
+red light	c=1.124758%	x=75	y=137	w=24	h=22
+small gear	c=1.009340%	x=130	y=-29	w=136	h=200
+small gear	c=1.245700%	x=138	y=8	w=163	h=210
+small gear	c=1.334368%	x=166	y=159	w=196	h=85
+small gear	c=1.156536%	x=179	y=-14	w=159	h=195
+small gear	c=7.145380%	x=179	y=56	w=182	h=148
+small gear	c=4.899245%	x=230	y=114	w=158	h=141
+small gear	c=65.747520%	x=230	y=97	w=119	h=122
+pin	c=1.012494%	x=235	y=6	w=33	h=32
+center	c=1.162094%	x=239	y=84	w=126	h=123
+small gear	c=2.055091%	x=242	y=30	w=130	h=122
+center	c=1.000579%	x=244	y=9	w=23	h=23
+medium gear	c=1.356682%	x=249	y=97	w=113	h=124
+pin	c=1.032287%	x=253	y=52	w=20	h=27
+small gear	c=3.059698%	x=260	y=-10	w=85	h=221
+small gear	c=16.982058%	x=275	y=97	w=99	h=128
+medium gear	c=2.050343%	x=293	y=-26	w=273	h=228
+pin	c=1.292560%	x=305	y=90	w=32	h=33
+medium gear	c=9.031459%	x=317	y=54	w=179	h=222
+small gear: 2.814839%	x=317 y=54 w=179 h=222
+medium gear	c=1.914925%	x=317	y=152	w=362	h=69
+medium gear	c=2.449574%	x=326	y=38	w=196	h=157
+red light	c=2.063639%	x=345	y=61	w=192	h=174
+medium gear	c=89.437035%	x=353	y=66	w=199	h=185
+pin: 1.430102%	x=353 y=66 w=199 h=185
+small gear: 1.451547%	x=353 y=66 w=199 h=185
+medium gear	c=2.724698%	x=360	y=140	w=144	h=103
+medium gear	c=1.517142%	x=382	y=90	w=201	h=216
+pin	c=2.151021%	x=386	y=153	w=36	h=21
+pin	c=6.178678%	x=393	y=132	w=25	h=32
+center: 1.470015%	x=393 y=132 w=25 h=32
+pin	c=1.771629%	x=405	y=112	w=19	h=38
+center: 1.082935%	x=405 y=112 w=19 h=38
+medium gear	c=2.237048%	x=431	y=130	w=115	h=141
+center	c=8.186314%	x=442	y=131	w=24	h=25
+center	c=13.651169%	x=444	y=138	w=25	h=22
+center	c=2.165166%	x=450	y=132	w=24	h=29
+center	c=9.354583%	x=454	y=131	w=28	h=23
+pin: 3.101525%	x=454 y=131 w=28 h=23
+medium gear	c=5.865766%	x=457	y=88	w=158	h=173
+small gear: 1.235121%	x=457 y=88 w=158 h=173
+pin	c=2.455909%	x=489	y=171	w=26	h=31
+center	c=4.822578%	x=499	y=160	w=23	h=24
+red light	c=4.670560%	x=499	y=163	w=24	h=20
+medium gear: 3.679683%	x=499 y=163 w=24 h=20
+pin	c=71.042542%	x=500	y=162	w=21	h=19
+small gear	c=4.290538%	x=500	y=163	w=21	h=19
+medium gear	c=1.228504%	x=506	y=44	w=148	h=230
+center	c=4.023561%	x=508	y=128	w=27	h=30
+pin: 2.202390%	x=508 y=128 w=27 h=30
+pin	c=1.780202%	x=511	y=177	w=30	h=27
+center: 1.655706%	x=511 y=177 w=30 h=27
+center	c=1.430643%	x=553	y=160	w=30	h=31
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.019023%	x=-35	y=103	w=95	h=122
+small gear	c=1.284603%	x=-26	y=52	w=93	h=139
+medium gear	c=2.394524%	x=-14	y=69	w=184	h=193
+small gear: 1.255005%	x=-14 y=69 w=184 h=193
+red light	c=1.246917%	x=-13	y=236	w=25	h=21
+pin: 1.063196%	x=-13 y=236 w=25 h=21
+red light	c=1.974651%	x=-12	y=142	w=56	h=39
+red light	c=3.790906%	x=-11	y=110	w=47	h=29
+small gear: 1.112351%	x=-11 y=110 w=47 h=29
+red light	c=1.046747%	x=2	y=72	w=33	h=32
+red light	c=1.065659%	x=5	y=238	w=26	h=21
+medium gear	c=1.098376%	x=9	y=35	w=143	h=168
+medium gear	c=10.419952%	x=48	y=49	w=158	h=186
+red light: 2.696858%	x=48 y=49 w=158 h=186
+pin: 2.387938%	x=48 y=49 w=158 h=186
+center: 1.432936%	x=48 y=49 w=158 h=186
+small gear: 3.404887%	x=48 y=49 w=158 h=186
+red light	c=3.676687%	x=51	y=124	w=39	h=27
+red light	c=1.923819%	x=52	y=179	w=54	h=33
+medium gear	c=2.125800%	x=54	y=145	w=110	h=94
+red light	c=16.140682%	x=59	y=141	w=46	h=39
+center: 1.092931%	x=59 y=141 w=46 h=39
+small gear: 1.002020%	x=59 y=141 w=46 h=39
+medium gear	c=1.977008%	x=61	y=19	w=125	h=160
+small gear: 1.247670%	x=61 y=19 w=125 h=160
+red light	c=64.560738%	x=73	y=142	w=39	h=34
+pin: 4.114690%	x=73 y=142 w=39 h=34
+center: 4.623028%	x=73 y=142 w=39 h=34
+small gear: 4.403136%	x=73 y=142 w=39 h=34
+medium gear: 1.819712%	x=73 y=142 w=39 h=34
+red light	c=1.148277%	x=81	y=66	w=25	h=41
+red light	c=17.432291%	x=82	y=128	w=26	h=32
+pin: 2.288952%	x=82 y=128 w=26 h=32
+center	c=1.187576%	x=86	y=127	w=30	h=34
+small gear: 1.169414%	x=86 y=127 w=30 h=34
+red light	c=2.739791%	x=91	y=176	w=36	h=30
+medium gear	c=1.050905%	x=92	y=25	w=155	h=219
+red light	c=3.367680%	x=117	y=142	w=26	h=26
+red light	c=1.165397%	x=119	y=123	w=29	h=25
+red light	c=1.537499%	x=120	y=149	w=27	h=17
+pin	c=2.507861%	x=197	y=11	w=30	h=22
+red light: 1.012163%	x=197 y=11 w=30 h=22
+medium gear	c=1.066395%	x=198	y=4	w=26	h=24
+pin	c=2.618548%	x=200	y=10	w=21	h=18
+center: 1.157573%	x=200 y=10 w=21 h=18
+small gear	c=1.622387%	x=223	y=154	w=179	h=85
+small gear	c=1.884252%	x=227	y=45	w=190	h=150
+small gear	c=1.587244%	x=231	y=117	w=346	h=112
+small gear	c=1.394680%	x=252	y=-36	w=137	h=239
+center	c=1.045292%	x=268	y=84	w=176	h=118
+small gear	c=1.995632%	x=269	y=20	w=156	h=122
+small gear	c=8.152578%	x=288	y=130	w=136	h=125
+small gear	c=65.273682%	x=288	y=108	w=129	h=107
+medium gear: 1.084136%	x=288 y=108 w=129 h=107
+center	c=1.509347%	x=292	y=107	w=119	h=116
+red light	c=2.223948%	x=293	y=105	w=125	h=106
+pin: 1.492505%	x=293 y=105 w=125 h=106
+small gear	c=1.694265%	x=310	y=104	w=192	h=183
+medium gear	c=2.761123%	x=316	y=89	w=164	h=151
+small gear	c=15.686503%	x=320	y=89	w=134	h=147
+small gear	c=1.412436%	x=334	y=150	w=122	h=72
+medium gear	c=6.582568%	x=367	y=56	w=175	h=217
+small gear	c=2.795844%	x=383	y=81	w=211	h=222
+red light	c=2.228702%	x=390	y=59	w=195	h=170
+medium gear	c=89.246475%	x=403	y=80	w=196	h=171
+pin: 1.774930%	x=403 y=80 w=196 h=171
+medium gear	c=2.563006%	x=420	y=17	w=187	h=179
+small gear	c=1.532088%	x=428	y=78	w=210	h=173
+medium gear	c=8.529078%	x=429	y=136	w=176	h=84
+pin	c=1.209667%	x=432	y=175	w=37	h=39
+pin	c=1.739992%	x=439	y=153	w=31	h=20
+pin	c=5.273479%	x=441	y=135	w=27	h=33
+center: 1.470474%	x=441 y=135 w=27 h=33
+pin	c=1.552955%	x=455	y=107	w=18	h=38
+center: 1.247738%	x=455 y=107 w=18 h=38
+medium gear	c=2.415353%	x=460	y=89	w=244	h=172
+center	c=1.078664%	x=487	y=86	w=25	h=32
+center	c=9.026617%	x=489	y=127	w=25	h=26
+center	c=1.283391%	x=492	y=172	w=24	h=24
+medium gear	c=1.702604%	x=493	y=-14	w=92	h=319
+center	c=13.643566%	x=494	y=136	w=24	h=26
+center	c=12.689924%	x=501	y=128	w=30	h=24
+pin: 3.430133%	x=501 y=128 w=30 h=24
+medium gear	c=2.140861%	x=502	y=33	w=140	h=202
+medium gear	c=5.703406%	x=504	y=109	w=150	h=178
+small gear: 1.531808%	x=504 y=109 w=150 h=178
+pin	c=2.531724%	x=534	y=168	w=32	h=29
+pin	c=28.669357%	x=537	y=157	w=27	h=24
+center: 10.487587%	x=537 y=157 w=27 h=24
+small gear	c=4.218715%	x=549	y=164	w=21	h=19
+red light	c=4.781038%	x=550	y=163	w=23	h=21
+center: 2.998382%	x=550 y=163 w=23 h=21
+medium gear: 4.499303%	x=550 y=163 w=23 h=21
+pin	c=73.898827%	x=550	y=163	w=22	h=21
+medium gear	c=1.136563%	x=552	y=69	w=153	h=181
+pin	c=3.122078%	x=560	y=174	w=33	h=29
+center: 2.505618%	x=560 y=174 w=33 h=29
+center	c=3.782931%	x=566	y=124	w=26	h=31
+pin: 2.960809%	x=566 y=124 w=26 h=31
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.403587%	x=-35	y=108	w=93	h=119
+small gear	c=1.396015%	x=-30	y=53	w=101	h=133
+red light	c=2.419225%	x=-15	y=143	w=63	h=38
+red light	c=1.111042%	x=-14	y=236	w=29	h=20
+medium gear	c=2.591745%	x=-12	y=53	w=182	h=215
+small gear: 1.136731%	x=-12 y=53 w=182 h=215
+red light	c=4.261468%	x=-11	y=112	w=49	h=31
+small gear: 1.136991%	x=-11 y=112 w=49 h=31
+red light	c=1.021446%	x=-9	y=65	w=40	h=41
+red light	c=1.864086%	x=1	y=146	w=44	h=27
+medium gear	c=1.352298%	x=43	y=145	w=133	h=97
+red light	c=5.018900%	x=51	y=130	w=40	h=26
+red light	c=2.161577%	x=53	y=177	w=54	h=33
+medium gear	c=8.434346%	x=61	y=54	w=127	h=168
+red light: 1.750436%	x=61 y=54 w=127 h=168
+pin: 1.675995%	x=61 y=54 w=127 h=168
+small gear: 3.002807%	x=61 y=54 w=127 h=168
+medium gear	c=1.635236%	x=62	y=16	w=111	h=157
+small gear: 1.293130%	x=62 y=16 w=111 h=157
+red light	c=44.427532%	x=66	y=143	w=36	h=31
+pin: 2.051074%	x=66 y=143 w=36 h=31
+center: 3.429337%	x=66 y=143 w=36 h=31
+small gear: 2.451829%	x=66 y=143 w=36 h=31
+red light	c=11.917866%	x=80	y=130	w=25	h=31
+pin: 1.610084%	x=80 y=130 w=25 h=31
+center	c=1.011405%	x=82	y=134	w=31	h=25
+red light	c=1.684762%	x=83	y=177	w=32	h=31
+red light	c=3.656203%	x=124	y=144	w=24	h=25
+red light	c=1.009702%	x=172	y=108	w=39	h=37
+red light	c=2.344464%	x=184	y=151	w=29	h=29
+small gear	c=1.276463%	x=185	y=47	w=180	h=192
+pin	c=1.459241%	x=199	y=6	w=24	h=17
+small gear	c=2.901822%	x=220	y=101	w=91	h=107
+red light	c=1.710423%	x=227	y=147	w=33	h=26
+small gear	c=1.414297%	x=233	y=132	w=170	h=128
+small gear	c=11.999599%	x=238	y=72	w=175	h=163
+small gear	c=1.832859%	x=238	y=72	w=86	h=122
+small gear	c=2.281853%	x=239	y=1	w=124	h=182
+small gear	c=2.992423%	x=277	y=12	w=156	h=168
+medium gear	c=1.449474%	x=290	y=96	w=120	h=120
+small gear	c=72.742470%	x=290	y=104	w=122	h=115
+pin: 1.244286%	x=290 y=104 w=122 h=115
+red light	c=1.202565%	x=295	y=95	w=119	h=138
+center	c=1.384123%	x=296	y=84	w=120	h=119
+small gear	c=3.692822%	x=327	y=86	w=184	h=130
+medium gear: 3.059645%	x=327 y=86 w=184 h=130
+medium gear	c=1.329326%	x=328	y=45	w=352	h=91
+pin	c=1.450169%	x=350	y=135	w=43	h=29
+small gear	c=6.554684%	x=351	y=64	w=94	h=171
+medium gear: 3.881908%	x=351 y=64 w=94 h=171
+pin	c=1.077254%	x=351	y=95	w=34	h=32
+medium gear	c=2.205022%	x=378	y=-21	w=201	h=239
+medium gear	c=3.031546%	x=390	y=32	w=135	h=226
+medium gear	c=3.950538%	x=399	y=43	w=223	h=140
+medium gear	c=84.434662%	x=406	y=71	w=181	h=170
+medium gear	c=6.743974%	x=409	y=139	w=144	h=98
+pin	c=2.212980%	x=410	y=33	w=205	h=211
+center: 1.336619%	x=410 y=33 w=205 h=211
+small gear	c=2.205745%	x=419	y=83	w=188	h=158
+red light: 1.281094%	x=419 y=83 w=188 h=158
+pin	c=9.789582%	x=440	y=129	w=27	h=25
+pin	c=1.314379%	x=440	y=82	w=34	h=28
+center: 1.172474%	x=440 y=82 w=34 h=28
+pin	c=84.181870%	x=443	y=113	w=22	h=22
+medium gear	c=2.461505%	x=444	y=114	w=22	h=24
+center: 1.925067%	x=444 y=114 w=22 h=24
+small gear	c=3.126438%	x=444	y=113	w=22	h=25
+pin	c=2.296398%	x=445	y=120	w=34	h=29
+center: 1.622716%	x=445 y=120 w=34 h=29
+red light	c=2.020023%	x=445	y=107	w=22	h=28
+pin	c=1.269628%	x=450	y=107	w=26	h=24
+center	c=1.766237%	x=479	y=86	w=18	h=24
+center	c=14.412782%	x=485	y=129	w=22	h=25
+pin: 1.181577%	x=485 y=129 w=22 h=25
+center	c=10.710959%	x=497	y=144	w=25	h=23
+center	c=5.325519%	x=500	y=126	w=30	h=21
+center	c=1.041382%	x=550	y=163	w=32	h=24
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.389652%	x=-48	y=3	w=94	h=176
+medium gear	c=1.769098%	x=45	y=14	w=91	h=144
+pin	c=1.128039%	x=47	y=60	w=26	h=37
+center	c=1.523706%	x=75	y=78	w=20	h=18
+red light	c=1.786223%	x=371	y=185	w=44	h=40
+red light	c=1.764723%	x=376	y=155	w=48	h=35
+red light	c=1.534022%	x=381	y=174	w=53	h=40
+red light	c=1.003943%	x=403	y=188	w=54	h=39
+red light	c=1.082259%	x=433	y=120	w=28	h=32
+red light	c=1.052887%	x=434	y=159	w=32	h=30
+small gear	c=1.273113%	x=446	y=32	w=108	h=138
+small gear	c=1.391925%	x=467	y=-4	w=170	h=177
+red light	c=1.265460%	x=468	y=113	w=34	h=32
+small gear	c=1.391137%	x=492	y=59	w=145	h=149
+small gear	c=2.680972%	x=500	y=43	w=114	h=126
+small gear	c=1.788163%	x=549	y=49	w=74	h=126
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.013887%	x=-63	y=122	w=124	h=191
+small gear	c=1.037671%	x=-32	y=23	w=118	h=230
+medium gear	c=1.494776%	x=54	y=88	w=86	h=224
+medium gear	c=1.728646%	x=76	y=54	w=147	h=192
+red light	c=1.417947%	x=370	y=117	w=36	h=43
+red light	c=1.299273%	x=375	y=178	w=40	h=29
+red light	c=1.107010%	x=380	y=126	w=35	h=32
+red light	c=4.116034%	x=381	y=160	w=37	h=27
+red light	c=1.280666%	x=411	y=194	w=44	h=23
+red light	c=1.809017%	x=421	y=118	w=29	h=35
+red light	c=2.322783%	x=427	y=157	w=32	h=21
+red light	c=1.365163%	x=462	y=68	w=45	h=31
+red light	c=1.335224%	x=467	y=150	w=36	h=18
+red light	c=1.681357%	x=470	y=117	w=39	h=31
+red light	c=1.718376%	x=504	y=116	w=31	h=23
+red light	c=1.025401%	x=509	y=149	w=25	h=20
+red light	c=1.073910%	x=511	y=53	w=27	h=27
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.525311%	x=-71	y=113	w=132	h=195
+small gear	c=1.437584%	x=-53	y=45	w=105	h=171
+medium gear	c=1.033388%	x=32	y=87	w=126	h=204
+center	c=1.212424%	x=77	y=78	w=16	h=30
+medium gear	c=1.420808%	x=93	y=39	w=128	h=198
+red light	c=1.553948%	x=372	y=154	w=44	h=37
+red light	c=1.724183%	x=377	y=175	w=47	h=39
+red light	c=1.890366%	x=382	y=147	w=46	h=35
+red light	c=1.131253%	x=414	y=186	w=45	h=31
+red light	c=1.483798%	x=417	y=161	w=36	h=29
+red light	c=1.945981%	x=423	y=153	w=38	h=28
+red light	c=1.000268%	x=428	y=173	w=37	h=32
+red light	c=1.000556%	x=475	y=151	w=32	h=19
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.136488%	x=-65	y=112	w=122	h=195
+small gear	c=1.688884%	x=-47	y=44	w=104	h=172
+small gear	c=1.006878%	x=-26	y=-14	w=117	h=294
+medium gear	c=1.070445%	x=36	y=89	w=128	h=196
+medium gear	c=1.084359%	x=61	y=43	w=41	h=84
+center	c=1.064840%	x=78	y=75	w=16	h=32
+medium gear	c=1.282741%	x=92	y=48	w=141	h=187
+red light	c=1.852528%	x=375	y=157	w=37	h=31
+red light	c=1.572994%	x=376	y=178	w=44	h=31
+red light	c=2.832959%	x=388	y=152	w=37	h=33
+red light	c=1.245129%	x=421	y=121	w=32	h=27
+red light	c=2.971484%	x=421	y=153	w=39	h=26
+red light	c=1.234657%	x=464	y=152	w=35	h=20
+red light	c=1.403014%	x=464	y=113	w=37	h=38
+red light	c=1.374798%	x=472	y=149	w=32	h=15
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.314802%	x=-62	y=115	w=116	h=190
+small gear	c=1.535217%	x=-41	y=45	w=97	h=170
+small gear	c=1.209201%	x=-32	y=-12	w=115	h=294
+medium gear	c=1.056998%	x=47	y=89	w=110	h=198
+medium gear	c=1.070963%	x=64	y=46	w=39	h=77
+center	c=1.061394%	x=79	y=74	w=17	h=32
+medium gear	c=1.898426%	x=87	y=63	w=131	h=161
+red light	c=2.027773%	x=375	y=158	w=36	h=29
+red light	c=1.444126%	x=378	y=182	w=41	h=26
+red light	c=2.794513%	x=386	y=154	w=37	h=30
+red light	c=1.432783%	x=421	y=115	w=32	h=31
+red light	c=2.766487%	x=425	y=156	w=35	h=23
+red light	c=1.032736%	x=428	y=123	w=34	h=25
+red light	c=1.179507%	x=465	y=155	w=33	h=20
+red light	c=1.680390%	x=467	y=115	w=35	h=36
+red light	c=1.392897%	x=474	y=150	w=30	h=14
+red light	c=1.385739%	x=506	y=113	w=32	h=23
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.191497%	x=-64	y=117	w=121	h=183
+small gear	c=1.279224%	x=-40	y=43	w=97	h=170
+small gear	c=1.304715%	x=-36	y=-18	w=120	h=303
+medium gear	c=1.016374%	x=40	y=94	w=126	h=185
+medium gear	c=1.214219%	x=68	y=42	w=42	h=73
+center	c=1.140868%	x=78	y=72	w=16	h=34
+medium gear	c=1.669055%	x=91	y=68	w=133	h=160
+red light	c=1.150827%	x=368	y=113	w=47	h=47
+red light	c=2.392459%	x=376	y=157	w=38	h=30
+red light	c=1.468982%	x=379	y=178	w=43	h=31
+red light	c=3.049690%	x=386	y=152	w=40	h=33
+red light	c=1.143506%	x=415	y=189	w=38	h=25
+red light	c=3.677617%	x=421	y=156	w=36	h=25
+red light	c=1.479869%	x=421	y=118	w=28	h=31
+red light	c=1.220842%	x=427	y=124	w=34	h=24
+red light	c=1.520181%	x=463	y=116	w=36	h=34
+red light	c=1.262648%	x=463	y=153	w=33	h=21
+red light	c=1.353476%	x=472	y=151	w=31	h=15
+red light	c=1.142760%	x=505	y=113	w=32	h=23
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.220502%	x=-59	y=117	w=113	h=183
+small gear	c=1.282024%	x=-41	y=44	w=98	h=166
+small gear	c=1.122823%	x=-40	y=-22	w=120	h=308
+medium gear	c=1.199149%	x=69	y=44	w=41	h=71
+center	c=1.100744%	x=77	y=73	w=17	h=33
+medium gear	c=1.441487%	x=91	y=52	w=129	h=188
+red light	c=1.070182%	x=368	y=117	w=44	h=45
+red light	c=2.824914%	x=375	y=158	w=36	h=28
+red light	c=1.423714%	x=378	y=178	w=42	h=32
+red light	c=3.537696%	x=385	y=153	w=39	h=31
+red light	c=1.035224%	x=416	y=190	w=40	h=22
+red light	c=1.452220%	x=422	y=118	w=28	h=31
+red light	c=3.094826%	x=425	y=157	w=35	h=22
+red light	c=1.225551%	x=427	y=125	w=35	h=25
+red light	c=1.691609%	x=465	y=115	w=37	h=36
+red light	c=1.228725%	x=465	y=155	w=33	h=20
+red light	c=1.330186%	x=471	y=151	w=33	h=15
+red light	c=1.272674%	x=507	y=113	w=31	h=23
+red light	c=1.078348%	x=509	y=55	w=33	h=24
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.304186%	x=-60	y=117	w=116	h=185
+small gear	c=1.384116%	x=-42	y=46	w=101	h=165
+small gear	c=1.220114%	x=-38	y=-12	w=123	h=291
+medium gear	c=1.178531%	x=65	y=51	w=39	h=67
+center	c=1.138039%	x=80	y=73	w=17	h=33
+medium gear	c=1.950909%	x=83	y=56	w=134	h=181
+red light	c=1.043880%	x=368	y=111	w=41	h=45
+red light	c=1.790022%	x=374	y=155	w=39	h=29
+red light	c=1.255108%	x=378	y=183	w=45	h=26
+red light	c=2.295505%	x=387	y=149	w=38	h=34
+red light	c=1.635534%	x=421	y=116	w=31	h=33
+red light	c=2.519786%	x=425	y=152	w=37	h=25
+red light	c=1.270733%	x=426	y=123	w=34	h=28
+red light	c=1.059449%	x=465	y=154	w=33	h=21
+red light	c=1.487000%	x=466	y=115	w=35	h=36
+red light	c=1.157022%	x=471	y=148	w=35	h=16
+red light	c=1.240840%	x=505	y=111	w=31	h=24
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.224064%	x=-75	y=87	w=143	h=190
+small gear	c=1.569499%	x=-42	y=44	w=101	h=170
+medium gear	c=1.290352%	x=67	y=47	w=43	h=70
+center	c=1.221467%	x=79	y=73	w=18	h=32
+medium gear	c=1.910067%	x=86	y=60	w=132	h=181
+center	c=1.080841%	x=122	y=163	w=15	h=29
+red light	c=1.226996%	x=371	y=113	w=43	h=47
+red light	c=3.239685%	x=376	y=157	w=36	h=30
+red light	c=1.797308%	x=380	y=181	w=40	h=24
+red light	c=4.981898%	x=384	y=154	w=40	h=33
+red light	c=1.090370%	x=414	y=191	w=42	h=25
+red light	c=4.013585%	x=421	y=156	w=38	h=25
+red light	c=1.896561%	x=423	y=118	w=28	h=32
+red light	c=1.001843%	x=459	y=66	w=45	h=36
+red light	c=1.649393%	x=463	y=153	w=33	h=21
+red light	c=1.802053%	x=465	y=116	w=36	h=33
+red light	c=1.831182%	x=467	y=151	w=33	h=15
+red light	c=1.302175%	x=467	y=125	w=42	h=26
+red light	c=1.351593%	x=506	y=113	w=30	h=23
+red light	c=1.034848%	x=509	y=55	w=32	h=29
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.095315%	x=-75	y=88	w=142	h=189
+small gear	c=1.495173%	x=-42	y=44	w=102	h=169
+medium gear	c=1.173997%	x=66	y=45	w=41	h=71
+center	c=1.374087%	x=80	y=72	w=19	h=31
+medium gear	c=1.894045%	x=82	y=57	w=139	h=194
+center	c=1.130653%	x=123	y=164	w=15	h=27
+red light	c=1.217450%	x=371	y=112	w=44	h=49
+red light	c=1.633544%	x=377	y=180	w=41	h=26
+red light	c=4.554976%	x=383	y=154	w=41	h=34
+red light	c=1.051530%	x=414	y=188	w=40	h=26
+red light	c=4.588625%	x=419	y=157	w=37	h=24
+red light	c=1.882395%	x=422	y=120	w=29	h=31
+red light	c=1.606757%	x=463	y=153	w=32	h=21
+red light	c=1.042939%	x=464	y=61	w=30	h=40
+red light	c=1.849373%	x=465	y=113	w=37	h=35
+red light	c=1.343969%	x=467	y=125	w=43	h=27
+red light	c=1.705726%	x=467	y=152	w=33	h=15
+red light	c=1.362189%	x=506	y=113	w=30	h=25
+red light	c=1.169264%	x=509	y=53	w=31	h=27
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.086504%	x=-56	y=119	w=109	h=181
+small gear	c=1.464125%	x=-42	y=42	w=102	h=174
+medium gear	c=1.257034%	x=67	y=45	w=39	h=67
+center	c=1.176255%	x=82	y=72	w=17	h=33
+medium gear	c=1.718277%	x=89	y=54	w=138	h=186
+red light	c=1.090850%	x=366	y=112	w=47	h=43
+red light	c=1.412789%	x=374	y=181	w=46	h=28
+red light	c=1.454042%	x=379	y=155	w=39	h=31
+red light	c=1.836219%	x=387	y=150	w=41	h=35
+red light	c=3.377457%	x=423	y=154	w=37	h=23
+red light	c=1.705321%	x=424	y=116	w=30	h=33
+red light	c=1.430865%	x=464	y=153	w=33	h=20
+red light	c=1.615348%	x=467	y=116	w=33	h=33
+red light	c=1.631517%	x=470	y=146	w=33	h=16
+red light	c=1.410953%	x=505	y=113	w=31	h=24
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.457525%	x=-58	y=120	w=112	h=175
+small gear	c=1.607092%	x=-43	y=43	w=102	h=175
+medium gear	c=1.041715%	x=44	y=90	w=120	h=196
+medium gear	c=1.384837%	x=67	y=50	w=43	h=67
+center	c=1.004767%	x=81	y=74	w=18	h=32
+medium gear	c=2.098303%	x=89	y=66	w=131	h=173
+red light	c=2.253581%	x=376	y=155	w=38	h=31
+red light	c=1.466755%	x=379	y=180	w=43	h=33
+red light	c=2.940766%	x=386	y=150	w=42	h=34
+red light	c=1.000816%	x=415	y=188	w=42	h=27
+red light	c=1.755321%	x=419	y=117	w=33	h=35
+red light	c=2.936989%	x=422	y=153	w=38	h=25
+red light	c=1.652689%	x=464	y=150	w=33	h=23
+red light	c=2.025396%	x=469	y=114	w=31	h=36
+red light	c=1.677097%	x=471	y=124	w=36	h=28
+red light	c=1.809375%	x=472	y=146	w=31	h=17
+red light	c=1.624927%	x=505	y=114	w=27	h=22
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.192804%	x=-83	y=90	w=227	h=79
+small gear	c=2.919140%	x=-56	y=123	w=110	h=173
+small gear	c=1.939982%	x=-53	y=7	w=163	h=266
+small gear	c=1.476036%	x=-43	y=39	w=110	h=178
+medium gear	c=1.188771%	x=41	y=23	w=104	h=149
+medium gear	c=1.343916%	x=46	y=104	w=121	h=168
+medium gear	c=1.234565%	x=56	y=63	w=69	h=58
+medium gear	c=2.524592%	x=74	y=39	w=175	h=199
+center	c=1.487709%	x=76	y=74	w=19	h=26
+center	c=1.024532%	x=102	y=157	w=28	h=54
+center	c=1.357730%	x=131	y=163	w=13	h=33
+center	c=1.163911%	x=165	y=170	w=17	h=23
+red light	c=1.794124%	x=379	y=176	w=44	h=35
+red light	c=2.916280%	x=380	y=152	w=46	h=35
+red light	c=1.238315%	x=413	y=185	w=48	h=27
+red light	c=3.091115%	x=422	y=155	w=37	h=26
+red light	c=1.434418%	x=424	y=124	w=26	h=31
+red light	c=1.702250%	x=464	y=153	w=36	h=25
+red light	c=1.501922%	x=471	y=124	w=39	h=23
+red light	c=1.906048%	x=471	y=147	w=33	h=21
+small gear	c=1.219102%	x=487	y=34	w=158	h=202
+red light	c=1.975816%	x=506	y=119	w=28	h=27
+red light	c=2.423330%	x=517	y=140	w=37	h=26
+red light	c=2.056696%	x=519	y=148	w=25	h=18
+small gear	c=1.103982%	x=534	y=58	w=149	h=168
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.448616%	x=-58	y=121	w=113	h=172
+small gear	c=1.268643%	x=-47	y=-23	w=161	h=293
+small gear	c=1.199924%	x=-40	y=44	w=100	h=172
+medium gear	c=1.221628%	x=45	y=107	w=117	h=163
+medium gear	c=1.029647%	x=74	y=136	w=110	h=128
+center	c=1.103888%	x=75	y=76	w=17	h=26
+medium gear	c=2.098955%	x=80	y=48	w=152	h=211
+red light	c=1.724536%	x=377	y=176	w=44	h=31
+red light	c=4.730954%	x=382	y=152	w=39	h=31
+red light	c=1.041873%	x=412	y=188	w=46	h=28
+red light	c=2.624458%	x=420	y=154	w=34	h=25
+red light	c=2.098240%	x=422	y=122	w=36	h=26
+red light	c=2.446512%	x=425	y=151	w=33	h=22
+red light	c=1.060466%	x=466	y=65	w=24	h=43
+red light	c=1.836078%	x=473	y=150	w=30	h=21
+red light	c=1.780735%	x=474	y=142	w=40	h=20
+red light	c=2.731531%	x=475	y=122	w=40	h=26
+small gear	c=1.516171%	x=483	y=37	w=162	h=194
+medium gear: 1.134287%	x=483 y=37 w=162 h=194
+small gear	c=1.246416%	x=505	y=21	w=115	h=147
+medium gear: 1.015012%	x=505 y=21 w=115 h=147
+red light	c=3.453614%	x=509	y=117	w=29	h=28
+red light	c=1.809553%	x=509	y=141	w=43	h=24
+red light	c=1.873061%	x=511	y=148	w=30	h=21
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.146159%	x=-56	y=120	w=110	h=178
+small gear	c=1.001267%	x=-48	y=3	w=102	h=178
+small gear	c=1.269340%	x=-42	y=49	w=101	h=168
+small gear	c=1.141971%	x=-39	y=-29	w=139	h=311
+medium gear	c=1.162214%	x=46	y=100	w=114	h=179
+medium gear	c=1.652182%	x=82	y=43	w=133	h=215
+red light	c=1.072991%	x=378	y=176	w=42	h=30
+red light	c=3.738130%	x=381	y=151	w=40	h=32
+red light	c=1.850011%	x=421	y=155	w=34	h=23
+red light	c=1.746324%	x=424	y=124	w=35	h=25
+red light	c=1.888136%	x=426	y=151	w=37	h=24
+red light	c=1.308801%	x=472	y=144	w=41	h=20
+red light	c=1.327339%	x=473	y=149	w=32	h=21
+red light	c=2.109925%	x=476	y=125	w=40	h=24
+red light	c=2.388080%	x=504	y=118	w=28	h=26
+red light	c=1.054578%	x=507	y=61	w=28	h=29
+red light	c=1.299653%	x=508	y=145	w=30	h=19
+red light	c=1.194655%	x=511	y=140	w=39	h=24
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.909008%	x=-60	y=122	w=105	h=178
+small gear	c=1.225031%	x=-50	y=2	w=108	h=182
+small gear	c=1.144620%	x=-37	y=47	w=93	h=167
+medium gear	c=1.621909%	x=46	y=97	w=107	h=191
+medium gear	c=1.381903%	x=62	y=54	w=164	h=197
+center	c=1.051439%	x=88	y=185	w=23	h=40
+red light	c=1.382149%	x=374	y=175	w=46	h=33
+red light	c=1.180579%	x=378	y=120	w=44	h=35
+red light	c=4.331806%	x=380	y=153	w=40	h=34
+red light	c=1.089916%	x=411	y=182	w=45	h=30
+red light	c=2.027048%	x=416	y=119	w=33	h=35
+red light	c=1.676282%	x=420	y=124	w=36	h=25
+red light	c=2.685664%	x=421	y=151	w=42	h=25
+red light	c=1.011899%	x=458	y=65	w=51	h=32
+red light	c=1.483407%	x=470	y=151	w=34	h=22
+red light	c=1.676515%	x=472	y=147	w=37	h=18
+red light	c=1.751973%	x=476	y=117	w=36	h=36
+small gear	c=1.159301%	x=486	y=44	w=157	h=177
+red light	c=2.285449%	x=506	y=119	w=29	h=27
+red light	c=1.204141%	x=506	y=146	w=31	h=17
+red light	c=1.023317%	x=508	y=138	w=39	h=26
+red light	c=1.052845%	x=509	y=57	w=28	h=28
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.158204%	x=-64	y=121	w=117	h=181
+small gear	c=1.140604%	x=-40	y=42	w=100	h=176
+medium gear	c=1.524743%	x=46	y=99	w=108	h=186
+medium gear	c=1.179011%	x=72	y=50	w=147	h=202
+red light	c=1.179910%	x=374	y=176	w=50	h=32
+red light	c=1.055215%	x=377	y=119	w=44	h=30
+red light	c=2.925953%	x=380	y=147	w=47	h=33
+red light	c=1.712147%	x=419	y=114	w=34	h=37
+red light	c=2.389467%	x=420	y=151	w=42	h=25
+red light	c=1.410087%	x=466	y=149	w=32	h=21
+red light	c=1.331094%	x=472	y=143	w=36	h=19
+red light	c=1.785674%	x=473	y=114	w=33	h=33
+red light	c=1.021790%	x=507	y=147	w=33	h=20
+red light	c=1.370288%	x=508	y=116	w=30	h=27
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.037140%	x=-61	y=123	w=111	h=180
+small gear	c=1.091673%	x=-41	y=43	w=101	h=176
+medium gear	c=1.174955%	x=47	y=101	w=106	h=183
+medium gear	c=1.644510%	x=71	y=45	w=153	h=204
+red light	c=1.396135%	x=375	y=176	w=49	h=33
+red light	c=2.886574%	x=377	y=154	w=47	h=34
+red light	c=1.251579%	x=415	y=186	w=42	h=28
+red light	c=1.542047%	x=419	y=119	w=33	h=36
+red light	c=3.428759%	x=422	y=153	w=40	h=25
+red light	c=1.272879%	x=461	y=63	w=46	h=34
+red light	c=1.665842%	x=468	y=150	w=32	h=22
+red light	c=1.780437%	x=473	y=146	w=35	h=18
+red light	c=2.040806%	x=476	y=115	w=34	h=33
+red light	c=1.163912%	x=507	y=56	w=29	h=25
+red light	c=2.344162%	x=509	y=118	w=28	h=26
+red light	c=1.076149%	x=511	y=147	w=27	h=19
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.940261%	x=-81	y=97	w=146	h=173
+small gear	c=1.185200%	x=-43	y=45	w=105	h=171
+medium gear	c=1.281301%	x=46	y=100	w=108	h=184
+medium gear	c=1.173842%	x=72	y=44	w=143	h=209
+red light	c=1.305038%	x=377	y=178	w=46	h=30
+red light	c=1.368101%	x=377	y=114	w=47	h=40
+red light	c=3.251110%	x=380	y=148	w=46	h=32
+red light	c=1.005682%	x=411	y=71	w=52	h=38
+red light	c=1.891034%	x=416	y=115	w=36	h=34
+red light	c=2.678142%	x=420	y=154	w=35	h=26
+red light	c=3.018147%	x=422	y=148	w=40	h=25
+red light	c=1.320540%	x=461	y=66	w=44	h=34
+red light	c=1.673930%	x=464	y=148	w=33	h=21
+red light	c=1.314271%	x=466	y=59	w=26	h=45
+red light	c=1.543067%	x=469	y=142	w=37	h=19
+red light	c=2.254563%	x=471	y=113	w=35	h=33
+red light	c=1.503048%	x=506	y=113	w=29	h=26
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.154273%	x=-80	y=97	w=147	h=171
+small gear	c=1.271597%	x=-41	y=48	w=99	h=166
+medium gear	c=1.714190%	x=46	y=100	w=110	h=182
+medium gear	c=1.203587%	x=61	y=52	w=177	h=206
+center	c=1.057449%	x=76	y=79	w=18	h=23
+red light	c=1.781394%	x=376	y=176	w=47	h=33
+red light	c=3.111846%	x=378	y=155	w=45	h=30
+red light	c=1.375507%	x=414	y=186	w=41	h=29
+red light	c=1.743295%	x=416	y=117	w=34	h=35
+red light	c=2.835155%	x=425	y=154	w=40	h=27
+red light	c=1.037538%	x=428	y=173	w=31	h=31
+red light	c=1.063219%	x=461	y=67	w=46	h=30
+red light	c=1.652619%	x=467	y=151	w=35	h=22
+red light	c=1.780053%	x=471	y=148	w=36	h=18
+red light	c=1.791389%	x=475	y=116	w=37	h=34
+red light	c=2.031451%	x=503	y=118	w=29	h=27
+red light	c=1.280446%	x=510	y=146	w=27	h=21
+red light	c=1.144940%	x=510	y=141	w=39	h=24
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.452415%	x=-79	y=92	w=146	h=176
+small gear	c=1.359626%	x=-54	y=17	w=154	h=255
+small gear	c=1.243443%	x=-43	y=42	w=99	h=173
+medium gear	c=1.346109%	x=45	y=106	w=114	h=168
+medium gear	c=2.767652%	x=50	y=57	w=203	h=183
+medium gear	c=1.034063%	x=65	y=53	w=61	h=76
+red light	c=1.159256%	x=380	y=176	w=44	h=33
+red light	c=3.337930%	x=385	y=151	w=41	h=33
+red light	c=1.128879%	x=418	y=184	w=43	h=32
+red light	c=2.078384%	x=421	y=121	w=39	h=30
+red light	c=3.558896%	x=424	y=150	w=43	h=25
+red light	c=1.464136%	x=465	y=60	w=30	h=41
+red light	c=2.039596%	x=467	y=147	w=36	h=24
+red light	c=2.960967%	x=472	y=123	w=41	h=26
+red light	c=2.674649%	x=472	y=144	w=38	h=21
+small gear	c=1.338162%	x=484	y=32	w=163	h=208
+medium gear: 1.067924%	x=484 y=32 w=163 h=208
+red light	c=1.300968%	x=505	y=71	w=44	h=29
+red light	c=3.046859%	x=510	y=117	w=29	h=28
+red light	c=1.572659%	x=510	y=59	w=26	h=26
+red light	c=1.935011%	x=513	y=146	w=28	h=18
+small gear	c=1.779159%	x=529	y=72	w=160	h=143
+small gear	c=1.035300%	x=546	y=-12	w=108	h=246
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.205308%	x=-76	y=93	w=141	h=173
+small gear	c=1.176773%	x=-59	y=21	w=162	h=248
+small gear	c=1.293111%	x=-44	y=41	w=102	h=169
+medium gear	c=1.025260%	x=43	y=107	w=118	h=168
+medium gear	c=1.259439%	x=69	y=128	w=128	h=155
+medium gear	c=1.964337%	x=73	y=61	w=152	h=185
+center	c=1.020982%	x=130	y=167	w=13	h=27
+red light	c=1.256965%	x=380	y=178	w=42	h=33
+red light	c=2.762273%	x=384	y=152	w=39	h=29
+red light	c=2.156836%	x=423	y=150	w=38	h=26
+red light	c=1.491295%	x=424	y=121	w=36	h=27
+red light	c=1.676036%	x=467	y=144	w=44	h=21
+small gear	c=1.539191%	x=476	y=51	w=177	h=170
+medium gear: 1.032293%	x=476 y=51 w=177 h=170
+red light	c=1.872494%	x=477	y=115	w=33	h=37
+red light	c=1.179756%	x=509	y=59	w=28	h=29
+red light	c=2.755754%	x=513	y=115	w=31	h=26
+red light	c=1.774783%	x=515	y=145	w=31	h=16
+small gear	c=1.459542%	x=528	y=76	w=155	h=127
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.381473%	x=-76	y=91	w=139	h=174
+small gear	c=1.261222%	x=-62	y=22	w=163	h=247
+small gear	c=1.534716%	x=-44	y=42	w=101	h=169
+medium gear	c=2.428366%	x=58	y=55	w=178	h=200
+medium gear	c=1.244418%	x=70	y=127	w=123	h=151
+center	c=1.017757%	x=132	y=167	w=12	h=29
+red light	c=1.117188%	x=378	y=178	w=49	h=37
+red light	c=2.082895%	x=383	y=150	w=47	h=31
+red light	c=3.015311%	x=421	y=151	w=45	h=26
+red light	c=1.207016%	x=427	y=123	w=34	h=28
+red light	c=1.643592%	x=466	y=148	w=34	h=23
+red light	c=1.415672%	x=469	y=142	w=37	h=22
+red light	c=1.284411%	x=470	y=121	w=37	h=23
+small gear	c=1.477442%	x=479	y=42	w=173	h=191
+red light	c=1.670964%	x=479	y=113	w=30	h=38
+red light	c=1.036096%	x=508	y=141	w=48	h=24
+red light	c=2.068997%	x=514	y=112	w=27	h=29
+red light	c=1.269351%	x=519	y=147	w=27	h=19
+small gear	c=2.691193%	x=529	y=79	w=156	h=128
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.131664%	x=-70	y=117	w=128	h=181
+small gear	c=1.135783%	x=-46	y=10	w=142	h=262
+small gear	c=1.418180%	x=-42	y=39	w=99	h=176
+medium gear	c=1.144750%	x=40	y=107	w=122	h=165
+medium gear	c=1.540260%	x=67	y=53	w=160	h=198
+medium gear	c=1.107211%	x=68	y=135	w=122	h=141
+red light	c=1.064126%	x=378	y=173	w=49	h=39
+red light	c=3.602494%	x=383	y=152	w=43	h=29
+red light	c=3.063603%	x=422	y=151	w=41	h=25
+red light	c=1.680525%	x=423	y=123	w=36	h=28
+red light	c=1.656754%	x=462	y=67	w=46	h=29
+red light	c=1.893228%	x=468	y=147	w=32	h=22
+red light	c=1.820203%	x=471	y=144	w=34	h=20
+small gear	c=1.071129%	x=473	y=43	w=181	h=183
+red light	c=2.653807%	x=474	y=113	w=33	h=38
+red light	c=1.010554%	x=502	y=70	w=44	h=29
+red light	c=1.315605%	x=507	y=59	w=29	h=27
+red light	c=2.338598%	x=512	y=113	w=30	h=29
+red light	c=1.226023%	x=516	y=147	w=28	h=17
+small gear	c=1.172684%	x=528	y=79	w=158	h=126
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.987300%	x=-62	y=123	w=109	h=170
+small gear	c=1.297087%	x=-42	y=45	w=97	h=174
+medium gear	c=1.590531%	x=47	y=100	w=110	h=183
+medium gear	c=1.033915%	x=66	y=138	w=129	h=141
+medium gear	c=1.694967%	x=67	y=38	w=157	h=208
+center	c=1.013959%	x=126	y=169	w=13	h=24
+red light	c=1.652139%	x=379	y=180	w=46	h=30
+red light	c=1.846410%	x=382	y=152	w=38	h=30
+red light	c=1.143193%	x=414	y=186	w=42	h=31
+red light	c=2.660329%	x=424	y=154	w=40	h=23
+red light	c=1.126317%	x=425	y=122	w=33	h=28
+red light	c=1.347361%	x=466	y=61	w=29	h=43
+small gear	c=1.180571%	x=468	y=45	w=197	h=181
+red light	c=1.649658%	x=469	y=149	w=29	h=22
+red light	c=1.782841%	x=471	y=143	w=36	h=19
+red light	c=1.995731%	x=475	y=115	w=31	h=33
+red light	c=1.209062%	x=505	y=56	w=30	h=26
+red light	c=2.072781%	x=508	y=114	w=31	h=30
+red light	c=1.149830%	x=512	y=148	w=30	h=18
+small gear	c=1.243152%	x=523	y=78	w=163	h=126
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.197161%	x=-79	y=89	w=145	h=175
+small gear	c=1.169961%	x=-63	y=11	w=161	h=271
+small gear	c=1.410817%	x=-47	y=45	w=98	h=161
+medium gear	c=1.802636%	x=61	y=46	w=174	h=209
+medium gear	c=1.426393%	x=62	y=130	w=135	h=151
+red light	c=2.132865%	x=386	y=140	w=38	h=32
+red light	c=2.080441%	x=425	y=148	w=43	h=23
+red light	c=1.695883%	x=429	y=126	w=33	h=24
+red light	c=1.121930%	x=456	y=73	w=49	h=32
+red light	c=1.652775%	x=463	y=144	w=43	h=20
+red light	c=1.652762%	x=465	y=149	w=34	h=20
+red light	c=1.953505%	x=477	y=115	w=33	h=36
+small gear	c=1.051284%	x=478	y=61	w=170	h=152
+red light	c=1.270051%	x=506	y=68	w=42	h=30
+red light	c=1.377370%	x=511	y=119	w=40	h=21
+red light	c=1.404636%	x=511	y=58	w=29	h=25
+red light	c=1.752674%	x=513	y=147	w=28	h=17
+red light	c=2.264206%	x=514	y=109	w=27	h=27
+small gear	c=1.149819%	x=524	y=77	w=164	h=123
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.257296%	x=-80	y=96	w=148	h=170
+small gear	c=1.091645%	x=-59	y=9	w=166	h=261
+small gear	c=1.304218%	x=-44	y=45	w=105	h=170
+medium gear	c=1.257156%	x=51	y=106	w=101	h=176
+medium gear	c=1.926925%	x=59	y=57	w=180	h=189
+red light	c=1.452925%	x=376	y=174	w=48	h=34
+red light	c=3.835957%	x=382	y=155	w=43	h=31
+red light	c=1.427392%	x=415	y=182	w=45	h=34
+red light	c=1.511296%	x=417	y=115	w=35	h=41
+red light	c=3.762307%	x=425	y=155	w=39	h=25
+red light	c=1.047383%	x=431	y=172	w=36	h=33
+red light	c=1.385246%	x=462	y=66	w=46	h=31
+red light	c=1.605098%	x=469	y=152	w=33	h=24
+red light	c=2.745964%	x=472	y=119	w=42	h=29
+red light	c=1.987808%	x=475	y=147	w=34	h=20
+small gear	c=1.790459%	x=487	y=43	w=158	h=184
+medium gear: 1.328152%	x=487 y=43 w=158 h=184
+red light	c=1.090125%	x=500	y=71	w=45	h=31
+red light	c=1.391652%	x=505	y=60	w=28	h=25
+red light	c=2.839607%	x=506	y=114	w=28	h=32
+red light	c=1.619814%	x=512	y=145	w=30	h=18
+small gear	c=1.152372%	x=533	y=79	w=143	h=134
+small gear	c=1.173627%	x=537	y=-17	w=130	h=255
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.511817%	x=-76	y=95	w=142	h=165
+small gear	c=1.410572%	x=-44	y=43	w=99	h=167
+medium gear	c=1.016624%	x=60	y=51	w=65	h=72
+medium gear	c=1.385043%	x=69	y=126	w=124	h=159
+medium gear	c=2.198680%	x=74	y=67	w=155	h=173
+red light	c=1.249442%	x=376	y=177	w=49	h=31
+red light	c=3.952249%	x=383	y=153	w=44	h=30
+red light	c=1.104931%	x=417	y=181	w=42	h=33
+red light	c=1.507934%	x=422	y=118	w=34	h=39
+red light	c=3.713479%	x=426	y=156	w=40	h=24
+red light	c=1.539230%	x=464	y=67	w=45	h=34
+red light	c=1.848980%	x=464	y=151	w=36	h=27
+red light	c=2.062354%	x=472	y=148	w=37	h=22
+red light	c=2.358375%	x=474	y=115	w=36	h=36
+small gear	c=1.312827%	x=489	y=42	w=154	h=189
+red light	c=1.409317%	x=505	y=70	w=44	h=30
+red light	c=1.777342%	x=509	y=62	w=27	h=25
+red light	c=2.676402%	x=513	y=115	w=28	h=27
+red light	c=1.726769%	x=514	y=141	w=41	h=22
+small gear	c=1.362736%	x=528	y=74	w=156	h=131
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.385405%	x=-73	y=92	w=138	h=173
+small gear	c=1.011767%	x=-62	y=19	w=161	h=250
+small gear	c=1.234979%	x=-45	y=40	w=99	h=167
+medium gear	c=1.065851%	x=71	y=127	w=122	h=159
+medium gear	c=1.613817%	x=71	y=59	w=159	h=193
+red light	c=3.368053%	x=384	y=149	w=37	h=29
+red light	c=1.928603%	x=421	y=152	w=38	h=23
+red light	c=1.279944%	x=426	y=116	w=32	h=35
+red light	c=1.562527%	x=466	y=150	w=34	h=22
+red light	c=1.397412%	x=467	y=144	w=40	h=21
+red light	c=1.728384%	x=476	y=112	w=34	h=39
+small gear	c=1.013325%	x=481	y=50	w=167	h=173
+red light	c=1.121410%	x=509	y=57	w=29	h=27
+red light	c=1.181621%	x=509	y=139	w=47	h=24
+red light	c=2.224237%	x=515	y=115	w=29	h=23
+red light	c=1.043202%	x=517	y=147	w=29	h=17
+small gear	c=1.584027%	x=520	y=72	w=175	h=135
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.471628%	x=-77	y=91	w=141	h=173
+small gear	c=1.443897%	x=-44	y=46	w=93	h=157
+medium gear	c=1.136010%	x=36	y=102	w=130	h=179
+medium gear	c=1.287719%	x=65	y=134	w=132	h=143
+medium gear	c=1.745517%	x=73	y=68	w=153	h=166
+center	c=1.007320%	x=128	y=169	w=12	h=28
+red light	c=1.245775%	x=378	y=176	w=45	h=33
+red light	c=3.704358%	x=384	y=147	w=38	h=28
+red light	c=2.278007%	x=421	y=148	w=39	h=26
+red light	c=1.692278%	x=468	y=148	w=33	h=22
+red light	c=1.773399%	x=480	y=112	w=31	h=42
+small gear	c=1.338238%	x=481	y=52	w=168	h=168
+red light	c=1.233667%	x=513	y=138	w=43	h=26
+red light	c=2.243278%	x=514	y=114	w=27	h=26
+red light	c=1.335741%	x=518	y=146	w=29	h=19
+small gear	c=1.520742%	x=520	y=75	w=175	h=139
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.108631%	x=-76	y=95	w=139	h=167
+small gear	c=1.406475%	x=-46	y=49	w=98	h=157
+medium gear	c=1.081615%	x=43	y=102	w=116	h=181
+medium gear	c=1.577107%	x=66	y=54	w=166	h=198
+red light	c=1.352342%	x=382	y=181	w=43	h=33
+red light	c=1.611182%	x=385	y=142	w=39	h=33
+red light	c=2.215786%	x=423	y=146	w=45	h=26
+red light	c=1.530719%	x=467	y=147	w=33	h=23
+red light	c=1.393493%	x=467	y=143	w=40	h=20
+small gear	c=2.079623%	x=478	y=54	w=174	h=165
+medium gear: 1.109988%	x=478 y=54 w=174 h=165
+red light	c=1.804967%	x=478	y=118	w=31	h=35
+red light	c=1.484320%	x=507	y=141	w=47	h=21
+red light	c=1.356140%	x=508	y=119	w=44	h=26
+red light	c=2.029294%	x=513	y=113	w=30	h=28
+red light	c=1.569765%	x=516	y=148	w=30	h=16
+small gear	c=3.259535%	x=524	y=82	w=161	h=126
+medium gear: 1.025669%	x=524 y=82 w=161 h=126
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.998585%	x=-63	y=119	w=120	h=184
+small gear	c=2.594368%	x=-54	y=-4	w=108	h=187
+small gear	c=1.216804%	x=-22	y=102	w=159	h=204
+medium gear	c=1.135736%	x=30	y=20	w=119	h=137
+medium gear	c=1.366106%	x=47	y=106	w=113	h=173
+medium gear	c=1.310324%	x=64	y=43	w=54	h=69
+medium gear	c=1.330626%	x=68	y=139	w=131	h=135
+center	c=1.741513%	x=72	y=79	w=16	h=26
+medium gear	c=1.050717%	x=102	y=46	w=100	h=205
+center	c=1.254769%	x=126	y=169	w=15	h=28
+red light	c=1.095776%	x=374	y=179	w=42	h=32
+red light	c=2.950122%	x=377	y=160	w=37	h=24
+red light	c=3.711003%	x=386	y=153	w=35	h=27
+red light	c=1.835888%	x=421	y=154	w=34	h=24
+red light	c=2.042152%	x=516	y=119	w=29	h=24
+red light	c=1.019270%	x=519	y=144	w=31	h=18
+red light	c=1.130489%	x=519	y=135	w=41	h=23
+small gear	c=1.311477%	x=529	y=63	w=160	h=149
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.312462%	x=-63	y=121	w=121	h=179
+small gear	c=1.077753%	x=-55	y=7	w=165	h=254
+small gear	c=2.811063%	x=-53	y=-4	w=106	h=188
+small gear	c=1.162614%	x=-23	y=98	w=162	h=215
+medium gear	c=1.058417%	x=35	y=19	w=115	h=141
+medium gear	c=1.022722%	x=47	y=102	w=113	h=178
+medium gear	c=1.538718%	x=58	y=47	w=65	h=73
+medium gear	c=1.051318%	x=66	y=130	w=137	h=146
+center	c=1.691858%	x=73	y=77	w=17	h=27
+medium gear	c=1.532958%	x=100	y=54	w=111	h=196
+medium gear	c=1.037961%	x=116	y=54	w=130	h=248
+center	c=1.398763%	x=128	y=164	w=15	h=32
+center	c=1.057032%	x=164	y=167	w=18	h=26
+center	c=1.044541%	x=168	y=51	w=33	h=18
+red light	c=1.689116%	x=367	y=175	w=41	h=34
+red light	c=6.142570%	x=380	y=153	w=37	h=28
+red light	c=2.539806%	x=414	y=154	w=33	h=23
+red light	c=1.226711%	x=418	y=132	w=42	h=19
+red light	c=1.086811%	x=424	y=121	w=24	h=34
+red light	c=1.496080%	x=469	y=149	w=31	h=21
+red light	c=1.376004%	x=472	y=143	w=33	h=22
+small gear	c=1.178175%	x=512	y=27	w=96	h=140
+red light	c=2.256219%	x=517	y=118	w=30	h=25
+red light	c=1.020302%	x=518	y=144	w=32	h=21
+small gear	c=1.672826%	x=534	y=67	w=146	h=142
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.419177%	x=-61	y=128	w=116	h=168
+small gear	c=1.968359%	x=-54	y=4	w=111	h=176
+medium gear	c=1.730485%	x=46	y=108	w=114	h=162
+medium gear	c=1.688127%	x=63	y=52	w=58	h=57
+center	c=1.342805%	x=71	y=79	w=18	h=24
+medium gear	c=1.665331%	x=74	y=125	w=118	h=154
+medium gear	c=1.407319%	x=96	y=51	w=98	h=209
+center	c=1.121628%	x=124	y=169	w=14	h=30
+red light	c=1.479892%	x=379	y=182	w=39	h=33
+red light	c=2.706808%	x=381	y=153	w=35	h=26
+red light	c=3.175823%	x=384	y=146	w=39	h=28
+red light	c=1.967876%	x=426	y=150	w=30	h=23
+red light	c=1.350858%	x=427	y=128	w=31	h=23
+small gear	c=1.090406%	x=478	y=54	w=176	h=165
+red light	c=1.829542%	x=516	y=117	w=31	h=26
+small gear	c=1.822863%	x=521	y=75	w=170	h=125
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.057560%	x=-64	y=128	w=117	h=166
+small gear	c=1.011916%	x=-63	y=-13	w=174	h=297
+small gear	c=2.081274%	x=-55	y=2	w=113	h=179
+medium gear	c=1.505769%	x=47	y=108	w=114	h=161
+medium gear	c=1.481973%	x=63	y=48	w=57	h=62
+medium gear	c=1.711310%	x=69	y=131	w=132	h=145
+center	c=1.356006%	x=72	y=80	w=17	h=24
+medium gear	c=1.143167%	x=93	y=33	w=94	h=240
+center	c=1.255164%	x=124	y=169	w=14	h=30
+red light	c=1.219245%	x=378	y=183	w=38	h=34
+red light	c=2.255270%	x=383	y=155	w=34	h=27
+red light	c=2.013005%	x=386	y=147	w=41	h=30
+red light	c=1.688507%	x=419	y=153	w=39	h=23
+red light	c=1.000218%	x=428	y=121	w=37	h=30
+red light	c=1.149808%	x=469	y=151	w=34	h=21
+red light	c=1.202566%	x=471	y=145	w=34	h=20
+red light	c=1.019722%	x=478	y=115	w=27	h=32
+red light	c=1.078932%	x=512	y=137	w=43	h=24
+red light	c=1.144110%	x=516	y=145	w=32	h=18
+red light	c=2.185420%	x=518	y=116	w=28	h=27
+small gear	c=1.797886%	x=524	y=59	w=162	h=156
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.366851%	x=-63	y=127	w=116	h=168
+small gear	c=2.139008%	x=-56	y=0	w=117	h=184
+medium gear	c=1.380272%	x=40	y=18	w=106	h=148
+medium gear	c=1.628047%	x=42	y=103	w=117	h=178
+medium gear	c=1.895429%	x=57	y=51	w=72	h=59
+medium gear	c=1.353835%	x=64	y=138	w=134	h=132
+center	c=1.485362%	x=74	y=79	w=19	h=24
+medium gear	c=1.497081%	x=102	y=37	w=97	h=218
+center	c=1.041502%	x=124	y=169	w=13	h=31
+red light	c=1.479688%	x=377	y=181	w=39	h=32
+red light	c=2.451850%	x=390	y=148	w=41	h=31
+red light	c=3.353194%	x=420	y=147	w=33	h=29
+red light	c=2.332345%	x=424	y=126	w=34	h=25
+red light	c=1.175010%	x=466	y=147	w=33	h=21
+small gear	c=1.064658%	x=469	y=47	w=189	h=177
+red light	c=1.131129%	x=476	y=117	w=27	h=29
+red light	c=1.770098%	x=521	y=119	w=29	h=30
+small gear	c=2.571923%	x=522	y=79	w=173	h=117
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.811042%	x=-74	y=93	w=145	h=175
+small gear	c=2.482900%	x=-58	y=129	w=108	h=163
+small gear	c=1.012104%	x=-56	y=-4	w=157	h=276
+small gear	c=2.183068%	x=-54	y=5	w=110	h=173
+medium gear	c=1.496786%	x=34	y=23	w=115	h=134
+medium gear	c=1.589436%	x=60	y=42	w=65	h=79
+medium gear	c=1.679104%	x=65	y=135	w=134	h=142
+center	c=1.983466%	x=74	y=76	w=19	h=26
+medium gear	c=1.451086%	x=113	y=56	w=87	h=199
+medium gear	c=1.076467%	x=116	y=59	w=130	h=249
+center	c=1.336004%	x=127	y=166	w=15	h=31
+red light	c=1.283996%	x=379	y=176	w=35	h=35
+red light	c=3.638962%	x=387	y=153	w=36	h=24
+red light	c=2.458028%	x=423	y=152	w=31	h=26
+red light	c=1.543077%	x=423	y=128	w=38	h=23
+red light	c=1.888981%	x=426	y=148	w=28	h=23
+red light	c=1.103020%	x=427	y=116	w=26	h=36
+red light	c=1.227393%	x=466	y=148	w=34	h=24
+small gear	c=1.129820%	x=469	y=48	w=189	h=175
+red light	c=1.062435%	x=473	y=143	w=32	h=22
+red light	c=1.293754%	x=476	y=117	w=27	h=30
+small gear	c=1.071304%	x=515	y=18	w=99	h=157
+red light	c=2.414614%	x=517	y=117	w=31	h=22
+small gear	c=1.949198%	x=529	y=70	w=159	h=140
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=2.148692%	x=-68	y=117	w=125	h=192
+small gear	c=1.966494%	x=-55	y=4	w=95	h=178
+medium gear	c=2.298693%	x=59	y=51	w=59	h=78
+center	c=1.005812%	x=77	y=78	w=16	h=31
+medium gear	c=2.111892%	x=99	y=18	w=121	h=251
+center	c=1.166557%	x=162	y=159	w=22	h=37
+center	c=1.232101%	x=193	y=121	w=33	h=18
+red light	c=1.327002%	x=368	y=170	w=51	h=51
+red light	c=1.006309%	x=373	y=162	w=42	h=33
+red light	c=2.034338%	x=374	y=148	w=62	h=40
+red light	c=1.218922%	x=422	y=162	w=28	h=35
+red light	c=1.364840%	x=422	y=156	w=43	h=28
+red light	c=1.085520%	x=460	y=146	w=48	h=35
+small gear	c=2.286043%	x=499	y=58	w=135	h=164
+medium gear: 1.407310%	x=499 y=58 w=135 h=164
+red light	c=1.836049%	x=510	y=140	w=56	h=35
+small gear	c=1.538015%	x=511	y=22	w=93	h=161
+red light	c=1.102432%	x=514	y=117	w=39	h=28
+red light	c=1.200691%	x=519	y=153	w=41	h=25
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.678519%	x=-53	y=0	w=92	h=187
+medium gear	c=1.790137%	x=57	y=21	w=62	h=122
+red light	c=1.124778%	x=370	y=171	w=59	h=49
+red light	c=2.130848%	x=378	y=151	w=49	h=33
+red light	c=1.180054%	x=422	y=155	w=44	h=33
+small gear	c=3.326498%	x=495	y=52	w=139	h=187
+small gear	c=1.795848%	x=510	y=49	w=89	h=130
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.273360%	x=-66	y=111	w=123	h=215
+small gear	c=1.783873%	x=-54	y=3	w=91	h=179
+medium gear	c=1.802722%	x=53	y=38	w=55	h=88
+medium gear	c=1.027825%	x=65	y=43	w=113	h=212
+center	c=1.116127%	x=195	y=96	w=34	h=19
+red light	c=1.721873%	x=373	y=145	w=59	h=38
+red light	c=1.311202%	x=418	y=162	w=33	h=31
+red light	c=1.772393%	x=426	y=157	w=37	h=28
+small gear	c=2.844947%	x=502	y=57	w=129	h=162
+medium gear: 1.134817%	x=502 y=57 w=129 h=162
+red light	c=1.222764%	x=510	y=138	w=62	h=36
+small gear	c=1.441829%	x=512	y=29	w=93	h=157
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.449951%	x=-50	y=-12	w=110	h=184
+red light	c=1.876697%	x=-9	y=148	w=40	h=49
+pin: 1.129358%	x=-9 y=148 w=40 h=49
+center	c=1.002459%	x=41	y=70	w=24	h=30
+center	c=1.422527%	x=47	y=191	w=39	h=40
+red light: 1.149702%	x=47 y=191 w=39 h=40
+small gear	c=3.940362%	x=198	y=104	w=247	h=193
+center: 1.226422%	x=198 y=104 w=247 h=193
+small gear	c=1.029786%	x=252	y=73	w=122	h=164
+small gear	c=4.027704%	x=263	y=67	w=188	h=143
+small gear	c=1.151003%	x=277	y=-24	w=125	h=205
+red light	c=1.016490%	x=283	y=154	w=42	h=30
+small gear	c=16.872181%	x=312	y=103	w=123	h=160
+small gear	c=2.856326%	x=318	y=154	w=115	h=139
+small gear	c=49.095455%	x=318	y=125	w=128	h=84
+small gear	c=1.699997%	x=376	y=-29	w=66	h=249
+small gear	c=1.980896%	x=398	y=93	w=96	h=191
+medium gear	c=75.132317%	x=407	y=44	w=253	h=241
+medium gear	c=2.980385%	x=424	y=23	w=137	h=258
+medium gear	c=1.290949%	x=439	y=60	w=125	h=133
+medium gear	c=55.084766%	x=467	y=80	w=160	h=178
+center	c=3.676027%	x=499	y=142	w=23	h=36
+pin: 1.144297%	x=499 y=142 w=23 h=36
+center	c=1.111028%	x=514	y=232	w=25	h=21
+pin: 1.028710%	x=514 y=232 w=25 h=21
+center	c=3.750463%	x=526	y=178	w=27	h=26
+center	c=9.241568%	x=532	y=138	w=26	h=27
+center	c=1.013305%	x=540	y=237	w=22	h=17
+center	c=3.288830%	x=553	y=128	w=28	h=36
+center	c=6.459085%	x=554	y=150	w=28	h=32
+center	c=3.041914%	x=560	y=183	w=20	h=24
+center	c=1.395187%	x=601	y=161	w=29	h=25
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.034029%	x=-42	y=5	w=97	h=137
+red light	c=1.238937%	x=-14	y=103	w=41	h=41
+red light	c=3.949926%	x=-5	y=150	w=36	h=36
+pin: 1.294534%	x=-5 y=150 w=36 h=36
+small gear	c=1.257678%	x=-3	y=146	w=38	h=35
+red light	c=1.758847%	x=24	y=105	w=41	h=39
+red light	c=4.415408%	x=36	y=145	w=37	h=37
+red light	c=1.506507%	x=46	y=187	w=39	h=35
+pin	c=1.311876%	x=69	y=74	w=32	h=19
+red light	c=1.072947%	x=76	y=99	w=19	h=32
+small gear	c=4.154060%	x=244	y=97	w=196	h=225
+small gear	c=1.120073%	x=251	y=-24	w=150	h=195
+small gear	c=1.282923%	x=251	y=78	w=126	h=141
+small gear	c=1.549179%	x=258	y=141	w=94	h=114
+small gear	c=24.267405%	x=280	y=60	w=182	h=191
+medium gear: 1.965051%	x=280 y=60 w=182 h=191
+red light	c=1.468896%	x=282	y=98	w=139	h=133
+small gear	c=8.001785%	x=295	y=130	w=135	h=112
+small gear	c=1.127730%	x=302	y=142	w=86	h=49
+small gear	c=4.023393%	x=315	y=169	w=121	h=102
+small gear	c=59.316452%	x=318	y=123	w=127	h=90
+small gear	c=1.244325%	x=371	y=-10	w=78	h=228
+medium gear	c=1.174184%	x=383	y=-19	w=308	h=225
+small gear	c=3.270993%	x=395	y=94	w=70	h=139
+small gear	c=1.869170%	x=399	y=84	w=93	h=205
+medium gear	c=81.231941%	x=419	y=48	w=227	h=231
+small gear	c=1.179330%	x=433	y=59	w=145	h=214
+medium gear	c=2.037188%	x=434	y=53	w=130	h=141
+pin	c=1.144729%	x=442	y=141	w=45	h=30
+center	c=1.051841%	x=442	y=191	w=24	h=19
+pin	c=1.591283%	x=443	y=196	w=23	h=17
+pin	c=1.075692%	x=445	y=189	w=25	h=20
+medium gear	c=4.304049%	x=468	y=75	w=214	h=167
+medium gear	c=3.970101%	x=476	y=8	w=124	h=244
+pin	c=1.392719%	x=479	y=179	w=36	h=29
+pin	c=1.375263%	x=487	y=237	w=28	h=18
+center: 1.161646%	x=487 y=237 w=28 h=18
+center	c=7.002717%	x=499	y=146	w=24	h=31
+pin: 2.395731%	x=499 y=146 w=24 h=31
+center	c=1.668247%	x=500	y=119	w=24	h=37
+center	c=1.287093%	x=527	y=81	w=26	h=38
+center	c=4.222205%	x=529	y=178	w=24	h=23
+center	c=6.073789%	x=531	y=133	w=30	h=29
+center	c=10.450388%	x=532	y=141	w=26	h=27
+pin	c=2.321458%	x=538	y=241	w=26	h=18
+center: 1.771215%	x=538 y=241 w=26 h=18
+center	c=4.661736%	x=552	y=128	w=29	h=30
+center	c=5.754865%	x=553	y=150	w=25	h=29
+pin	c=3.902700%	x=559	y=238	w=29	h=16
+center: 2.212627%	x=559 y=238 w=29 h=16
+center	c=2.537313%	x=559	y=186	w=22	h=24
+pin: 1.218098%	x=559 y=186 w=22 h=24
+center	c=1.473650%	x=561	y=214	w=24	h=21
+pin: 1.373855%	x=561 y=214 w=24 h=21
+pin	c=3.339004%	x=562	y=239	w=20	h=20
+center: 1.326661%	x=562 y=239 w=20 h=20
+center	c=1.153388%	x=583	y=215	w=22	h=20
+center	c=1.132122%	x=609	y=160	w=25	h=26
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.125710%	x=-41	y=85	w=118	h=152
+red light	c=3.324139%	x=-5	y=148	w=37	h=36
+pin: 1.045738%	x=-5 y=148 w=37 h=36
+small gear	c=1.025436%	x=-3	y=152	w=44	h=29
+red light	c=1.306371%	x=29	y=107	w=30	h=35
+red light	c=3.935368%	x=33	y=145	w=32	h=34
+red light	c=1.136728%	x=47	y=188	w=28	h=29
+small gear	c=1.142612%	x=182	y=78	w=146	h=155
+small gear	c=3.780482%	x=220	y=108	w=210	h=208
+small gear	c=1.292323%	x=223	y=150	w=154	h=95
+small gear	c=1.104646%	x=247	y=-46	w=166	h=265
+small gear	c=22.282019%	x=264	y=54	w=192	h=201
+red light	c=1.534582%	x=280	y=91	w=154	h=144
+small gear	c=48.136051%	x=310	y=89	w=145	h=115
+small gear	c=1.863656%	x=311	y=90	w=182	h=196
+small gear	c=11.952501%	x=330	y=130	w=104	h=104
+small gear	c=1.304886%	x=344	y=48	w=88	h=122
+small gear	c=2.448326%	x=345	y=132	w=90	h=168
+small gear	c=2.418672%	x=361	y=12	w=91	h=179
+small gear	c=2.765715%	x=395	y=99	w=80	h=133
+medium gear	c=20.324854%	x=424	y=60	w=143	h=197
+small gear: 1.066191%	x=424 y=60 w=143 h=197
+medium gear	c=4.631893%	x=427	y=114	w=215	h=134
+medium gear	c=76.365204%	x=430	y=23	w=227	h=262
+pin	c=1.938055%	x=442	y=193	w=26	h=20
+medium gear	c=4.817495%	x=453	y=24	w=116	h=191
+medium gear	c=2.020595%	x=461	y=-33	w=172	h=212
+pin	c=1.671276%	x=465	y=186	w=26	h=24
+center: 1.382786%	x=465 y=186 w=26 h=24
+pin	c=1.348136%	x=478	y=179	w=36	h=31
+center	c=3.060792%	x=494	y=138	w=28	h=38
+pin: 2.280802%	x=494 y=138 w=28 h=38
+pin	c=1.466677%	x=514	y=236	w=24	h=18
+center: 1.432376%	x=514 y=236 w=24 h=18
+center	c=3.453404%	x=531	y=180	w=27	h=26
+center	c=1.275278%	x=537	y=74	w=22	h=42
+center	c=8.620225%	x=541	y=132	w=33	h=32
+center	c=5.712068%	x=553	y=128	w=30	h=38
+pin	c=2.839732%	x=563	y=241	w=27	h=20
+center: 1.649521%	x=563 y=241 w=27 h=20
+center	c=2.096577%	x=564	y=187	w=21	h=24
+center	c=1.028273%	x=565	y=214	w=20	h=18
+center	c=1.601856%	x=568	y=75	w=29	h=46
+pin	c=4.230908%	x=579	y=238	w=29	h=21
+red light: 1.206380%	x=579 y=238 w=29 h=21
+center: 2.305288%	x=579 y=238 w=29 h=21
+small gear: 1.185911%	x=579 y=238 w=29 h=21
+medium gear: 1.094123%	x=579 y=238 w=29 h=21
+pin	c=2.166328%	x=583	y=215	w=25	h=23
+center: 2.037158%	x=583 y=215 w=25 h=23
+pin	c=3.164886%	x=585	y=240	w=20	h=23
+center: 1.073231%	x=585 y=240 w=20 h=23
+center	c=1.183851%	x=606	y=152	w=25	h=28
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.301106%	x=-44	y=79	w=116	h=163
+small gear	c=1.179912%	x=-33	y=3	w=90	h=153
+small gear	c=1.070307%	x=-5	y=152	w=45	h=29
+red light	c=3.133007%	x=-3	y=148	w=33	h=35
+pin: 1.258996%	x=-3 y=148 w=33 h=35
+red light	c=1.325478%	x=33	y=103	w=28	h=33
+red light	c=2.964766%	x=33	y=145	w=34	h=42
+small gear	c=1.115451%	x=216	y=165	w=179	h=76
+small gear	c=1.345263%	x=219	y=80	w=187	h=146
+small gear	c=4.284421%	x=226	y=133	w=190	h=196
+red light	c=1.335370%	x=265	y=98	w=185	h=127
+small gear	c=18.920898%	x=270	y=55	w=178	h=205
+small gear	c=8.774562%	x=286	y=135	w=152	h=116
+center: 1.146844%	x=286 y=135 w=152 h=116
+small gear	c=2.046198%	x=312	y=102	w=185	h=172
+small gear	c=50.420010%	x=317	y=119	w=131	h=98
+small gear	c=1.114144%	x=321	y=26	w=185	h=159
+small gear	c=2.161031%	x=342	y=106	w=104	h=231
+small gear	c=1.460979%	x=346	y=40	w=83	h=138
+small gear	c=2.859233%	x=364	y=8	w=91	h=185
+small gear	c=3.329595%	x=393	y=102	w=74	h=128
+medium gear	c=4.612846%	x=407	y=115	w=250	h=133
+medium gear	c=18.165527%	x=428	y=70	w=136	h=183
+small gear: 1.118102%	x=428 y=70 w=136 h=183
+medium gear	c=75.935875%	x=431	y=21	w=224	h=270
+medium gear	c=4.568847%	x=461	y=16	w=111	h=201
+center	c=1.215993%	x=468	y=187	w=25	h=20
+pin: 1.066006%	x=468 y=187 w=25 h=20
+medium gear	c=2.151286%	x=474	y=-46	w=166	h=286
+pin	c=1.096362%	x=479	y=177	w=34	h=33
+pin	c=1.188302%	x=494	y=237	w=24	h=15
+center: 1.054581%	x=494 y=237 w=24 h=15
+center	c=2.773033%	x=495	y=138	w=27	h=38
+pin: 2.644203%	x=495 y=138 w=27 h=38
+center	c=1.034232%	x=499	y=111	w=29	h=43
+pin	c=1.668155%	x=515	y=236	w=24	h=18
+center: 1.431584%	x=515 y=236 w=24 h=18
+center	c=3.668605%	x=533	y=178	w=27	h=29
+center	c=1.170486%	x=540	y=74	w=23	h=44
+center	c=8.422071%	x=542	y=132	w=31	h=34
+center	c=6.266842%	x=551	y=134	w=31	h=31
+pin	c=2.291193%	x=563	y=241	w=26	h=19
+center: 1.413887%	x=563 y=241 w=26 h=19
+center	c=2.749171%	x=566	y=185	w=21	h=25
+pin: 1.035999%	x=566 y=185 w=21 h=25
+center	c=1.927765%	x=566	y=74	w=30	h=45
+pin	c=4.334713%	x=583	y=239	w=25	h=19
+red light: 1.075154%	x=583 y=239 w=25 h=19
+center: 2.438645%	x=583 y=239 w=25 h=19
+small gear: 1.041872%	x=583 y=239 w=25 h=19
+medium gear: 1.041358%	x=583 y=239 w=25 h=19
+center	c=1.799316%	x=585	y=215	w=22	h=21
+pin: 1.532393%	x=585 y=215 w=22 h=21
+center	c=1.004926%	x=600	y=122	w=35	h=30
+center	c=1.386863%	x=606	y=152	w=27	h=29
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.173960%	x=-58	y=75	w=143	h=159
+small gear	c=1.014220%	x=-40	y=1	w=97	h=161
+red light	c=1.206924%	x=-10	y=104	w=38	h=43
+red light	c=4.779653%	x=-6	y=155	w=37	h=31
+pin: 1.529273%	x=-6 y=155 w=37 h=31
+small gear	c=1.323576%	x=-5	y=152	w=39	h=32
+red light	c=1.307975%	x=-5	y=184	w=38	h=36
+red light	c=1.828100%	x=28	y=105	w=36	h=32
+red light	c=2.487150%	x=28	y=146	w=40	h=32
+red light	c=3.659400%	x=31	y=153	w=31	h=37
+red light	c=1.580494%	x=42	y=189	w=30	h=30
+center	c=1.018991%	x=68	y=80	w=27	h=21
+center	c=1.163135%	x=82	y=99	w=19	h=31
+small gear	c=3.245662%	x=183	y=92	w=298	h=242
+small gear	c=1.302823%	x=247	y=85	w=138	h=145
+small gear	c=1.195785%	x=249	y=-38	w=151	h=234
+small gear	c=18.510662%	x=251	y=53	w=233	h=208
+red light: 1.014366%	x=251 y=53 w=233 h=208
+small gear	c=1.089227%	x=264	y=149	w=107	h=101
+red light	c=1.886468%	x=270	y=98	w=169	h=120
+small gear	c=2.852591%	x=294	y=163	w=162	h=124
+small gear	c=46.788742%	x=313	y=123	w=129	h=84
+small gear	c=28.139723%	x=322	y=97	w=151	h=145
+small gear	c=1.479617%	x=360	y=-5	w=83	h=206
+medium gear	c=4.025872%	x=389	y=134	w=269	h=95
+small gear	c=1.884332%	x=400	y=95	w=67	h=138
+medium gear	c=1.443782%	x=406	y=-30	w=265	h=264
+small gear	c=1.197654%	x=408	y=79	w=85	h=209
+medium gear	c=75.529900%	x=422	y=35	w=226	h=251
+medium gear	c=1.201017%	x=422	y=-16	w=191	h=165
+medium gear	c=1.988253%	x=440	y=50	w=130	h=141
+medium gear	c=7.032619%	x=481	y=65	w=209	h=165
+center	c=1.356146%	x=497	y=122	w=22	h=38
+center	c=5.300630%	x=500	y=142	w=21	h=31
+pin: 1.210927%	x=500 y=142 w=21 h=31
+center	c=3.132525%	x=524	y=178	w=30	h=29
+pin: 1.056607%	x=524 y=178 w=30 h=29
+center	c=1.054318%	x=528	y=79	w=24	h=39
+center	c=9.250425%	x=533	y=138	w=26	h=27
+pin	c=4.096415%	x=538	y=237	w=27	h=14
+center: 2.320387%	x=538 y=237 w=27 h=14
+small gear: 1.025589%	x=538 y=237 w=27 h=14
+medium gear: 1.085357%	x=538 y=237 w=27 h=14
+pin	c=2.937220%	x=541	y=237	w=18	h=20
+center: 1.123018%	x=541 y=237 w=18 h=20
+center	c=1.617252%	x=543	y=217	w=20	h=19
+pin: 1.429749%	x=543 y=217 w=20 h=19
+center	c=5.560946%	x=553	y=145	w=26	h=29
+center	c=4.345644%	x=554	y=126	w=27	h=33
+pin	c=2.283488%	x=558	y=215	w=25	h=20
+center: 1.899230%	x=558 y=215 w=25 h=20
+center	c=1.838332%	x=558	y=184	w=22	h=24
+center	c=1.582393%	x=606	y=156	w=25	h=22
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.070051%	x=-58	y=-17	w=124	h=208
+red light	c=1.002470%	x=-9	y=184	w=41	h=43
+red light	c=1.879701%	x=-4	y=151	w=38	h=38
+pin	c=1.050982%	x=35	y=78	w=26	h=19
+center	c=1.154611%	x=37	y=106	w=17	h=26
+red light: 1.051203%	x=37 y=106 w=17 h=26
+small gear	c=1.658175%	x=156	y=72	w=200	h=154
+small gear	c=6.827074%	x=227	y=104	w=186	h=179
+small gear	c=1.538805%	x=236	y=34	w=145	h=132
+small gear	c=56.781624%	x=253	y=96	w=144	h=120
+center: 1.149933%	x=253 y=96 w=144 h=120
+small gear	c=1.096714%	x=260	y=127	w=284	h=99
+red light	c=1.752299%	x=276	y=75	w=131	h=141
+pin: 1.660142%	x=276 y=75 w=131 h=141
+small gear	c=1.662010%	x=294	y=-1	w=110	h=176
+small gear	c=6.500133%	x=296	y=104	w=111	h=150
+medium gear	c=1.090334%	x=325	y=27	w=339	h=152
+small gear	c=3.227576%	x=334	y=84	w=170	h=171
+small gear	c=3.814864%	x=346	y=106	w=77	h=117
+small gear	c=2.177048%	x=353	y=110	w=91	h=160
+medium gear	c=7.823531%	x=363	y=104	w=104	h=111
+small gear: 7.538785%	x=363 y=104 w=104 h=111
+medium gear	c=3.841451%	x=384	y=139	w=234	h=97
+medium gear	c=13.773699%	x=390	y=72	w=129	h=181
+medium gear	c=76.215317%	x=399	y=38	w=192	h=236
+pin	c=1.307923%	x=419	y=191	w=26	h=21
+medium gear	c=2.217773%	x=422	y=29	w=139	h=172
+pin	c=3.232533%	x=423	y=216	w=20	h=16
+center: 1.593619%	x=423 y=216 w=20 h=16
+pin	c=1.600960%	x=434	y=179	w=32	h=33
+pin	c=1.103417%	x=441	y=218	w=20	h=17
+pin	c=3.266600%	x=444	y=140	w=29	h=32
+center: 2.842772%	x=444 y=140 w=29 h=32
+center	c=1.657443%	x=452	y=114	w=24	h=34
+pin: 1.049711%	x=452 y=114 w=24 h=34
+medium gear	c=3.220256%	x=471	y=82	w=187	h=176
+center	c=1.671001%	x=482	y=80	w=21	h=34
+center	c=2.052208%	x=485	y=181	w=22	h=26
+pin	c=2.474591%	x=490	y=243	w=27	h=19
+center: 1.654840%	x=490 y=243 w=27 h=19
+center	c=10.770967%	x=491	y=136	w=27	h=29
+center	c=8.882895%	x=499	y=138	w=31	h=26
+center	c=7.867663%	x=508	y=128	w=28	h=30
+pin	c=10.690916%	x=509	y=239	w=33	h=20
+red light: 2.766978%	x=509 y=239 w=33 h=20
+center: 3.205500%	x=509 y=239 w=33 h=20
+small gear: 2.745268%	x=509 y=239 w=33 h=20
+medium gear: 2.741765%	x=509 y=239 w=33 h=20
+pin	c=1.639159%	x=511	y=221	w=27	h=21
+center: 1.169986%	x=511 y=221 w=27 h=21
+center	c=2.552916%	x=514	y=189	w=27	h=28
+pin: 2.350546%	x=514 y=189 w=27 h=28
+pin	c=1.472729%	x=528	y=238	w=36	h=18
+pin	c=1.815733%	x=529	y=218	w=38	h=23
+pin	c=1.516322%	x=535	y=240	w=20	h=21
+pin	c=1.862282%	x=536	y=221	w=23	h=22
+center	c=3.051026%	x=550	y=125	w=31	h=31
+pin: 1.678823%	x=550 y=125 w=31 h=31
+pin	c=1.109966%	x=556	y=213	w=31	h=22
+center: 1.069201%	x=556 y=213 w=31 h=22
+pin	c=3.275171%	x=559	y=191	w=23	h=23
+center: 2.205330%	x=559 y=191 w=23 h=23
+pin	c=6.376998%	x=561	y=152	w=24	h=27
+center: 4.639342%	x=561 y=152 w=24 h=27
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+red light	c=2.185663%	x=-5	y=152	w=37	h=40
+pin: 1.086932%	x=-5 y=152 w=37 h=40
+small gear	c=1.934729%	x=188	y=71	w=152	h=141
+small gear	c=64.863548%	x=239	y=89	w=169	h=129
+small gear	c=3.941236%	x=240	y=123	w=143	h=134
+small gear	c=1.508876%	x=242	y=25	w=137	h=156
+small gear	c=1.013886%	x=254	y=127	w=290	h=84
+red light	c=1.331761%	x=268	y=78	w=145	h=134
+pin: 1.096467%	x=268 y=78 w=145 h=134
+small gear	c=8.699086%	x=287	y=112	w=121	h=134
+small gear	c=1.882684%	x=298	y=4	w=97	h=149
+small gear	c=4.685382%	x=339	y=93	w=67	h=132
+small gear	c=1.983006%	x=339	y=102	w=101	h=164
+small gear	c=3.015862%	x=344	y=82	w=161	h=173
+medium gear	c=5.131205%	x=363	y=141	w=277	h=84
+small gear	c=5.305573%	x=368	y=102	w=91	h=133
+medium gear: 4.274141%	x=368 y=102 w=91 h=133
+medium gear	c=84.630806%	x=388	y=38	w=212	h=234
+medium gear	c=13.031958%	x=399	y=55	w=107	h=202
+medium gear	c=1.494394%	x=441	y=45	w=112	h=159
+center	c=2.500254%	x=446	y=136	w=27	h=35
+pin: 2.279424%	x=446 y=136 w=27 h=35
+medium gear	c=3.069460%	x=449	y=74	w=232	h=201
+pin	c=1.826252%	x=464	y=235	w=26	h=16
+center: 1.199616%	x=464 y=235 w=26 h=16
+center	c=2.294841%	x=483	y=179	w=25	h=24
+pin	c=2.368849%	x=488	y=236	w=23	h=16
+center: 1.590822%	x=488 y=236 w=23 h=16
+center	c=7.813972%	x=490	y=140	w=24	h=25
+center	c=8.421261%	x=492	y=132	w=27	h=29
+center	c=8.234612%	x=500	y=137	w=31	h=25
+center	c=3.201672%	x=509	y=181	w=29	h=24
+pin: 1.370160%	x=509 y=181 w=29 h=24
+pin	c=2.317028%	x=513	y=237	w=31	h=14
+center: 1.695581%	x=513 y=237 w=31 h=14
+pin	c=1.837239%	x=517	y=239	w=21	h=17
+center	c=1.028616%	x=519	y=183	w=23	h=24
+pin	c=2.184903%	x=537	y=214	w=22	h=18
+center: 1.869164%	x=537 y=214 w=22 h=18
+center	c=1.341967%	x=553	y=190	w=25	h=22
+center	c=1.389786%	x=553	y=129	w=35	h=31
+center	c=4.059958%	x=558	y=155	w=24	h=27
+pin: 3.781962%	x=558 y=155 w=24 h=27
+center	c=1.022923%	x=604	y=158	w=31	h=21
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+red light	c=1.107327%	x=-14	y=107	w=24	h=31
+red light	c=1.738039%	x=-12	y=148	w=24	h=37
+red light	c=1.275878%	x=-12	y=150	w=42	h=27
+small gear	c=1.207341%	x=131	y=63	w=155	h=109
+small gear	c=1.252029%	x=132	y=120	w=161	h=71
+small gear	c=1.933833%	x=141	y=126	w=219	h=208
+small gear	c=7.342416%	x=149	y=72	w=195	h=185
+small gear	c=1.268965%	x=161	y=-28	w=162	h=202
+small gear	c=1.373084%	x=183	y=165	w=170	h=79
+center	c=1.689405%	x=221	y=67	w=167	h=147
+red light: 1.135691%	x=221 y=67 w=167 h=147
+pin: 1.109557%	x=221 y=67 w=167 h=147
+small gear	c=56.875896%	x=226	y=89	w=163	h=150
+small gear	c=1.044810%	x=230	y=210	w=187	h=78
+small gear	c=8.545396%	x=258	y=64	w=157	h=250
+small gear	c=3.064183%	x=258	y=4	w=123	h=172
+medium gear	c=2.101854%	x=263	y=104	w=122	h=120
+small gear	c=16.905222%	x=286	y=109	w=103	h=150
+small gear	c=1.646250%	x=288	y=194	w=144	h=78
+medium gear	c=13.720110%	x=293	y=21	w=250	h=263
+small gear: 2.323611%	x=293 y=21 w=250 h=263
+pin	c=1.353663%	x=297	y=91	w=32	h=28
+pin	c=1.042373%	x=298	y=140	w=36	h=27
+medium gear	c=1.096906%	x=317	y=70	w=139	h=144
+small gear	c=1.541131%	x=337	y=112	w=86	h=145
+medium gear	c=1.889341%	x=337	y=98	w=98	h=147
+pin	c=1.794440%	x=351	y=137	w=42	h=34
+medium gear	c=13.623515%	x=356	y=138	w=309	h=97
+red light	c=2.438318%	x=361	y=41	w=235	h=198
+medium gear	c=76.801735%	x=368	y=41	w=233	h=209
+medium gear	c=4.790604%	x=372	y=101	w=166	h=195
+medium gear	c=1.285277%	x=373	y=21	w=113	h=180
+medium gear	c=11.649385%	x=374	y=76	w=149	h=159
+small gear: 4.647884%	x=374 y=76 w=149 h=159
+medium gear	c=2.079776%	x=375	y=8	w=284	h=169
+pin	c=3.287917%	x=390	y=146	w=35	h=30
+pin	c=1.698258%	x=392	y=110	w=33	h=30
+medium gear	c=2.462107%	x=393	y=-35	w=140	h=248
+small gear	c=1.451502%	x=396	y=77	w=192	h=228
+medium gear	c=2.579613%	x=404	y=88	w=249	h=230
+small gear	c=2.120997%	x=426	y=176	w=27	h=23
+pin	c=58.645451%	x=427	y=177	w=27	h=21
+center	c=2.453565%	x=428	y=176	w=26	h=28
+medium gear	c=2.463678%	x=428	y=176	w=26	h=24
+red light: 2.187503%	x=428 y=176 w=26 h=24
+small gear	c=2.381798%	x=434	y=50	w=166	h=180
+pin: 2.358653%	x=434 y=50 w=166 h=180
+center: 1.206048%	x=434 y=50 w=166 h=180
+medium gear	c=18.426195%	x=439	y=132	w=133	h=96
+center	c=1.903836%	x=449	y=76	w=20	h=38
+center	c=9.205759%	x=453	y=124	w=26	h=27
+pin: 2.004411%	x=453 y=124 w=26 h=27
+medium gear	c=1.584602%	x=473	y=84	w=197	h=173
+center	c=14.340024%	x=476	y=118	w=28	h=25
+center	c=3.684761%	x=477	y=179	w=24	h=24
+center	c=2.034917%	x=478	y=75	w=23	h=34
+center	c=13.253346%	x=484	y=145	w=29	h=28
+center	c=9.758694%	x=500	y=116	w=37	h=35
+pin: 1.390143%	x=500 y=116 w=37 h=35
+center	c=10.539059%	x=506	y=142	w=29	h=29
+pin: 1.317652%	x=506 y=142 w=29 h=29
+center	c=2.015627%	x=511	y=181	w=34	h=28
+center	c=1.868705%	x=556	y=165	w=30	h=24
+pin: 1.322402%	x=556 y=165 w=30 h=24
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+red light	c=1.258114%	x=-14	y=191	w=22	h=37
+red light	c=1.487085%	x=-14	y=153	w=42	h=27
+red light	c=1.884397%	x=-14	y=149	w=21	h=36
+red light	c=1.170279%	x=-14	y=106	w=25	h=32
+small gear	c=1.310992%	x=111	y=133	w=201	h=227
+small gear	c=1.699528%	x=125	y=59	w=172	h=111
+small gear	c=1.408979%	x=141	y=126	w=250	h=183
+small gear	c=1.785641%	x=167	y=-34	w=155	h=221
+small gear	c=8.332690%	x=175	y=53	w=142	h=173
+medium gear: 1.071051%	x=175 y=53 w=142 h=173
+small gear	c=1.604588%	x=184	y=172	w=152	h=60
+center	c=1.277121%	x=188	y=94	w=156	h=136
+pin: 1.022583%	x=188 y=94 w=156 h=136
+small gear	c=3.216546%	x=211	y=18	w=196	h=156
+center	c=2.065338%	x=218	y=66	w=157	h=144
+red light: 1.728574%	x=218 y=66 w=157 h=144
+pin: 1.873288%	x=218 y=66 w=157 h=144
+medium gear: 2.043356%	x=218 y=66 w=157 h=144
+small gear	c=60.246925%	x=235	y=63	w=160	h=163
+small gear	c=5.836776%	x=243	y=137	w=129	h=113
+center: 1.047639%	x=243 y=137 w=129 h=113
+small gear	c=3.193548%	x=248	y=60	w=170	h=272
+medium gear	c=2.448984%	x=270	y=14	w=436	h=133
+small gear	c=2.669262%	x=273	y=105	w=142	h=150
+medium gear	c=2.129382%	x=278	y=81	w=109	h=120
+small gear	c=4.259447%	x=287	y=-10	w=113	h=197
+pin	c=1.336986%	x=294	y=138	w=43	h=30
+pin	c=2.252286%	x=299	y=94	w=37	h=27
+medium gear: 1.021657%	x=299 y=94 w=37 h=27
+medium gear	c=10.509805%	x=316	y=59	w=228	h=170
+medium gear	c=2.849778%	x=345	y=71	w=98	h=124
+small gear: 1.426626%	x=345 y=71 w=98 h=124
+small gear	c=1.901909%	x=346	y=65	w=211	h=198
+pin	c=1.348683%	x=355	y=94	w=43	h=31
+medium gear	c=5.385946%	x=366	y=50	w=261	h=297
+medium gear	c=4.690815%	x=368	y=154	w=252	h=88
+pin	c=2.244347%	x=368	y=56	w=246	h=215
+red light: 2.151066%	x=368 y=56 w=246 h=215
+medium gear	c=80.509644%	x=375	y=28	w=218	h=230
+pin	c=1.589572%	x=376	y=47	w=150	h=172
+small gear	c=1.914438%	x=377	y=86	w=149	h=108
+center	c=1.057692%	x=381	y=53	w=224	h=200
+pin	c=1.289824%	x=382	y=75	w=38	h=41
+medium gear	c=6.088177%	x=389	y=15	w=162	h=170
+pin	c=10.867455%	x=398	y=102	w=33	h=38
+medium gear	c=11.363869%	x=399	y=67	w=102	h=155
+center	c=3.146421%	x=403	y=106	w=32	h=29
+pin	c=3.024989%	x=404	y=123	w=33	h=37
+pin	c=75.075630%	x=407	y=106	w=28	h=28
+red light	c=2.824061%	x=407	y=106	w=28	h=29
+small gear: 2.728064%	x=407 y=106 w=28 h=29
+small gear	c=1.310437%	x=407	y=83	w=220	h=168
+medium gear	c=3.501963%	x=408	y=103	w=28	h=31
+center	c=1.131297%	x=412	y=80	w=31	h=34
+pin	c=14.433111%	x=413	y=127	w=37	h=30
+center: 2.963438%	x=413 y=127 w=37 h=30
+pin	c=2.722419%	x=415	y=83	w=36	h=27
+center	c=1.146097%	x=426	y=67	w=36	h=59
+pin	c=1.950803%	x=427	y=177	w=30	h=37
+medium gear	c=8.532427%	x=433	y=102	w=143	h=147
+center	c=3.697999%	x=440	y=75	w=25	h=43
+pin: 2.313478%	x=440 y=75 w=25 h=43
+center	c=14.517625%	x=476	y=116	w=32	h=31
+center	c=14.581202%	x=479	y=137	w=32	h=28
+center	c=1.772610%	x=480	y=179	w=27	h=21
+center	c=2.543384%	x=481	y=71	w=22	h=44
+medium gear	c=1.466948%	x=482	y=81	w=178	h=190
+center	c=3.815696%	x=491	y=118	w=38	h=33
+center	c=8.832221%	x=503	y=148	w=29	h=24
+pin: 1.636770%	x=503 y=148 w=29 h=24
+center	c=1.934808%	x=518	y=184	w=24	h=25
+center	c=1.594063%	x=554	y=164	w=29	h=21
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+red light	c=3.530192%	x=-15	y=143	w=36	h=29
+red light	c=2.099996%	x=-14	y=190	w=19	h=34
+red light	c=1.318355%	x=-13	y=193	w=33	h=34
+red light	c=4.589921%	x=-13	y=146	w=24	h=35
+pin: 1.278933%	x=-13 y=146 w=24 h=35
+center: 1.188728%	x=-13 y=146 w=24 h=35
+red light	c=3.643441%	x=-12	y=105	w=26	h=28
+pin: 1.068394%	x=-12 y=105 w=26 h=28
+red light	c=1.994792%	x=-12	y=64	w=27	h=33
+pin: 1.084579%	x=-12 y=64 w=27 h=33
+red light	c=3.404814%	x=-7	y=104	w=34	h=30
+small gear: 1.112398%	x=-7 y=104 w=34 h=30
+red light	c=1.321071%	x=23	y=143	w=28	h=27
+red light	c=1.515296%	x=24	y=109	w=24	h=22
+red light	c=1.215221%	x=27	y=114	w=32	h=22
+small gear	c=1.399023%	x=133	y=145	w=248	h=129
+small gear	c=5.909024%	x=201	y=93	w=123	h=163
+center	c=1.311277%	x=213	y=63	w=170	h=165
+small gear	c=64.626266%	x=214	y=79	w=181	h=152
+small gear	c=1.512062%	x=249	y=43	w=114	h=124
+small gear	c=1.116867%	x=259	y=167	w=198	h=131
+small gear	c=5.900569%	x=275	y=98	w=130	h=170
+small gear	c=3.410276%	x=285	y=113	w=289	h=112
+small gear	c=2.269343%	x=285	y=2	w=117	h=173
+small gear	c=3.636238%	x=301	y=68	w=182	h=239
+medium gear	c=1.853462%	x=327	y=67	w=130	h=198
+small gear	c=1.823003%	x=327	y=68	w=139	h=166
+medium gear	c=32.609905%	x=338	y=80	w=194	h=175
+medium gear	c=78.635719%	x=360	y=17	w=265	h=274
+small gear	c=6.363995%	x=366	y=51	w=177	h=208
+medium gear	c=2.577819%	x=385	y=-14	w=162	h=236
+medium gear	c=7.390383%	x=386	y=91	w=206	h=231
+medium gear	c=5.023683%	x=389	y=30	w=250	h=161
+pin	c=1.864830%	x=398	y=135	w=34	h=38
+pin	c=1.844138%	x=400	y=28	w=222	h=221
+red light: 1.507092%	x=400 y=28 w=222 h=221
+small gear: 1.382515%	x=400 y=28 w=222 h=221
+medium gear	c=6.225384%	x=421	y=119	w=234	h=106
+medium gear	c=1.170128%	x=437	y=114	w=202	h=238
+medium gear	c=8.498461%	x=439	y=90	w=124	h=152
+center	c=1.394760%	x=444	y=179	w=30	h=34
+pin: 1.032602%	x=444 y=179 w=30 h=34
+center	c=5.780219%	x=446	y=134	w=27	h=35
+center	c=1.084296%	x=450	y=74	w=22	h=42
+center	c=4.479660%	x=453	y=124	w=26	h=37
+medium gear	c=10.297135%	x=458	y=52	w=217	h=257
+pin: 1.083583%	x=458 y=52 w=217 h=257
+small gear: 1.123018%	x=458 y=52 w=217 h=257
+center	c=14.640559%	x=475	y=122	w=35	h=27
+center	c=2.154490%	x=477	y=81	w=28	h=37
+center	c=3.327987%	x=480	y=149	w=34	h=28
+center	c=17.951191%	x=481	y=140	w=27	h=32
+pin: 2.017584%	x=481 y=140 w=27 h=32
+pin	c=1.281533%	x=485	y=209	w=31	h=47
+medium gear	c=2.205769%	x=487	y=14	w=159	h=245
+pin	c=1.275108%	x=490	y=216	w=30	h=28
+pin	c=76.031143%	x=492	y=200	w=24	h=23
+small gear: 3.120401%	x=492 y=200 w=24 h=23
+center	c=2.366867%	x=493	y=202	w=26	h=25
+medium gear	c=3.294802%	x=493	y=200	w=24	h=24
+red light	c=2.194185%	x=495	y=199	w=24	h=24
+pin	c=8.957565%	x=498	y=195	w=32	h=34
+center: 2.059805%	x=498 y=195 w=32 h=34
+pin	c=30.361399%	x=500	y=200	w=24	h=21
+center: 2.794059%	x=500 y=200 w=24 h=21
+small gear: 1.439443%	x=500 y=200 w=24 h=21
+medium gear: 2.241482%	x=500 y=200 w=24 h=21
+pin	c=3.536237%	x=503	y=208	w=25	h=19
+pin	c=9.867300%	x=504	y=193	w=26	h=25
+center: 2.403441%	x=504 y=193 w=26 h=25
+center	c=13.720335%	x=504	y=119	w=36	h=30
+pin: 1.183967%	x=504 y=119 w=36 h=30
+pin	c=1.192361%	x=506	y=179	w=21	h=20
+center	c=1.119164%	x=513	y=78	w=31	h=36
+center	c=14.552601%	x=514	y=147	w=22	h=24
+pin: 2.545840%	x=514 y=147 w=22 h=24
+center	c=2.244470%	x=551	y=117	w=32	h=29
+center	c=3.061493%	x=554	y=187	w=31	h=32
+center	c=6.954044%	x=557	y=155	w=24	h=28
+pin: 1.213436%	x=557 y=155 w=24 h=28
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=2.271441%	x=-36	y=87	w=120	h=142
+small gear: 2.116156%	x=-36 y=87 w=120 h=142
+medium gear	c=3.564414%	x=-28	y=23	w=216	h=271
+small gear: 1.264477%	x=-28 y=23 w=216 h=271
+red light	c=3.561809%	x=-15	y=120	w=36	h=31
+red light	c=11.806416%	x=-15	y=137	w=57	h=39
+pin: 1.267572%	x=-15 y=137 w=57 h=39
+small gear: 1.715850%	x=-15 y=137 w=57 h=39
+red light	c=1.196615%	x=-1	y=176	w=41	h=42
+medium gear	c=1.248950%	x=14	y=18	w=136	h=189
+red light	c=2.043236%	x=44	y=166	w=63	h=46
+red light	c=10.550118%	x=54	y=131	w=40	h=22
+center: 1.289966%	x=54 y=131 w=40 h=22
+red light	c=29.812199%	x=55	y=133	w=42	h=35
+center: 2.682062%	x=55 y=133 w=42 h=35
+medium gear	c=1.153760%	x=57	y=133	w=102	h=121
+medium gear	c=12.236176%	x=62	y=36	w=128	h=203
+red light: 1.902810%	x=62 y=36 w=128 h=203
+pin: 2.086674%	x=62 y=36 w=128 h=203
+small gear: 4.415925%	x=62 y=36 w=128 h=203
+medium gear	c=1.899862%	x=68	y=29	w=111	h=129
+small gear: 1.031594%	x=68 y=29 w=111 h=129
+red light	c=65.320618%	x=74	y=140	w=39	h=33
+pin: 2.990382%	x=74 y=140 w=39 h=33
+center: 3.622509%	x=74 y=140 w=39 h=33
+small gear: 3.938246%	x=74 y=140 w=39 h=33
+red light	c=15.987903%	x=77	y=131	w=31	h=34
+pin: 2.772398%	x=77 y=131 w=31 h=34
+red light	c=1.289764%	x=81	y=159	w=44	h=50
+medium gear	c=1.111775%	x=94	y=32	w=147	h=206
+red light	c=1.334799%	x=94	y=174	w=39	h=31
+red light	c=4.565659%	x=112	y=138	w=27	h=32
+center: 1.267593%	x=112 y=138 w=27 h=32
+red light	c=1.304173%	x=122	y=150	w=25	h=15
+red light	c=1.240617%	x=179	y=150	w=25	h=29
+small gear	c=3.725912%	x=191	y=110	w=307	h=161
+small gear	c=1.487195%	x=208	y=97	w=122	h=106
+small gear	c=2.463925%	x=234	y=136	w=157	h=115
+small gear	c=2.493299%	x=241	y=-43	w=134	h=274
+small gear	c=1.582676%	x=249	y=114	w=303	h=107
+small gear	c=1.810864%	x=255	y=34	w=131	h=132
+small gear	c=36.379929%	x=261	y=72	w=157	h=142
+center: 1.118468%	x=261 y=72 w=157 h=142
+small gear	c=77.505302%	x=295	y=106	w=106	h=103
+red light	c=1.067971%	x=298	y=105	w=119	h=97
+medium gear	c=3.777447%	x=299	y=85	w=183	h=141
+small gear	c=3.085182%	x=314	y=26	w=85	h=141
+small gear	c=16.370256%	x=317	y=82	w=112	h=149
+small gear	c=1.444963%	x=324	y=-24	w=160	h=229
+medium gear	c=1.424986%	x=339	y=1	w=153	h=195
+small gear	c=1.493754%	x=354	y=71	w=202	h=243
+pin	c=1.022904%	x=356	y=87	w=31	h=27
+medium gear	c=1.874773%	x=359	y=38	w=273	h=118
+medium gear	c=84.564598%	x=373	y=47	w=236	h=214
+medium gear	c=12.260239%	x=387	y=93	w=183	h=216
+medium gear	c=5.716186%	x=409	y=131	w=214	h=101
+red light	c=1.969568%	x=410	y=65	w=223	h=209
+pin	c=1.985827%	x=417	y=28	w=193	h=240
+center: 1.094047%	x=417 y=28 w=193 h=240
+small gear: 1.601945%	x=417 y=28 w=193 h=240
+medium gear	c=4.471690%	x=435	y=4	w=163	h=220
+pin	c=1.515930%	x=440	y=153	w=31	h=18
+pin	c=1.680513%	x=441	y=174	w=34	h=38
+pin	c=6.094532%	x=442	y=140	w=27	h=26
+center: 2.736413%	x=442 y=140 w=27 h=26
+center	c=1.486972%	x=456	y=119	w=19	h=31
+pin: 1.289276%	x=456 y=119 w=19 h=31
+medium gear	c=6.140285%	x=463	y=49	w=211	h=257
+center	c=9.950040%	x=490	y=133	w=25	h=24
+center	c=13.609006%	x=490	y=142	w=22	h=24
+center	c=3.681797%	x=491	y=191	w=25	h=21
+pin: 1.942430%	x=491 y=191 w=25 h=21
+pin	c=1.023555%	x=492	y=205	w=38	h=26
+center	c=9.492214%	x=507	y=128	w=34	h=24
+pin	c=1.649964%	x=515	y=210	w=26	h=48
+small gear	c=3.911851%	x=516	y=203	w=22	h=26
+red light: 2.876832%	x=516 y=203 w=22 h=26
+medium gear: 3.630657%	x=516 y=203 w=22 h=26
+center	c=26.213377%	x=516	y=154	w=24	h=25
+pin: 4.212740%	x=516 y=154 w=24 h=25
+pin	c=62.904930%	x=517	y=203	w=20	h=20
+center	c=2.412370%	x=518	y=203	w=20	h=22
+pin	c=1.051343%	x=518	y=225	w=36	h=27
+pin	c=2.349433%	x=520	y=207	w=30	h=26
+pin	c=9.329278%	x=522	y=201	w=23	h=19
+center: 1.805014%	x=522 y=201 w=23 h=19
+medium gear: 1.229880%	x=522 y=201 w=23 h=19
+red light	c=1.244580%	x=523	y=203	w=19	h=22
+center	c=3.943837%	x=551	y=155	w=22	h=21
+center	c=1.630113%	x=561	y=195	w=19	h=28
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+small gear	c=1.619459%	x=-32	y=85	w=107	h=146
+medium gear: 1.458417%	x=-32 y=85 w=107 h=146
+medium gear	c=4.182950%	x=-18	y=35	w=204	h=232
+small gear: 1.194986%	x=-18 y=35 w=204 h=232
+red light	c=2.307026%	x=-16	y=122	w=41	h=31
+red light	c=7.324709%	x=-13	y=133	w=63	h=45
+small gear: 1.003647%	x=-13 y=133 w=63 h=45
+red light	c=1.477133%	x=4	y=175	w=44	h=38
+red light	c=64.065109%	x=49	y=136	w=43	h=38
+pin: 1.638583%	x=49 y=136 w=43 h=38
+center: 3.385278%	x=49 y=136 w=43 h=38
+small gear: 1.960739%	x=49 y=136 w=43 h=38
+red light	c=1.820781%	x=50	y=165	w=49	h=42
+medium gear	c=5.445179%	x=62	y=44	w=129	h=174
+small gear: 2.082928%	x=62 y=44 w=129 h=174
+red light	c=23.679264%	x=62	y=139	w=30	h=25
+center: 1.444142%	x=62 y=139 w=30 h=25
+red light	c=7.714728%	x=68	y=131	w=36	h=32
+medium gear	c=1.970957%	x=72	y=39	w=104	h=104
+small gear: 1.222690%	x=72 y=39 w=104 h=104
+red light	c=1.493454%	x=79	y=173	w=35	h=28
+red light	c=2.203048%	x=126	y=139	w=25	h=33
+red light	c=1.105118%	x=181	y=188	w=35	h=36
+red light	c=1.948988%	x=182	y=156	w=34	h=27
+small gear	c=1.389948%	x=200	y=63	w=146	h=165
+red light	c=1.526137%	x=219	y=161	w=51	h=13
+small gear	c=2.558519%	x=222	y=115	w=116	h=84
+red light	c=2.144806%	x=228	y=151	w=30	h=22
+small gear	c=1.819547%	x=229	y=0	w=156	h=199
+red light	c=1.053905%	x=229	y=180	w=27	h=36
+small gear	c=1.334246%	x=239	y=18	w=234	h=164
+small gear	c=13.864194%	x=248	y=65	w=145	h=161
+medium gear: 1.296556%	x=248 y=65 w=145 h=161
+small gear	c=4.778587%	x=249	y=106	w=203	h=153
+small gear	c=1.556402%	x=265	y=132	w=289	h=60
+red light	c=1.415977%	x=286	y=95	w=122	h=112
+red light	c=1.084526%	x=287	y=146	w=28	h=20
+medium gear	c=1.430392%	x=290	y=94	w=117	h=121
+small gear	c=79.916969%	x=292	y=101	w=119	h=115
+small gear	c=1.114372%	x=310	y=66	w=167	h=233
+small gear	c=2.242593%	x=311	y=26	w=97	h=131
+small gear	c=1.273324%	x=317	y=134	w=130	h=86
+medium gear	c=1.637499%	x=321	y=43	w=361	h=110
+small gear	c=1.038627%	x=324	y=-29	w=166	h=237
+small gear	c=9.239991%	x=349	y=92	w=73	h=132
+medium gear: 3.342183%	x=349 y=92 w=73 h=132
+pin	c=1.049415%	x=350	y=138	w=36	h=26
+medium gear	c=1.104128%	x=366	y=-10	w=179	h=202
+medium gear	c=84.963943%	x=389	y=58	w=207	h=190
+medium gear	c=3.813253%	x=395	y=76	w=111	h=180
+medium gear	c=9.250716%	x=396	y=145	w=236	h=99
+red light	c=1.870180%	x=408	y=33	w=203	h=224
+pin: 1.844596%	x=408 y=33 w=203 h=224
+small gear: 1.630501%	x=408 y=33 w=203 h=224
+medium gear	c=21.098356%	x=427	y=96	w=144	h=199
+medium gear	c=15.049110%	x=431	y=140	w=151	h=77
+medium gear	c=3.086946%	x=436	y=10	w=176	h=190
+pin	c=3.908805%	x=437	y=149	w=25	h=24
+center: 2.180369%	x=437 y=149 w=25 h=24
+pin	c=1.555690%	x=452	y=122	w=19	h=30
+center: 1.440774%	x=452 y=122 w=19 h=30
+medium gear	c=3.669595%	x=470	y=69	w=198	h=222
+center	c=2.005842%	x=472	y=200	w=21	h=20
+pin	c=1.233794%	x=473	y=218	w=39	h=34
+small gear	c=1.600358%	x=473	y=200	w=21	h=28
+small gear	c=2.920869%	x=474	y=198	w=21	h=20
+pin	c=68.276649%	x=474	y=200	w=22	h=19
+medium gear	c=2.562692%	x=474	y=200	w=21	h=20
+pin	c=3.352739%	x=475	y=201	w=30	h=27
+pin	c=12.994224%	x=476	y=203	w=17	h=25
+red light: 1.215178%	x=476 y=203 w=17 h=25
+red light	c=1.950331%	x=476	y=200	w=20	h=20
+center	c=2.354212%	x=476	y=197	w=23	h=18
+pin	c=1.769565%	x=479	y=209	w=22	h=47
+pin	c=1.744963%	x=480	y=208	w=23	h=16
+center	c=1.207653%	x=483	y=82	w=27	h=38
+center	c=9.247902%	x=493	y=134	w=23	h=26
+center	c=17.216208%	x=496	y=140	w=24	h=32
+pin: 1.441636%	x=496 y=140 w=24 h=32
+center	c=8.107127%	x=503	y=131	w=30	h=27
+center	c=10.796753%	x=505	y=142	w=26	h=25
+center	c=2.866378%	x=520	y=181	w=21	h=30
+center	c=1.395925%	x=553	y=194	w=35	h=20
+center	c=3.230964%	x=553	y=158	w=25	h=25
+pin: 1.562752%	x=553 y=158 w=25 h=25
+Enter Image Path: Detection layer #90 is type 17 (yolo)
+Detection layer #94 is type 17 (yolo)
+Detection layer #98 is type 17 (yolo)
+medium gear	c=3.761277%	x=-42	y=74	w=137	h=161
+red light: 1.293203%	x=-42 y=74 w=137 h=161
+small gear: 2.543257%	x=-42 y=74 w=137 h=161
+medium gear	c=3.678229%	x=-24	y=24	w=204	h=262
+small gear: 1.942702%	x=-24 y=24 w=204 h=262
+red light	c=19.258619%	x=-14	y=140	w=48	h=38
+pin: 2.091329%	x=-14 y=140 w=48 h=38
+small gear: 2.446129%	x=-14 y=140 w=48 h=38
+medium gear: 1.515424%	x=-14 y=140 w=48 h=38
+red light	c=3.896562%	x=-13	y=123	w=31	h=42
+red light	c=1.662202%	x=-1	y=176	w=39	h=40
+red light	c=2.549807%	x=43	y=172	w=52	h=30
+red light	c=4.972671%	x=44	y=128	w=38	h=21
+red light	c=4.944566%	x=46	y=120	w=37	h=45
+red light	c=21.560728%	x=47	y=138	w=44	h=31
+center: 1.733088%	x=47 y=138 w=44 h=31
+medium gear	c=7.479946%	x=55	y=28	w=148	h=232
+red light: 1.372006%	x=55 y=28 w=148 h=232
+pin: 1.292655%	x=55 y=28 w=148 h=232
+small gear: 3.026564%	x=55 y=28 w=148 h=232
+medium gear	c=1.045707%	x=61	y=24	w=125	h=157
+red light	c=65.789047%	x=81	y=140	w=42	h=33
+pin: 3.003845%	x=81 y=140 w=42 h=33
+center: 2.625941%	x=81 y=140 w=42 h=33
+small gear: 3.565861%	x=81 y=140 w=42 h=33
+red light	c=2.227596%	x=83	y=160	w=57	h=53
+red light	c=1.735950%	x=98	y=177	w=43	h=30
+medium gear	c=1.956475%	x=102	y=36	w=138	h=193
+small gear: 1.202556%	x=102 y=36 w=138 h=193
+red light	c=1.123634%	x=117	y=139	w=44	h=14
+red light	c=2.027693%	x=119	y=124	w=29	h=24
+red light	c=11.910302%	x=121	y=143	w=24	h=33
+center: 1.583958%	x=121 y=143 w=24 h=33
+red light	c=5.566785%	x=122	y=153	w=28	h=15
+red light	c=1.103907%	x=130	y=179	w=32	h=24
+red light	c=2.085786%	x=179	y=152	w=25	h=25
+red light	c=1.020116%	x=182	y=160	w=35	h=15
+small gear	c=1.246629%	x=185	y=84	w=138	h=126
+small gear	c=2.993387%	x=225	y=108	w=331	h=114
+small gear	c=4.292797%	x=226	y=133	w=215	h=110
+small gear	c=1.692963%	x=232	y=68	w=59	h=161
+small gear	c=1.625044%	x=241	y=-27	w=124	h=247
+small gear	c=12.140063%	x=251	y=87	w=140	h=140
+small gear	c=1.133930%	x=251	y=21	w=215	h=155
+red light	c=1.422102%	x=293	y=121	w=121	h=90
+small gear	c=75.340057%	x=293	y=104	w=110	h=108
+medium gear	c=6.577273%	x=316	y=86	w=181	h=143
+small gear	c=19.309309%	x=318	y=91	w=120	h=144
+small gear	c=1.668260%	x=320	y=9	w=76	h=170
+small gear	c=1.695695%	x=330	y=143	w=103	h=104
+medium gear	c=1.113192%	x=338	y=-28	w=169	h=229
+medium gear	c=6.192409%	x=340	y=105	w=108	h=113
+medium gear	c=5.792530%	x=370	y=77	w=157	h=239
+small gear: 3.144138%	x=370 y=77 w=157 h=239
+medium gear	c=80.044617%	x=406	y=71	w=169	h=186
+center	c=1.093970%	x=409	y=27	w=206	h=240
+pin	c=2.146256%	x=414	y=75	w=209	h=195
+red light: 1.809503%	x=414 y=75 w=209 h=195
+small gear: 1.560871%	x=414 y=75 w=209 h=195
+medium gear	c=1.457578%	x=427	y=162	w=207	h=158
+medium gear	c=1.485887%	x=435	y=17	w=164	h=203
+medium gear	c=12.594748%	x=442	y=117	w=155	h=132
+pin	c=1.818044%	x=447	y=177	w=31	h=36
+center	c=4.273009%	x=450	y=142	w=24	h=27
+pin: 2.197703%	x=450 y=142 w=24 h=27
+center	c=1.156402%	x=454	y=122	w=16	h=36
+medium gear	c=6.262324%	x=464	y=57	w=204	h=250
+center	c=18.211506%	x=482	y=141	w=20	h=24
+center	c=7.525104%	x=484	y=137	w=27	h=25
+pin	c=3.881252%	x=496	y=199	w=22	h=20
+center	c=1.401973%	x=497	y=203	w=27	h=25
+small gear: 1.034872%	x=497 y=203 w=27 h=25
+center	c=2.699106%	x=500	y=200	w=20	h=20
+pin	c=14.059920%	x=500	y=201	w=23	h=29
+pin	c=14.652075%	x=503	y=198	w=21	h=22
+pin	c=66.240936%	x=505	y=204	w=23	h=24
+medium gear	c=3.376051%	x=507	y=205	w=24	h=22
+red light: 3.344725%	x=507 y=205 w=24 h=22
+center: 2.334845%	x=507 y=205 w=24 h=22
+small gear: 3.282725%	x=507 y=205 w=24 h=22
+center	c=8.297523%	x=508	y=129	w=32	h=29
+pin: 1.108860%	x=508 y=129 w=32 h=29
+pin	c=1.257065%	x=514	y=220	w=40	h=33
+center	c=26.323751%	x=517	y=155	w=22	h=23
+pin: 6.171570%	x=517 y=155 w=22 h=23
+pin	c=1.037969%	x=521	y=213	w=23	h=39
+center	c=4.611804%	x=551	y=156	w=25	h=23
+center	c=1.416639%	x=556	y=196	w=29	h=28
+Enter Image Path: 
