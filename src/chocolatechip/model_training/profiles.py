@@ -290,6 +290,34 @@ PROFILES = {
         ),
     ),
 
+    "FisheyeTrafficUltralyticsLocal": TrainProfile(
+        name="FisheyeTrafficUltralyticsLocal",
+        backend="ultralytics",
+        data_path="",      
+        cfg_out="",         
+        width=960, height=736,
+        batch_size=64, subdivisions=16,
+        iterations=8000, learning_rate=0.00261,
+        templates=(),
+        val_fracs=(0.10,),
+        sweep_keys=("num_gpus",),
+        sweep_values={"num_gpus": (1,)},
+        dataset=DatasetSpec(
+            root="/blue/ranka/j.fleischer/annotation_data",  
+            sets=tuple(),
+            classes=5,
+            names="obj.names",
+            prefix="combined",
+            split_seed=9001,
+            exts=(".jpg", ".png"),
+            require_existing=True,       # keep this
+            flat_dir="darkmark_image_cache/resize",
+        ),
+        epochs=None,
+        ultra_data="",
+        ultra_model="yolo11n.pt"
+    ),
+
 }
 
 def get_profile(key: str) -> TrainProfile:
