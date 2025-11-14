@@ -1,0 +1,131 @@
+{
+  "params": {
+    "iou_thresh": 0.5,
+    "conf_thresh": 0.5
+  },
+  "classes": [
+    "red light",
+    "pin",
+    "center",
+    "small gear",
+    "medium gear"
+  ],
+  "matrix": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "red light",
+      "TP": 0,
+      "FP": 0,
+      "FN": 22,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "GT_total": 22
+    },
+    {
+      "class": "pin",
+      "TP": 0,
+      "FP": 0,
+      "FN": 25,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "GT_total": 25
+    },
+    {
+      "class": "center",
+      "TP": 0,
+      "FP": 0,
+      "FN": 32,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "GT_total": 32
+    },
+    {
+      "class": "small gear",
+      "TP": 0,
+      "FP": 0,
+      "FN": 25,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "GT_total": 25
+    },
+    {
+      "class": "medium gear",
+      "TP": 0,
+      "FP": 0,
+      "FN": 32,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "GT_total": 32
+    }
+  ],
+  "totals": {
+    "TP": 0,
+    "FP": 0,
+    "FN": 136
+  },
+  "micro": {
+    "precision": null,
+    "recall": 0.0,
+    "f1": null
+  },
+  "macro": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0
+  },
+  "csv_cols": {
+    "CM_IoU_Thresh": 0.5,
+    "CM_Conf_Thresh": 0.5,
+    "CM_Classes": 5,
+    "CM_TotalTP": 0,
+    "CM_TotalFP": 0,
+    "CM_TotalFN": 136,
+    "CM_MicroPrecision": null,
+    "CM_MicroRecall": 0.0,
+    "CM_MicroF1": null,
+    "CM_MacroPrecision": 0.0,
+    "CM_MacroRecall": 0.0,
+    "CM_MacroF1": 0.0
+  }
+}
