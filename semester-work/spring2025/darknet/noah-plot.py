@@ -255,7 +255,7 @@ def main():
     parser.add_argument(
         "--out",
         type=str,
-        default="coco_ap5095_boxplot_by_yolo_val.png",
+        default="coco_ap5095_boxplot_by_yolo_val.pdf",
         help="Path to save the plot image.",
     )
     args = parser.parse_args()
