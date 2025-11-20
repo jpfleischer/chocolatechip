@@ -1,0 +1,131 @@
+{
+  "params": {
+    "iou_thresh": 0.5,
+    "conf_thresh": 0.5
+  },
+  "classes": [
+    "color",
+    "cut",
+    "fold",
+    "glue",
+    "poke"
+  ],
+  "matrix": [
+    [
+      22,
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      26,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      23,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      21,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      28
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "color",
+      "TP": 22,
+      "FP": 1,
+      "FN": 1,
+      "precision": 0.9565217391304348,
+      "recall": 0.9565217391304348,
+      "f1": 0.9565217391304348,
+      "GT_total": 23
+    },
+    {
+      "class": "cut",
+      "TP": 26,
+      "FP": 1,
+      "FN": 1,
+      "precision": 0.9629629629629629,
+      "recall": 0.9629629629629629,
+      "f1": 0.9629629629629629,
+      "GT_total": 27
+    },
+    {
+      "class": "fold",
+      "TP": 23,
+      "FP": 0,
+      "FN": 4,
+      "precision": 1.0,
+      "recall": 0.8518518518518519,
+      "f1": 0.92,
+      "GT_total": 27
+    },
+    {
+      "class": "glue",
+      "TP": 21,
+      "FP": 3,
+      "FN": 4,
+      "precision": 0.875,
+      "recall": 0.84,
+      "f1": 0.8571428571428572,
+      "GT_total": 25
+    },
+    {
+      "class": "poke",
+      "TP": 28,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 28
+    }
+  ],
+  "totals": {
+    "TP": 120,
+    "FP": 5,
+    "FN": 10
+  },
+  "micro": {
+    "precision": 0.96,
+    "recall": 0.9230769230769231,
+    "f1": 0.9411764705882353
+  },
+  "macro": {
+    "precision": 0.9588969404186796,
+    "recall": 0.9222673107890499,
+    "f1": 0.939325511847251
+  },
+  "csv_cols": {
+    "CM_IoU_Thresh": 0.5,
+    "CM_Conf_Thresh": 0.5,
+    "CM_Classes": 5,
+    "CM_TotalTP": 120,
+    "CM_TotalFP": 5,
+    "CM_TotalFN": 10,
+    "CM_MicroPrecision": 0.96,
+    "CM_MicroRecall": 0.9230769230769231,
+    "CM_MicroF1": 0.9411764705882353,
+    "CM_MacroPrecision": 0.9588969404186796,
+    "CM_MacroRecall": 0.9222673107890499,
+    "CM_MacroF1": 0.939325511847251
+  }
+}
