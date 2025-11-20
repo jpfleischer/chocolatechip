@@ -3,9 +3,9 @@
 #SBATCH --output=%u_%x_%j.out
 #SBATCH --error=%u_%x_%j.out
 #SBATCH --gres=gpu:1
-#SBATCH --time=03:45:00
-#SBATCH --mem=32gb
-
+#SBATCH --time=1-03:45:00
+#SBATCH --mem=64gb
+#SBATCH --partition=hpg-b200
 
 set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"
