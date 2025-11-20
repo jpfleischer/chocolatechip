@@ -28,4 +28,4 @@ From: ultralytics/ultralytics:latest
     chmod -R a+rwX /workspace /outputs /ultralytics/.cache
 
 %runscript
-    exec bash -lc "python -u -m chocolatechip.model_training.train --profile LeatherUltra"
+    exec bash -lc "python -u -m chocolatechip.model_training.train --profile FisheyeTrafficUltralyticsLocal"
