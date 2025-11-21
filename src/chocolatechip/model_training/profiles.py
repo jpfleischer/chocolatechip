@@ -258,6 +258,7 @@ PROFILES = {
             exts=(".jpg", ".png"),
             url="https://g-665dcc.55ba.08cc.data.globus.org/leather_oct_25.zip",
             sha256="87fba3c49bce7342af51e1fe6df5a470862f201c0e8e25bf3ea80a0c6f238d8c",
+            flat_dir="darkmark_image_cache/resize",
         ),
         epochs=None,
         ultra_data="",
