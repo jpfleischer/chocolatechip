@@ -173,11 +173,11 @@ def main():
     else:
         print(f"\n✓ All training runs have consistent totals within each dataset/profile/val_fraction combination")
     
-    print("-" * 120)
+    print("-" * 140)
 
-    # Group by framework, yolo_type, dataset, profile, and val_fraction, calculate averages
+    # Group by dataset, val_fraction, framework, then other dimensions
     summary = (
-        df.groupby(["framework", "yolo_type", "dataset", "profile", "val_fraction"])
+        df.groupby(["dataset", "val_fraction", "framework", "yolo_type", "profile"])
           .agg(
               count=("tp", "size"),
               avg_tp=("tp", "mean"),
@@ -187,11 +187,14 @@ def main():
           .reset_index()
     )
 
-    print("Framework | YOLO Type | Dataset      | Profile        | Val Frac | Count | Avg TP | Avg FP | Avg FN")
-    print("-" * 120)
+    # Sort by dataset, validation fraction, then framework (darknet first)
+    summary = summary.sort_values(['dataset', 'val_fraction', 'framework', 'yolo_type', 'profile'])
+
+    print("Dataset      | Val Frac | Framework | YOLO Type | Profile        | Count | Avg TP | Avg FP | Avg FN")
+    print("-" * 140)
 
     for _, row in summary.iterrows():
-        print(f"{row['framework']:<9} | {row['yolo_type']:<9} | {row['dataset']:<12} | {row['profile']:<14} | {row['val_fraction']:<8} | {int(row['count']):<5} | "
+        print(f"{row['dataset']:<12} | {row['val_fraction']:<8} | {row['framework']:<9} | {row['yolo_type']:<9} | {row['profile']:<14} | {int(row['count']):<5} | "
               f"{row['avg_tp']:<6.1f} | {row['avg_fp']:<6.1f} | {row['avg_fn']:<6.1f}")
 
     # LATEX OUTPUT - Separate tables by dataset
