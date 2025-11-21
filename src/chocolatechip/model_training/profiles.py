@@ -245,8 +245,11 @@ PROFILES = {
         templates=(),
         tag_color_preset=True,
         val_fracs=(0.20,),
-        sweep_keys=("num_gpus",),
-        sweep_values={"num_gpus": (1,)},
+        sweep_keys=("num_gpus", "ultra_model"),
+        sweep_values={
+            "num_gpus": (1,),
+            "ultra_model": ("yolo11n.pt", "yolo11s.pt"),
+        },
         dataset=DatasetSpec(
             root="/workspace/leather",
             sets=("color", "cut", "fold", "glue", "poke", "good_1", "good_2"),
