@@ -47,7 +47,7 @@ outputs:
 logs:
 	@docker logs -f $(CONTAINER_NAME)
 
-stop:
+stop down:
 	@docker rm -f $(CONTAINER_NAME) >/dev/null 2>&1 || true
 
 
