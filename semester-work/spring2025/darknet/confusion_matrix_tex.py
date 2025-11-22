@@ -120,7 +120,7 @@ def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
 
                     # --- Find valid split file and hash it ---
                     valid_path = find_valid_file(root, max_up=5)
-                    valid_hash = file_sha1(valid_path) if valid_path else "missing"
+                    valid_sig = valid_basename_signature(valid_path) if valid_path else None
 
                     
                     records.append(
@@ -137,7 +137,7 @@ def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
                             "total": float(total),
                             "jaccard": jaccard,
                             "valid_path": valid_path or "missing",
-                            "valid_hash": valid_hash,
+                            "valid_sig": valid_sig,
                             "source_csv": csv_path,
                             "source_dir": root,
                         }
@@ -170,6 +170,23 @@ def file_sha1(path: str) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def valid_basename_signature(path: str):
+    """
+    Read valid.txt and return a tuple of basenames, in order.
+    Blank lines / comments are ignored.
+    Two valid.txt are considered identical if this tuple matches.
+    """
+    names = []
+    with open(path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            names.append(Path(line).name)  # <-- only the filename at the end
+    return tuple(names)
+
 
 
 def escape_latex(text):
@@ -237,17 +254,20 @@ def main():
             total_outliers.append((dataset, val_fraction, expected_total, bad_total_df))
 
         # ---- valid.txt must match ----
-        valid_hashes = combo_df["valid_hash"].unique().tolist()
+        valid_sigs = combo_df["valid_sig"].dropna().unique().tolist()
 
-        if len(valid_hashes) == 1 and valid_hashes[0] != "missing":
-            print("    ✓ valid.txt is identical across runs")
+        if len(valid_sigs) == 1:
+            print("    ✓ valid.txt basenames identical across runs")
         else:
-            print("    ✗ valid.txt mismatch detected")
+            print("    ✗ valid.txt basename mismatch detected")
             valid_outliers.append((dataset, val_fraction, combo_df))
 
-            valid_groups = combo_df.groupby(["valid_hash"]).size().reset_index(name="count")
-            for _, r in valid_groups.iterrows():
-                print(f"      valid_hash={r['valid_hash']}  ({r['count']} runs)")
+            valid_groups = combo_df.groupby("valid_sig").size().reset_index(name="count")
+            for i, r in valid_groups.iterrows():
+                sig = r["valid_sig"]
+                preview = ", ".join(sig[:3]) + ("..." if len(sig) > 3 else "")
+                print(f"      group {i}: ({r['count']} runs) e.g. {preview}")
+
 
     if total_outliers:
         print("\nRuns with non-standard TP+FN totals:")
@@ -259,12 +279,36 @@ def main():
         print("\n✓ All TP+FN totals consistent per dataset+val_fraction")
 
     if valid_outliers:
-        print("\nRuns with valid.txt mismatches:")
+        print("\nRuns with valid.txt mismatches (one example per basename-group, up to 2 groups):")
         for dataset, val_fraction, bad_df in valid_outliers:
             print(f"\n  Dataset: {dataset}, Val Fraction: {val_fraction}")
-            # for _, r in bad_df[["source_dir", "valid_path", "valid_hash"]].drop_duplicates().iterrows():
-            #     print(f"    {r['source_dir']}")
-            #     print(f"      valid: {r['valid_path']}  hash={r['valid_hash']}")
+
+            tmp = bad_df.dropna(subset=["valid_sig"]).copy()
+
+            # Find the two most common distinct basename-signatures
+            counts = tmp["valid_sig"].value_counts()
+            top_sigs = counts.index.tolist()[:2]
+
+            if len(top_sigs) < 2:
+                print("    Only one basename-group found.")
+                continue
+
+            for idx, sig in enumerate(top_sigs, start=1):
+                example = (
+                    tmp[tmp["valid_sig"] == sig][["source_dir", "valid_path"]]
+                    .drop_duplicates()
+                    .sort_values("source_dir")
+                    .head(1)
+                )
+                if example.empty:
+                    continue
+
+                r = example.iloc[0]
+                preview = ", ".join(sig[:5]) + ("..." if len(sig) > 5 else "")
+                print(f"    Example group {idx} ({counts[sig]} runs):")
+                print(f"      {r['source_dir']}")
+                print(f"        valid: {r['valid_path']}")
+                print(f"        basenames start: {preview}")
     else:
         print("\n✓ All valid.txt splits consistent per dataset+val_fraction")
 
