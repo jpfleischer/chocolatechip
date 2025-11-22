@@ -926,9 +926,47 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Train with a named profile (profiles may contain multiple templates).")
     ap.add_argument("--profile", default="LegoGearsDarknet", help="Profile name in profiles.PROFILES")
+
+    #cloudmesh ee
+    ap.add_argument("--template", default=None, help="Darknet template override (e.g., yolov7-tiny)")
+    ap.add_argument("--val-frac", type=float, default=None, help="Validation fraction override")
+    ap.add_argument("--num-gpus", type=int, default=None, help="Request N GPUs")
+    ap.add_argument("--color-preset", default=None, help="Color preset override")
+    ap.add_argument("--ultra-model", default=None, help="Ultralytics model override")
+    ap.add_argument("--no-sweep", action="store_true",
+                    help="Force single-run even if profile has sweep_keys")
     args = ap.parse_args()
 
     p = get_profile(args.profile)
+
+    #cloudmesh ee
+    overrides_used = False
+
+    if args.template is not None:
+        p = replace(p, template=args.template, templates=())
+        overrides_used = True
+
+    if args.val_frac is not None:
+        p = replace(p, val_fracs=(float(args.val_frac),))
+        overrides_used = True
+
+    if args.num_gpus is not None:
+        p = replace(p, num_gpus=int(args.num_gpus))
+        overrides_used = True
+
+    if args.color_preset is not None:
+        p = replace(p, color_preset=args.color_preset, color_presets=(args.color_preset,))
+        overrides_used = True
+
+    if args.ultra_model is not None:
+        p = replace(p, ultra_model=args.ultra_model)
+        overrides_used = True
+
+    # If ee is driving params, don't double-sweep:
+    if args.no_sweep or overrides_used:
+        p = replace(p, sweep_keys=(), sweep_values={})
+
+    ###
 
         
     # new (no helpers, single inline check)
