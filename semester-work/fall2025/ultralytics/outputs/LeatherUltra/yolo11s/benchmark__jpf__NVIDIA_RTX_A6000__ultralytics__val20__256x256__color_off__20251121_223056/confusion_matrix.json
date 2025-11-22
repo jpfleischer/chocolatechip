@@ -1,0 +1,131 @@
+{
+  "params": {
+    "iou_thresh": 0.5,
+    "conf_thresh": 0.5
+  },
+  "classes": [
+    "color",
+    "cut",
+    "fold",
+    "glue",
+    "poke"
+  ],
+  "matrix": [
+    [
+      23,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      27,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      27,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      23,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      28
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "color",
+      "TP": 23,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 23
+    },
+    {
+      "class": "cut",
+      "TP": 27,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 27
+    },
+    {
+      "class": "fold",
+      "TP": 27,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 27
+    },
+    {
+      "class": "glue",
+      "TP": 23,
+      "FP": 1,
+      "FN": 2,
+      "precision": 0.9583333333333334,
+      "recall": 0.92,
+      "f1": 0.9387755102040817,
+      "GT_total": 25
+    },
+    {
+      "class": "poke",
+      "TP": 28,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 28
+    }
+  ],
+  "totals": {
+    "TP": 128,
+    "FP": 1,
+    "FN": 2
+  },
+  "micro": {
+    "precision": 0.9922480620155039,
+    "recall": 0.9846153846153847,
+    "f1": 0.9884169884169884
+  },
+  "macro": {
+    "precision": 0.9916666666666667,
+    "recall": 0.984,
+    "f1": 0.9877551020408163
+  },
+  "csv_cols": {
+    "CM_IoU_Thresh": 0.5,
+    "CM_Conf_Thresh": 0.5,
+    "CM_Classes": 5,
+    "CM_TotalTP": 128,
+    "CM_TotalFP": 1,
+    "CM_TotalFN": 2,
+    "CM_MicroPrecision": 0.9922480620155039,
+    "CM_MicroRecall": 0.9846153846153847,
+    "CM_MicroF1": 0.9884169884169884,
+    "CM_MacroPrecision": 0.9916666666666667,
+    "CM_MacroRecall": 0.984,
+    "CM_MacroF1": 0.9877551020408163
+  }
+}

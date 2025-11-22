@@ -1,0 +1,131 @@
+{
+  "params": {
+    "iou_thresh": 0.5,
+    "conf_thresh": 0.5
+  },
+  "classes": [
+    "color",
+    "cut",
+    "fold",
+    "glue",
+    "poke"
+  ],
+  "matrix": [
+    [
+      23,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      27,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      27,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      24,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      28
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "color",
+      "TP": 23,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 23
+    },
+    {
+      "class": "cut",
+      "TP": 27,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 27
+    },
+    {
+      "class": "fold",
+      "TP": 27,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 27
+    },
+    {
+      "class": "glue",
+      "TP": 24,
+      "FP": 1,
+      "FN": 1,
+      "precision": 0.96,
+      "recall": 0.96,
+      "f1": 0.96,
+      "GT_total": 25
+    },
+    {
+      "class": "poke",
+      "TP": 28,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 28
+    }
+  ],
+  "totals": {
+    "TP": 129,
+    "FP": 1,
+    "FN": 1
+  },
+  "micro": {
+    "precision": 0.9923076923076923,
+    "recall": 0.9923076923076923,
+    "f1": 0.9923076923076923
+  },
+  "macro": {
+    "precision": 0.992,
+    "recall": 0.992,
+    "f1": 0.992
+  },
+  "csv_cols": {
+    "CM_IoU_Thresh": 0.5,
+    "CM_Conf_Thresh": 0.5,
+    "CM_Classes": 5,
+    "CM_TotalTP": 129,
+    "CM_TotalFP": 1,
+    "CM_TotalFN": 1,
+    "CM_MicroPrecision": 0.9923076923076923,
+    "CM_MicroRecall": 0.9923076923076923,
+    "CM_MicroF1": 0.9923076923076923,
+    "CM_MacroPrecision": 0.992,
+    "CM_MacroRecall": 0.992,
+    "CM_MacroF1": 0.992
+  }
+}
