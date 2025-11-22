@@ -5,6 +5,24 @@ import pandas as pd
 from typing import List
 import re
 
+import subprocess
+from pathlib import Path
+
+
+def git_repo_root() -> Path:
+    """
+    Return git toplevel (repo root). If not in a git repo, fall back to CWD.
+    """
+    try:
+        out = subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"],
+            stderr=subprocess.DEVNULL,
+            text=True
+        ).strip()
+        return Path(out)
+    except Exception:
+        return Path.cwd()
+
 def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
     """
     Walk one or more base_dirs, read benchmark__*.csv, and collect confusion totals
@@ -110,23 +128,25 @@ def escape_latex(text):
 
 
 def main():
+    repo_root = git_repo_root()
+
     default_bases = [
-        "/home/artur/chocolatechip/semester-work/spring2025/darknet",
-        "/home/artur/chocolatechip/semester-work/fall2025/ultralytics"
+        repo_root / "semester-work" / "spring2025" / "darknet",
+        repo_root / "semester-work" / "fall2025" / "ultralytics",
     ]
+
     parser = argparse.ArgumentParser(
         description="Compare confusion totals across YOLO versions and frameworks."
     )
     parser.add_argument(
         "--base-dir",
         type=str,
-        nargs="+",  # allow one or more dirs
-        default=default_bases,
+        nargs="+",
+        default=[str(p) for p in default_bases],
         help="One or more base output directories to scan for benchmark CSVs."
     )
     args = parser.parse_args()
 
-    # Validate dirs
     for d in args.base_dir:
         if not os.path.isdir(d):
             raise SystemExit(f"Base directory not found: {d}")
