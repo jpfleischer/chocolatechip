@@ -933,8 +933,16 @@ if __name__ == "__main__":
     ap.add_argument("--num-gpus", type=int, default=None, help="Request N GPUs")
     ap.add_argument("--color-preset", default=None, help="Color preset override")
     ap.add_argument("--ultra-model", default=None, help="Ultralytics model override")
+
+    ap.add_argument(
+        "--dataset-root",
+        default=None,
+        help="Override p.dataset.root. If relative, it will be resolved under $DATA_ROOT inside container."
+    )
+
     ap.add_argument("--no-sweep", action="store_true",
                     help="Force single-run even if profile has sweep_keys")
+
     args = ap.parse_args()
 
     p = get_profile(args.profile)
@@ -961,6 +969,29 @@ if __name__ == "__main__":
     if args.ultra_model is not None:
         p = replace(p, ultra_model=args.ultra_model)
         overrides_used = True
+
+    if args.dataset_root is not None:
+        if getattr(p, "dataset", None) is None:
+            print("[dataset-root] profile has no dataset spec; ignoring override.")
+        else:
+            ds = p.dataset
+            ds = replace(ds, root=args.dataset_root)
+            p = replace(p, dataset=ds)
+            overrides_used = True
+            print(f"[dataset-root] using root override: {args.dataset_root}")
+
+    if getattr(p, "dataset", None) is not None:
+        ds = p.dataset
+        if ds.require_existing:
+            r = Path(ds.root)
+            # If they passed relative, let later normalization happen;
+            # but if absolute and missing, fail early.
+            if r.is_absolute() and not r.exists():
+                raise FileNotFoundError(
+                    f"--dataset-root points to missing path: {ds.root} "
+                    f"(profile {p.name} has require_existing=True)"
+                )
+
 
     # If ee is driving params, don't double-sweep:
     if args.no_sweep or overrides_used:
