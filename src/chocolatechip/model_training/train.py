@@ -180,6 +180,12 @@ def read_ultra_counts(output_dir: str, yaml_path: str | None = None) -> tuple[in
 # ---------- cfg generation (darknet) ----------
 def generate_cfg(p: TrainProfile, template: str) -> None:
     print(f"[cfg] template={template} -> {p.cfg_out}")
+
+    # Hard-force multiscale ONLY for exact v7 templates.
+    # Everything else keeps template defaults.
+    rm = 1 if template in ("yolov7",) else None
+
+
     generate_cfg_file(
         template=template,
         data_path=p.data_path,
@@ -189,6 +195,7 @@ def generate_cfg(p: TrainProfile, template: str) -> None:
         iterations=p.iterations, learning_rate=p.learning_rate,
         anchor_clusters=None,
         color_preset=p.color_preset,   # <- single, purposeful knob
+        random_multiscale=rm,
     )
 
 
