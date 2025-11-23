@@ -306,6 +306,7 @@ def transform_cfg_from_text(template_text: str, *,
                             iterations: int, learning_rate: float,
                             color_preset: Optional[str],
                             flip: int, angle: int, mosaic: int, cutmix: int, mixup: int,
+                            random_multiscale: Optional[int] = None,
                             write_counters_per_class: bool,
                             anchors_wh: List[Tuple[float,float]],
                             counters_per_class: List[int],
@@ -422,6 +423,10 @@ def transform_cfg_from_text(template_text: str, *,
         section_key_set(lines, ys, ye, "anchors", anchors_csv)
         section_key_set(lines, ys, ye, "num", str(total_num))
 
+        # Force multiscale if requested (random=1/0 in each [yolo])
+        if random_multiscale is not None:
+            section_key_set(lines, ys, ye, "random", str(int(random_multiscale)))
+
         # # ---- v7-tiny stabilizers on each YOLO head ----
         # these needed to be changed to give leather dataset a shot. otherwise mAP was really bad
         #
@@ -490,6 +495,7 @@ def generate_cfg_file(
     mosaic: int = 0,
     cutmix: int = 0,
     mixup: int = 0,
+    random_multiscale: Optional[int] = None,
     write_counters_per_class: bool = False,
     anchor_clusters: int | None = None,
 ) -> str:
@@ -525,6 +531,7 @@ def generate_cfg_file(
         iterations=iterations, learning_rate=learning_rate,
         color_preset=color_preset,
         flip=flip, angle=angle, mosaic=mosaic, cutmix=cutmix, mixup=mixup,
+        random_multiscale=random_multiscale,
         write_counters_per_class=write_counters_per_class,
         anchors_wh=anchors_wh, counters_per_class=counters_per_class,
         anchor_clusters=anchor_clusters,
@@ -561,6 +568,10 @@ def main():
     ap.add_argument("--mosaic",    type=int,   default=0)
     ap.add_argument("--cutmix",    type=int,   default=0)
     ap.add_argument("--mixup",     type=int,   default=0)
+    ap.add_argument(
+        "--random", type=int, default=None, choices=[0, 1],
+        help="Set random=1/0 in each [yolo] block (multiscale). Omit to keep template value."
+    )
     ap.add_argument("--write-counters-per-class", action="store_true",
                     help="also write counters_per_class=<csv> into [net]")
 
@@ -624,6 +635,7 @@ def main():
         iterations=args.iterations, learning_rate=args.learning_rate,
         color_preset=args.color_preset,
         flip=args.flip, angle=args.angle, mosaic=args.mosaic, cutmix=args.cutmix, mixup=args.mixup,
+        random_multiscale=args.random,
         write_counters_per_class=args.write_counters_per_class,
         anchors_wh=anchors_wh, counters_per_class=counters_per_class,
         anchor_clusters=anchor_clusters,
