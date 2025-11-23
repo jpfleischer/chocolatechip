@@ -1,0 +1,131 @@
+{
+  "params": {
+    "iou_thresh": 0.5,
+    "conf_thresh": 0.5
+  },
+  "classes": [
+    "red light",
+    "pin",
+    "center",
+    "small gear",
+    "medium gear"
+  ],
+  "matrix": [
+    [
+      15,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      24,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      24,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      25,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      32
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "red light",
+      "TP": 15,
+      "FP": 0,
+      "FN": 7,
+      "precision": 1.0,
+      "recall": 0.6818181818181818,
+      "f1": 0.8108108108108109,
+      "GT_total": 22
+    },
+    {
+      "class": "pin",
+      "TP": 24,
+      "FP": 0,
+      "FN": 1,
+      "precision": 1.0,
+      "recall": 0.96,
+      "f1": 0.9795918367346939,
+      "GT_total": 25
+    },
+    {
+      "class": "center",
+      "TP": 24,
+      "FP": 3,
+      "FN": 8,
+      "precision": 0.8888888888888888,
+      "recall": 0.75,
+      "f1": 0.8135593220338982,
+      "GT_total": 32
+    },
+    {
+      "class": "small gear",
+      "TP": 25,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 25
+    },
+    {
+      "class": "medium gear",
+      "TP": 32,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 32
+    }
+  ],
+  "totals": {
+    "TP": 120,
+    "FP": 3,
+    "FN": 16
+  },
+  "micro": {
+    "precision": 0.975609756097561,
+    "recall": 0.8823529411764706,
+    "f1": 0.9266409266409267
+  },
+  "macro": {
+    "precision": 0.9777777777777777,
+    "recall": 0.8783636363636363,
+    "f1": 0.9207923939158806
+  },
+  "csv_cols": {
+    "CM_IoU_Thresh": 0.5,
+    "CM_Conf_Thresh": 0.5,
+    "CM_Classes": 5,
+    "CM_TotalTP": 120,
+    "CM_TotalFP": 3,
+    "CM_TotalFN": 16,
+    "CM_MicroPrecision": 0.975609756097561,
+    "CM_MicroRecall": 0.8823529411764706,
+    "CM_MicroF1": 0.9266409266409267,
+    "CM_MacroPrecision": 0.9777777777777777,
+    "CM_MacroRecall": 0.8783636363636363,
+    "CM_MacroF1": 0.9207923939158806
+  }
+}
