@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 import hashlib
 
-
+import numpy as np
 
 def git_repo_root() -> Path:
     """
@@ -385,6 +385,12 @@ def main():
                 .reset_index(drop=True)
             )
 
+            # Best Jaccard per val_fraction (ties will all be bolded)
+            max_j_per_vf = (
+                leather_latex.groupby("val_fraction")["avg_jaccard"].max().to_dict()
+            )
+
+
             print("\\begin{table}[htbp]")
             print("\\centering")
             print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|}")
@@ -393,9 +399,15 @@ def main():
             print("\\hline")
 
             for _, row in leather_latex.iterrows():
+                max_j = max_j_per_vf.get(row["val_fraction"], row["avg_jaccard"])
+                is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
+
                 j_str = f"{row['avg_jaccard']:.3f}"
                 if (dataset, row["val_fraction"]) in unequal_totals:
                     j_str += "*"
+
+                if is_best:
+                    j_str = f"\\textbf{{{j_str}}}"
 
                 print(
                     f"{escape_latex(row['framework'])} & "
@@ -452,10 +464,17 @@ def main():
                 print(f"\\multicolumn{{7}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\")
                 print("\\hline")
 
+                max_j = g["avg_jaccard"].max()  # best in this val-frac block
+                
                 for _, row in g.iterrows():
+                    is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
+
                     j_str = f"{row['avg_jaccard']:.3f}"
                     if (dataset, vf) in unequal_totals:
                         j_str += "*"
+
+                    if is_best:
+                        j_str = f"\\textbf{{{j_str}}}"
 
                     print(
                         f"{escape_latex(row['framework'])} & "
