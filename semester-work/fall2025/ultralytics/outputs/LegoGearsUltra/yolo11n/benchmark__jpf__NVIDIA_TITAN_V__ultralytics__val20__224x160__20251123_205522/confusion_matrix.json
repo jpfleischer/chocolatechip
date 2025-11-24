@@ -1,0 +1,131 @@
+{
+  "params": {
+    "iou_thresh": 0.5,
+    "conf_thresh": 0.5
+  },
+  "classes": [
+    "red light",
+    "pin",
+    "center",
+    "small gear",
+    "medium gear"
+  ],
+  "matrix": [
+    [
+      6,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      7,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      6,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      8
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "red light",
+      "TP": 6,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 6
+    },
+    {
+      "class": "pin",
+      "TP": 3,
+      "FP": 0,
+      "FN": 3,
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.6666666666666666,
+      "GT_total": 6
+    },
+    {
+      "class": "center",
+      "TP": 7,
+      "FP": 0,
+      "FN": 1,
+      "precision": 1.0,
+      "recall": 0.875,
+      "f1": 0.9333333333333333,
+      "GT_total": 8
+    },
+    {
+      "class": "small gear",
+      "TP": 6,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 6
+    },
+    {
+      "class": "medium gear",
+      "TP": 8,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 8
+    }
+  ],
+  "totals": {
+    "TP": 30,
+    "FP": 0,
+    "FN": 4
+  },
+  "micro": {
+    "precision": 1.0,
+    "recall": 0.8823529411764706,
+    "f1": 0.9375
+  },
+  "macro": {
+    "precision": 1.0,
+    "recall": 0.875,
+    "f1": 0.92
+  },
+  "csv_cols": {
+    "CM_IoU_Thresh": 0.5,
+    "CM_Conf_Thresh": 0.5,
+    "CM_Classes": 5,
+    "CM_TotalTP": 30,
+    "CM_TotalFP": 0,
+    "CM_TotalFN": 4,
+    "CM_MicroPrecision": 1.0,
+    "CM_MicroRecall": 0.8823529411764706,
+    "CM_MicroF1": 0.9375,
+    "CM_MacroPrecision": 1.0,
+    "CM_MacroRecall": 0.875,
+    "CM_MacroF1": 0.92
+  }
+}
