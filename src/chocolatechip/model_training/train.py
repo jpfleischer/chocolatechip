@@ -764,7 +764,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
                 iou=0.45,        # NMS IoU
                 imgsz=p.width if hasattr(p, "width") else None,
                 device=indices,
-                batch=4,
+                batch=2,
             )
 
         coco_metrics = coco_eval_bbox(gt_json, det_json)
