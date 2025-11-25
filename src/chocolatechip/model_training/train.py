@@ -333,7 +333,8 @@ def read_split_counts_from_data(data_path: str) -> Tuple[int, int]:
 
 
 # ---------- one run ----------
-def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None:
+def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
+             flat_output: bool = False) -> None:
     user = effective_username()
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -372,9 +373,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
     # One subdir per YOLO variant (template for Darknet, model name for Ultralytics)
     yolo_variant_raw = (template if (p.backend == "darknet" and template) else p.ultra_model) or "unknown-model"
     yolo_variant_safe = slugify(Path(yolo_variant_raw).stem)
-    variant_dir = os.path.join(out_root, yolo_variant_safe)
-    os.makedirs(variant_dir, exist_ok=True)
-
+    
     base_tag = p.backend  # "darknet" or "ultralytics" (no template here)
 
         # --- derive ratio ("Val Fraction") for naming and CSV ---
@@ -412,8 +411,20 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str) -> None
 
     tag = base_tag + ratio_suffix + size_token + _color_token(p)
 
-    output_dir = os.path.join(variant_dir, f"benchmark__{user}__{gpu_name_safe}__{tag}__{now}")
-    os.makedirs(output_dir, exist_ok=True)
+    if flat_output:
+        # Do not create nested variant/benchmark dirs; just use out_root as-is
+        variant_dir = out_root
+        Path(variant_dir).mkdir(parents=True, exist_ok=True)
+        output_dir = variant_dir
+    else:
+        variant_dir = os.path.join(out_root, yolo_variant_safe)
+        os.makedirs(variant_dir, exist_ok=True)
+        output_dir = os.path.join(
+            variant_dir,
+            f"benchmark__{user}__{gpu_name_safe}__{tag}__{now}",
+        )
+        os.makedirs(output_dir, exist_ok=True)
+
     os.chdir(output_dir)
     print(f"[out] {output_dir}")
 
@@ -957,6 +968,10 @@ if __name__ == "__main__":
     #cloudmesh ee
     overrides_used = False
 
+    # Where we were when the script was invoked (ExperimentExecutor run dir, etc.)
+    original_cwd = os.getcwd()
+
+
     if args.template is not None:
         p = replace(p, template=args.template, templates=())
         overrides_used = True
@@ -1009,10 +1024,15 @@ if __name__ == "__main__":
         
     # new (no helpers, single inline check)
     inside_container = os.path.exists("/.dockerenv") or ("APPTAINER_ENVIRONMENT" in os.environ)
-    out_root_base = "/outputs" if inside_container else "artifacts/outputs"
 
-    out_root = os.path.join(out_root_base, p.name)
-    os.makedirs(out_root, exist_ok=True)
+    if overrides_used:
+        # If any CLI override is used, keep artifacts in the directory
+        # where this script was invoked (no nested /outputs/.../benchmark__...).
+        out_root = original_cwd
+    else:
+        out_root_base = "/outputs" if inside_container else "artifacts/outputs"
+        out_root = os.path.join(out_root_base, p.name)
+        os.makedirs(out_root, exist_ok=True)
 
     # --- make sure Darknet dataset exists at the expected path on first run ---
     if p.backend == "darknet" and getattr(p, "dataset", None):
@@ -1058,7 +1078,7 @@ if __name__ == "__main__":
             p_variant = equalize_for_split(p_variant, data_path=data_path, mode="iterations")
 
             # run it
-            run_once(p=p_variant, template=p_variant.template, out_root=out_root)
+            run_once(p=p_variant, template=p_variant.template, out_root=out_root, flat_output=overrides_used,)
 
     elif p.backend == "darknet":
         # single Darknet run: still build/refresh split if using DatasetSpec
@@ -1066,7 +1086,10 @@ if __name__ == "__main__":
             vf = (p.val_fracs[0] if isinstance(p.val_fracs, (tuple, list)) else float(p.val_fracs))
             data_path, _ = build_split_for(vf, p.dataset, out_dir=WRITABLE_BASE)
             p = replace(p, data_path=data_path)
-        run_once(p=p, template=p.template or (p.templates[0] if p.templates else None), out_root=out_root)
+        run_once(p=p, template=p.template or (p.templates[0] if p.templates else None), out_root=out_root,
+            flat_output=overrides_used,
+        )
+
 
 
     else:
@@ -1077,6 +1100,6 @@ if __name__ == "__main__":
                 p_variant = p
                 for k, v in dict(zip(sweep_keys, combo)).items():
                     p_variant = _apply_one(p_variant, k, v)
-                run_once(p=p_variant, template=None, out_root=out_root)
+                run_once(p=p_variant, template=None, out_root=out_root, flat_output=overrides_used)
         else:
-            run_once(p=p, template=None, out_root=out_root)
+            run_once(p=p, template=None, out_root=out_root, flat_output=overrides_used)
