@@ -36,35 +36,34 @@ def export_ultra_detections(
     iou: float = 0.6,
     imgsz: int | tuple[int, int] | None = None,
     device: str | int | list[int] | None = None,
-    batch: int | None = 16,
+    batch: int | None = 16,  # kept for API compat, ignored
 ) -> None:
-    """Run an Ultralytics model on each image and write COCO-format det JSON."""
-    try:
-        from ultralytics import YOLO
-    except Exception as e:
-        print(f"[ultra] Ultralytics not installed: {e}", file=sys.stderr)
-        raise
-
+    from ultralytics import YOLO
     img_id_by_name, cat_id_by_name = _load_gt_index(ann_json)
     images = _read_images_list(images_txt, ann_json)
 
+    print(f"[ultra_export] device={device} batch={batch} (ignored) imgsz={imgsz} n_images={len(images)}")
+
     model = YOLO(weights)
-    # Build predict kwargs (avoid passing None)
-    pred_kwargs: Dict[str, Any] = dict(
-        source=images, stream=True, conf=conf, iou=iou, device=device, verbose=False, save=False
-    )
-    if batch is not None:
-        pred_kwargs["batch"] = batch
-    if imgsz is not None:
-        pred_kwargs["imgsz"] = imgsz
-
-    preds_iter = model.predict(**pred_kwargs)
-    name_by_idx = model.names  # {idx: "class_name"}
-
+    name_by_idx = model.names
     results: List[Dict[str, Any]] = []
-    for img_path, r in zip(images, preds_iter):
+
+    for img_path in images:
+        preds = model.predict(
+            source=img_path,
+            conf=conf,
+            iou=iou,
+            device=device,
+            imgsz=imgsz,
+            verbose=False,
+            save=False,
+        )
+        if not preds:
+            continue
+        r = preds[0]
         if r.boxes is None:
             continue
+
         fname = Path(img_path).name
         img_id = img_id_by_name.get(fname) or img_id_by_name.get(Path(fname).name)
         if img_id is None:
@@ -72,7 +71,7 @@ def export_ultra_detections(
 
         boxes = r.boxes
         xyxy = boxes.xyxy.cpu().numpy()
-        cls  = boxes.cls.cpu().numpy().astype(int)
+        cls = boxes.cls.cpu().numpy().astype(int)
         confs = boxes.conf.cpu().numpy()
 
         for (x1, y1, x2, y2), ci, sc in zip(xyxy, cls, confs):
@@ -81,7 +80,6 @@ def export_ultra_detections(
             cls_name = name_by_idx[int(ci)]
             cat_id = cat_id_by_name.get(cls_name)
             if cat_id is None:
-                # Names mismatch between model and GT categories; skip or map explicitly.
                 continue
             results.append({
                 "image_id": int(img_id),
