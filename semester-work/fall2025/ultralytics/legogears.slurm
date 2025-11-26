@@ -6,6 +6,7 @@
 #SBATCH --time=1-03:45:00
 #SBATCH --mem=64gb
 #SBATCH --partition=hpg-b200
+#SBATCH --cpus-per-task=8
 
 set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"
