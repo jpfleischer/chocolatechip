@@ -322,6 +322,66 @@ PROFILES = {
         ultra_model="yolo11n.pt"
     ),
 
+    "CubesDarknet": TrainProfile(
+        name="CubesDarknet",
+        backend="darknet",
+        data_path="/workspace/cubes/cubes.data",
+        cfg_out="/workspace/cubes/cubes.cfg",
+        width=224, height=160,
+        batch_size=64, subdivisions=1,
+        iterations=6000, learning_rate=0.00261,
+        templates=("yolov4-tiny", "yolov7-tiny"),
+        # templates=("yolov7-tiny"),
+        val_fracs=(0.20,),
+        sweep_keys=("templates", "num_gpus"),
+        sweep_values={"num_gpus": (1,)},
+        dataset=DatasetSpec(
+            root="/workspace/cubes",
+            sets=tuple(),
+            classes=4,
+            names="cubes.names",
+            prefix="cubes",
+            split_seed=9001,
+            exts=(".jpg", ".png"),
+            url="https://g-665dcc.55ba.08cc.data.globus.org/cubes_11_26_25.zip",
+            sha256="fda5f58aad8c27feb48472422271c12b3beb23cdaeeab523ef16b910a1b8d546",
+            flat_dir="darkmark_image_cache/resize",
+        ),
+    ),
+
+    "CubesUltra": TrainProfile(
+        name="CubesUltra",
+        backend="ultralytics",
+        data_path="",
+        cfg_out="",
+        width=224, height=160,
+        batch_size=64, subdivisions=1,
+        iterations=6000, learning_rate=0.00261,
+        templates=(),
+        # templates=("yolov7-tiny"),
+        val_fracs=(0.20,),
+        sweep_keys=("templates", "num_gpus", "ultra_model"),
+        sweep_values={
+            "num_gpus": (1,),
+            "ultra_model": ("yolo11n.pt", "yolo11s.pt"),
+        },
+        dataset=DatasetSpec(
+            root="/workspace/cubes",
+            sets=tuple(),
+            classes=4,
+            names="cubes.names",
+            prefix="cubes",
+            split_seed=9001,
+            exts=(".jpg", ".png"),
+            url="https://g-665dcc.55ba.08cc.data.globus.org/cubes_11_26_25.zip",
+            sha256="fda5f58aad8c27feb48472422271c12b3beb23cdaeeab523ef16b910a1b8d546",
+            flat_dir="darkmark_image_cache/resize",
+        ),
+        epochs=None,
+        ultra_data="",
+        ultra_model="yolo11n.pt"
+    ),
+
 }
 
 def get_profile(key: str) -> TrainProfile:
