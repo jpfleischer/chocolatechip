@@ -155,6 +155,7 @@ uploading open files to hipergator
 
 
 ```bash
+pip install --upgrade globus-cli
 # Find mapped collection ID (MAPID)
 globus endpoint search 'UFRC HiPerGator'
 # set this to MAPID
