@@ -23,6 +23,7 @@ else
 endif
 
 CONTAINER_NAME := ultralytics-run
+ULTRA_WORKERS  := 4
 
 .PHONY: outputs logs stop benchmark-ultra benchmarking benchmark ultra bash apptainer-build slurm apptainer-run
 
@@ -102,7 +103,7 @@ apptainer-run: $(ULTRA_WORKSPACE)
 	APPTAINERENV_DATA_ROOT=/workspace \
 	APPTAINERENV_PROJECT_ROOT=/workspace/project \
 	# optional if your trainer reads it
-	APPTAINERENV_ULTRA_WORKERS=1 \
+	APPTAINERENV_ULTRA_WORKERS=$(ULTRA_WORKERS) \
 	apptainer run --nv --fakeroot \
 		--no-home --home /workspace/.home \
 		-B "$(ULTRA_WORKSPACE)":/workspace \
