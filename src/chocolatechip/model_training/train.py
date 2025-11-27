@@ -1078,7 +1078,9 @@ if __name__ == "__main__":
             p_variant = equalize_for_split(p_variant, data_path=data_path, mode="iterations")
 
             # run it
-            run_once(p=p_variant, template=p_variant.template, out_root=out_root, flat_output=overrides_used,)
+            run_once(p=p_variant, template=p_variant.template, out_root=out_root, 
+                # flat_output=overrides_used,
+            )
 
     elif p.backend == "darknet":
         # single Darknet run: still build/refresh split if using DatasetSpec
@@ -1087,7 +1089,7 @@ if __name__ == "__main__":
             data_path, _ = build_split_for(vf, p.dataset, out_dir=WRITABLE_BASE)
             p = replace(p, data_path=data_path)
         run_once(p=p, template=p.template or (p.templates[0] if p.templates else None), out_root=out_root,
-            flat_output=overrides_used,
+            # flat_output=overrides_used,
         )
 
 
@@ -1100,6 +1102,10 @@ if __name__ == "__main__":
                 p_variant = p
                 for k, v in dict(zip(sweep_keys, combo)).items():
                     p_variant = _apply_one(p_variant, k, v)
-                run_once(p=p_variant, template=None, out_root=out_root, flat_output=overrides_used)
+                run_once(p=p_variant, template=None, out_root=out_root, 
+                    # flat_output=overrides_used
+                )
         else:
-            run_once(p=p, template=None, out_root=out_root, flat_output=overrides_used)
+            run_once(p=p, template=None, out_root=out_root,
+                # flat_output=overrides_used
+            )
