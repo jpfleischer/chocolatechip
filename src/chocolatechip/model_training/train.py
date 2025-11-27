@@ -409,7 +409,13 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
 
     ratio_suffix = f"__val{ratio_pct}" if ratio_pct is not None else ""
 
-    tag = base_tag + ratio_suffix + size_token + _color_token(p)
+    # NEW: attach repeat index if provided by batch driver
+    repeat_suffix = ""
+    ee_repeat = os.environ.get("EE_REPEAT")
+    if ee_repeat:
+        repeat_suffix = f"__repeat_{ee_repeat}"
+
+    tag = base_tag + ratio_suffix + size_token + _color_token(p) + repeat_suffix
 
     if flat_output:
         # Do not create nested variant/benchmark dirs; just use out_root as-is
@@ -878,6 +884,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
         # Seeds (explicit provenance)
         "Split Seed": getattr(p.dataset, "split_seed", None),
         "Training Seed": getattr(p, "training_seed", None),
+        "Repeat": ee_repeat,  # <- NEW: repeat index from EE_REPEAT env (will be empty in CSV if None)
 
         # Evaluation knobs (fixed schema)
         "Val Fraction": ratio_float,
@@ -912,9 +919,19 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
         row["mAP50-95 (%)"] = coco_ap5095
 
     csv_name = f"benchmark__{user}__{gpu_name_safe}__{cpu_name_safe}__{tag}__{now}.csv"
-    with open(os.path.join(output_dir, csv_name), "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=row.keys()); w.writeheader(); w.writerow(row)
+    csv_path = os.path.join(output_dir, csv_name)
+    with open(csv_path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=row.keys())
+        w.writeheader()
+        w.writerow(row)
     print(f"[csv] {csv_name}")
+
+    # Also emit a YAML with the same contents
+    yaml_name = Path(csv_name).with_suffix(".yaml").name
+    yaml_path = os.path.join(output_dir, yaml_name)
+    with open(yaml_path, "w", encoding="utf-8") as fy:
+        yaml.safe_dump(row, fy, sort_keys=False)
+    print(f"[yaml] {yaml_name}")
 
     # Move any Darknet weights (if present)
     if p.backend == "darknet":
