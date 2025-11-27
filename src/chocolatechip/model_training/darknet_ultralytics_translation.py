@@ -219,6 +219,7 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
         f"project={project} name={run_name} exist_ok=True "
         f"device={device_str} "
         f"{seed_arg}{det_arg}{workers_arg}"
+        f"cache=False "
     )
 
     return (
