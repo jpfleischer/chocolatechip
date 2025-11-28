@@ -1,0 +1,72 @@
+Backend: ultralytics
+Profile: FisheyeTrafficUltralyticsLocal
+YOLO Template: yolo11s.pt
+Benchmark Time (s): 5994.866
+CPU Name: INTEL(R) XEON(R) PLATINUM 8570
+CPU Threads: 112
+GPU Name: NVIDIA B200
+GPU VRAM: 183359 MiB
+Total Memory: 2.0 TiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.11.14
+Disk Capacity: 1G, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 1.7T, 1.7T
+Disk Model: Virtual SD0, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84,
+  KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84,
+  KIOXIA KCMYDRUG3T84, SAMSUNG MZ1L21T9HCLS-00A07, SAMSUNG MZ1L21T9HCLS-00A07
+Write Speed: 364.13 MiB/s
+Read Speed: 492.80 MiB/s
+Working Dir: N/A
+CUDA Version: '12.8'
+cuDNN Version: Unknown
+GPUs Used: 1
+Compute Capability: '10.0'
+Input Width: 960
+Input Height: 736
+Input Size: 960x736
+Iterations: 8000
+Batch Size: 64
+Subdivisions: 16
+Train Images: 25984
+Valid Images: 2887
+Approx Epochs: null
+Color Preset: 'off'
+Split Seed: 9001
+Training Seed: null
+Repeat: '4'
+Val Fraction: 0.1
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 98.719
+mAP (best %): null
+Best Iteration: null
+Conf Thresh (PRF): null
+Precision@Conf: null
+Recall@Conf: null
+F1@Conf: null
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 5
+CM_TotalTP: 54720
+CM_TotalFP: 1512
+CM_TotalFN: 2544
+CM_MicroPrecision: 0.9731113956466069
+CM_MicroRecall: 0.9555741827326069
+CM_MicroF1: 0.9642630577289069
+CM_MacroPrecision: 0.9803222951213691
+CM_MacroRecall: 0.9560562599096615
+CM_MacroF1: 0.967830060949002
+COCO AP50-95 (%): 85.34975662163981
+COCO AP50 (%): 98.00302496640809
+COCO AP75 (%): 92.57573458828138
+COCO AP@50 (%): 78.86986416305213
+COCO AP@55 (%): 78.69344797424131
+COCO AP@60 (%): 78.21964274299275
+COCO AP@65 (%): 77.35576878183477
+COCO AP@70 (%): 76.6718405665274
+COCO AP@75 (%): 74.53354407602563
+COCO AP@80 (%): 71.72164591143635
+COCO AP@85 (%): 65.83473708772905
+COCO AP@89 (%): 55.85879117253337
+COCO AP@95 (%): 33.5593512481314
+mAP50-95 (%): 85.34975662163981
