@@ -1,0 +1,72 @@
+Backend: ultralytics
+Profile: FisheyeTrafficUltralyticsLocal
+YOLO Template: yolo11m.pt
+Benchmark Time (s): 5660.332
+CPU Name: INTEL(R) XEON(R) PLATINUM 8570
+CPU Threads: 112
+GPU Name: NVIDIA B200
+GPU VRAM: 183359 MiB
+Total Memory: 2.0 TiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.11.14
+Disk Capacity: 1G, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 1.7T, 1.7T
+Disk Model: Virtual SD0, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84,
+  KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84,
+  KIOXIA KCMYDRUG3T84, SAMSUNG MZ1L21T9HCLS-00A07, SAMSUNG MZ1L21T9HCLS-00A07
+Write Speed: 311.21 MiB/s
+Read Speed: 471.21 MiB/s
+Working Dir: N/A
+CUDA Version: '12.8'
+cuDNN Version: Unknown
+GPUs Used: 1
+Compute Capability: '10.0'
+Input Width: 960
+Input Height: 736
+Input Size: 960x736
+Iterations: 8000
+Batch Size: 64
+Subdivisions: 16
+Train Images: 25984
+Valid Images: 2887
+Approx Epochs: null
+Color Preset: 'off'
+Split Seed: 9001
+Training Seed: null
+Repeat: '1'
+Val Fraction: 0.1
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 99.193
+mAP (best %): null
+Best Iteration: null
+Conf Thresh (PRF): null
+Precision@Conf: null
+Recall@Conf: null
+F1@Conf: null
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 5
+CM_TotalTP: 55262
+CM_TotalFP: 1532
+CM_TotalFN: 2002
+CM_MicroPrecision: 0.9730253195760116
+CM_MicroRecall: 0.9650391170718078
+CM_MicroF1: 0.9690157639095898
+CM_MacroPrecision: 0.982701841531935
+CM_MacroRecall: 0.9729431442011961
+CM_MacroF1: 0.9777104535132767
+COCO AP50-95 (%): 87.97612785237631
+COCO AP50 (%): 98.60625294335254
+COCO AP75 (%): 94.60401793894509
+COCO AP@50 (%): 80.50670125775792
+COCO AP@55 (%): 80.40675037822604
+COCO AP@60 (%): 80.14463337899302
+COCO AP@65 (%): 79.79581930517618
+COCO AP@70 (%): 79.20034241012794
+COCO AP@75 (%): 76.43334148610133
+COCO AP@80 (%): 74.54105009570364
+COCO AP@85 (%): 69.88659338283932
+COCO AP@89 (%): 59.22171541649834
+COCO AP@95 (%): 39.43664080568775
+mAP50-95 (%): 87.97612785237631
