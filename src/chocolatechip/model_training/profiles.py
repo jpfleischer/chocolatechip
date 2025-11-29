@@ -382,6 +382,67 @@ PROFILES = {
         ultra_model="yolo11n.pt"
     ),
 
+    "CardsDarknet": TrainProfile(
+        name="CardsDarknet",
+        backend="darknet",
+        data_path="/workspace/ccr_playing_cards/ccr_playing_cards.data",
+        cfg_out="/workspace/ccr_playing_cards/ccr_playing_cards.cfg",
+        width=768, height=576,
+        batch_size=64, subdivisions=1,
+        iterations=6000, learning_rate=0.00261,
+        templates=("yolov4-tiny", "yolov7-tiny", "yolov4-tiny-3l",),
+        # templates=(),
+        # templates=("yolov7-tiny"),
+        val_fracs=(0.20,),
+        sweep_keys=("templates", "num_gpus"),
+        sweep_values={"num_gpus": (1,)},
+        dataset=DatasetSpec(
+            root="/workspace/ccr_playing_cards",
+            sets=tuple(),
+            classes=19,
+            names="ccr_playing_cards.names",
+            prefix="ccr_playing_cards",
+            split_seed=9001,
+            exts=(".jpg", ".png"),
+            url="https://g-665dcc.55ba.08cc.data.globus.org/playing_cards.zip",
+            sha256="432d6da3a2fbec5d1dadd3278b5c4c21ccbaa2dbcd72e087daf193e9bdaf3cc4",
+            flat_dir="darkmark_image_cache/resize",
+        ),
+    ),
+
+    "CardsUltra": TrainProfile(
+        name="CardsUltra",
+        backend="ultralytics",
+        data_path="",
+        cfg_out="",
+        width=768, height=576,
+        batch_size=64, subdivisions=1,
+        iterations=6000, learning_rate=0.00261,
+        templates=(),
+        # templates=("yolov7-tiny"),
+        val_fracs=(0.20,),
+        sweep_keys=("templates", "num_gpus", "ultra_model"),
+        sweep_values={
+            "num_gpus": (1,),
+            "ultra_model": ("yolo11n.pt", "yolo11s.pt"),
+        },
+        dataset=DatasetSpec(
+            root="/workspace/ccr_playing_cards",
+            sets=tuple(),
+            classes=19,
+            names="ccr_playing_cards.names",
+            prefix="ccr_playing_cards",
+            split_seed=9001,
+            exts=(".jpg", ".png"),
+            url="https://g-665dcc.55ba.08cc.data.globus.org/playing_cards.zip",
+            sha256="432d6da3a2fbec5d1dadd3278b5c4c21ccbaa2dbcd72e087daf193e9bdaf3cc4",
+            flat_dir="darkmark_image_cache/resize",
+        ),
+        epochs=None,
+        ultra_data="",
+        ultra_model="yolo11n.pt"
+    ),
+
 }
 
 def get_profile(key: str) -> TrainProfile:
