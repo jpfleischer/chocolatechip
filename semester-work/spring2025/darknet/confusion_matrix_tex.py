@@ -339,6 +339,9 @@ def main():
         if len(totals) > 1:
             unequal_totals.add((ds, vf))
 
+    # Datasets that have ANY inconsistent TP+FN totals; we'll skip their LaTeX.
+    bad_datasets = {ds for (ds, _vf) in unequal_totals}
+
 
 
     print("Dataset      | Val Frac | Framework | YOLO Type | Profile        | Count | Avg TP | Avg FP | Avg FN | Avg Jaccard")
@@ -368,28 +371,50 @@ def main():
         if dataset_summary.empty:
             continue
 
+        # If this dataset has any inconsistent TP+FN totals, warn and skip its LaTeX table.
+        bad_vfs = sorted({vf for (ds, vf) in unequal_totals if ds == dataset})
+        if bad_vfs:
+            print(
+                f"% WARNING: Skipping dataset {dataset} in LaTeX output because "
+                f"TP+FN totals were unequal for val frac(s): {', '.join(bad_vfs)}"
+            )
+            continue
+
+
         print(f"\n% LaTeX Table: {dataset} Dataset Summary Statistics")
 
         if dataset == "Leather":
-            # --- Leather: include Color column, NO Profile column ---
+            leather_df = df[df["dataset"] == dataset].copy()
+
             leather_latex = (
-                dataset_summary
+                leather_df
                 .groupby(["framework", "yolo_type", "color_preset", "val_fraction"], as_index=False)
-                .apply(lambda g: pd.Series({
-                    "count": int(g["count"].sum()),
-                    "avg_tp": wavg(g, "avg_tp"),
-                    "avg_fp": wavg(g, "avg_fp"),
-                    "avg_fn": wavg(g, "avg_fn"),
-                    "avg_jaccard": wavg(g, "avg_jaccard"),
-                }))
-                .reset_index(drop=True)
+                .agg(
+                    count=("tp", "size"),
+                    avg_tp=("tp", "mean"),
+                    avg_fp=("fp", "mean"),
+                    avg_fn=("fn", "mean"),
+                    avg_jaccard=("jaccard", "mean"),
+                    std_jaccard=("jaccard", "std"),
+                )
+            )
+
+            # Ensure ultralytics rows are ordered: yolo11n, yolo11s, yolo11m
+            yolo_order = {
+                "yolo11n": 1,
+                "yolo11s": 2,
+                "yolo11m": 3,
+            }
+            leather_latex["yolo_sort"] = leather_latex["yolo_type"].map(yolo_order).fillna(0)
+
+            leather_latex = leather_latex.sort_values(
+                ["val_fraction", "framework", "yolo_sort", "yolo_type", "color_preset"]
             )
 
             # Best Jaccard per val_fraction (ties will all be bolded)
             max_j_per_vf = (
                 leather_latex.groupby("val_fraction")["avg_jaccard"].max().to_dict()
             )
-
 
             print("\\begin{table}[htbp]")
             print("\\centering")
@@ -398,35 +423,64 @@ def main():
             print("Framework & YOLO Type & Color & Val Frac & Count & Avg TP & Avg FP & Avg FN & Avg Jaccard \\\\")
             print("\\hline")
 
-            for _, row in leather_latex.iterrows():
-                max_j = max_j_per_vf.get(row["val_fraction"], row["avg_jaccard"])
-                is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
+            for vf, g in leather_latex.groupby("val_fraction", sort=False):
 
-                j_str = f"{row['avg_jaccard']:.3f}"
-                if (dataset, row["val_fraction"]) in unequal_totals:
-                    j_str += "*"
+                # --- significance check within this val-fraction block ---
+                sig_best = False
+                best = None
+                if len(g) >= 2 and g["std_jaccard"].notna().all():
+                    g_sorted = g.sort_values("avg_jaccard", ascending=False)
+                    best = g_sorted.iloc[0]
+                    second = g_sorted.iloc[1]
 
-                if is_best:
-                    j_str = f"\\textbf{{{j_str}}}"
+                    se_best   = best["std_jaccard"] / np.sqrt(best["count"])
+                    se_second = second["std_jaccard"] / np.sqrt(second["count"])
+                    se_diff   = np.sqrt(se_best**2 + se_second**2)
+                    if se_diff > 0:
+                        t = (best["avg_jaccard"] - second["avg_jaccard"]) / se_diff
+                        # For n ~ 20 per model, t_crit for 95% two-sided is ≈ 2.09.
+                        sig_best = (abs(t) >= 2.09)
 
-                print(
-                    f"{escape_latex(row['framework'])} & "
-                    f"{escape_latex(row['yolo_type'])} & "
-                    f"{escape_latex(row['color_preset'])} & "
-                    f"{escape_latex(row['val_fraction'])} & "
-                    f"{int(row['count'])} & "
-                    f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & {row['avg_fn']:.1f} & "
-                    f"{j_str} \\\\"
-                )
 
+                for _, row in g.iterrows():
+                    max_j = max_j_per_vf.get(row["val_fraction"], row["avg_jaccard"])
+                    is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
+
+                    # is this row the significant-best one?
+                    is_sig = False
+                    if sig_best and best is not None and is_best:
+                        is_sig = (
+                            (row["framework"] == best["framework"]) and
+                            (row["yolo_type"] == best["yolo_type"]) and
+                            (row["color_preset"] == best["color_preset"])
+                        )
+
+                    j_str = f"{row['avg_jaccard']:.3f}"
+                    if (dataset, row["val_fraction"]) in unequal_totals:
+                        j_str += "*"
+
+                    if is_best:
+                        j_str = f"\\textbf{{{j_str}}}"
+
+                    if is_sig:
+                        j_str += "$^{*}$"
+
+                    print(
+                        f"{escape_latex(row['framework'])} & "
+                        f"{escape_latex(row['yolo_type'])} & "
+                        f"{escape_latex(row['color_preset'])} & "
+                        f"{escape_latex(row['val_fraction'])} & "
+                        f"{int(row['count'])} & "
+                        f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & {row['avg_fn']:.1f} & "
+                        f"{j_str} \\\\"
+                    )
 
             print("\\hline")
             print("\\end{tabular}")
-            bad_vfs = sorted({vf for (ds, vf) in unequal_totals if ds == dataset})
-            cap = f"Average confusion matrix values for {dataset} by framework, YOLO type, color preset, and validation fraction"
-            if bad_vfs:
-                cap += f". TP+FN totals were unequal across runs for val frac(s): {', '.join(bad_vfs)}; * marks affected rows."
-
+            cap = (
+                f"Average confusion matrix values for {dataset} by framework, YOLO type, "
+                f"color preset, and validation fraction."
+            )
             print(f"\\caption{{{cap}}}")
 
             print("\\label{tab:" + dataset.lower() + "_summary}")
@@ -447,8 +501,20 @@ def main():
                     avg_fp=("fp", "mean"),
                     avg_fn=("fn", "mean"),
                     avg_jaccard=("jaccard", "mean"),
+                    std_jaccard=("jaccard", "std"),
                 )
-                .sort_values(["val_fraction", "framework", "yolo_type"])
+            )
+
+            # Ensure ultralytics rows are ordered: yolo11n, yolo11s, yolo11m
+            yolo_order = {
+                "yolo11n": 1,
+                "yolo11s": 2,
+                "yolo11m": 3,
+            }
+            other_latex["yolo_sort"] = other_latex["yolo_type"].map(yolo_order).fillna(0)
+
+            other_latex = other_latex.sort_values(
+                ["val_fraction", "framework", "yolo_sort", "yolo_type"]
             )
 
             print("\\begin{table}[htbp]")
@@ -465,9 +531,33 @@ def main():
                 print("\\hline")
 
                 max_j = g["avg_jaccard"].max()  # best in this val-frac block
-                
+
+                # --- significance check: best vs second best in this block ---
+                sig_best = False
+                best = None
+                if len(g) >= 2 and g["std_jaccard"].notna().all():
+                    g_sorted = g.sort_values("avg_jaccard", ascending=False)
+                    best = g_sorted.iloc[0]
+                    second = g_sorted.iloc[1]
+
+                    se_best   = best["std_jaccard"] / np.sqrt(best["count"])
+                    se_second = second["std_jaccard"] / np.sqrt(second["count"])
+                    se_diff   = np.sqrt(se_best**2 + se_second**2)
+                    if se_diff > 0:
+                        t = (best["avg_jaccard"] - second["avg_jaccard"]) / se_diff
+                        sig_best = (abs(t) >= 2.09)
+
+
                 for _, row in g.iterrows():
                     is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
+
+                    # does this row correspond to the significant-best one?
+                    is_sig = False
+                    if sig_best and best is not None and is_best:
+                        is_sig = (
+                            (row["framework"] == best["framework"]) and
+                            (row["yolo_type"] == best["yolo_type"])
+                        )
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     if (dataset, vf) in unequal_totals:
@@ -475,6 +565,9 @@ def main():
 
                     if is_best:
                         j_str = f"\\textbf{{{j_str}}}"
+
+                    if is_sig:
+                        j_str += "$^{*}$"
 
                     print(
                         f"{escape_latex(row['framework'])} & "
@@ -487,10 +580,10 @@ def main():
 
             print("\\end{tabular}")
 
-            bad_vfs = sorted({vf for (ds, vf) in unequal_totals if ds == dataset})
-            cap = f"Average confusion matrix values for {dataset} grouped by validation fraction, framework, and YOLO type"
-            if bad_vfs:
-                cap += f". TP+FN totals were unequal across runs for val frac(s): {', '.join(bad_vfs)}; * marks affected rows."
+            cap = (
+                f"Average confusion matrix values for {dataset} grouped by validation fraction, "
+                f"framework, and YOLO type."
+            )
             print(f"\\caption{{{cap}}}")
             print("\\label{tab:" + dataset.lower() + "_summary}")
             print("\\end{table}")
