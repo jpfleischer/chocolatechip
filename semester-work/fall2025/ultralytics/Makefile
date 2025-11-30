@@ -33,7 +33,7 @@ benchmark-ultra benchmarking benchmark: outputs stop
 		--build-arg GID=$(BUILD_GID) \
 		-t my-benchmark-app \
 		-f "$(CURDIR)/Dockerfile" "$(PROJ_ROOT)"
-	$(SHELL_ENV) docker run --rm -d --name $(CONTAINER_NAME) --shm-size=4gb --gpus all \
+	$(SHELL_ENV) docker run --rm -d --name $(CONTAINER_NAME) --shm-size=8gb --gpus all \
 		-e TRUE_USER=$$(id -un) \
 		-e HOME=/home/appuser \
 		-e ACTUAL_PWD="$(CUR_HOST)" \
