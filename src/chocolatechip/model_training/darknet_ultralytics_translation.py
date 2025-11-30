@@ -169,6 +169,42 @@ def auto_ultra_epochs_from_darknet(
 
 # ---------- Ultralytics CLI builder (no ultra_args string) ----------
 
+def _ultra_color_args_from_profile(profile) -> str:
+    """
+    Map Darknet-style color_preset to Ultralytics HSV/aug overrides.
+    If no preset is set, return an empty string (use Ultralytics defaults).
+    """
+    preset = getattr(profile, "color_preset", None)
+    if not preset:
+        return ""
+
+    key = str(preset).strip().lower()
+
+    if key == "preserve":
+        # Strict color preservation: no HSV jitter and no heavy mixing
+        return (
+            "hsv_h=0.0 "
+            "hsv_s=0.0 "
+            "hsv_v=0.0 "
+            "mosaic=0.0 "
+            "mixup=0.0 "
+            "copy_paste=0.0 "
+        )
+
+    if key == "light":
+        # Gentle jitter, still color-friendly
+        return (
+            "hsv_h=0.0 "
+            "hsv_s=0.1 "
+            "hsv_v=0.1 "
+            "mosaic=0.5 "
+            "mixup=0.0 "
+            "copy_paste=0.0 "
+        )
+
+    # For "medium"/"strong" or anything else, just let Ultralytics defaults stand
+    return ""
+
 
 def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -> str:
     device_str = ",".join(str(i) for i in device_indices) if device_indices else "0"
@@ -208,6 +244,10 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
         workers = os.environ.get("ULTRA_WORKERS", "8")
         workers_arg = f"workers={workers} "
 
+    
+    # NEW: derive Ultralytics color/aug args from profile.color_preset
+    color_aug = _ultra_color_args_from_profile(profile)
+
     core = (
         f"task=detect mode=train "
         f"data={profile.ultra_data} "
@@ -220,6 +260,7 @@ def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -
         f"device={device_str} "
         f"{seed_arg}{det_arg}{workers_arg}"
         f"cache=False "
+        f"{color_aug}"
     )
 
     return (
