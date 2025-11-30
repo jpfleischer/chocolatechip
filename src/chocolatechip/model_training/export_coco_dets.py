@@ -267,10 +267,8 @@ def _convert_darknet_json_to_coco(
 
     vis_root = None
     if save_vis:
-        if vis_dir:
-            vis_root = Path(vis_dir)
-        else:
-            vis_root = Path(out_json).parent / "darknet_vis"
+        base = Path(vis_dir) if vis_dir else Path(out_json).parent
+        vis_root = base / "darknet_vis"   # <- parallel to ultra_vis
         vis_root.mkdir(parents=True, exist_ok=True)
         print(f"[darknet_vis] saving annotated images under: {vis_root}")
 
