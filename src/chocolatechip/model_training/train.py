@@ -767,6 +767,8 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
                     images_txt=val_list,
                     thresh=export_thresh,
                     letter_box=True,
+                    save_vis=True,
+                    vis_dir=output_dir,
                 )
 
         else:
@@ -782,6 +784,8 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
                 imgsz=p.width if hasattr(p, "width") else None,
                 device=indices,
                 batch=2,
+                save_vis=True,
+                vis_dir=output_dir,
             )
 
         coco_metrics = coco_eval_bbox(gt_json, det_json)
