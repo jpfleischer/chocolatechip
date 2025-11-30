@@ -4,6 +4,88 @@ from pathlib import Path
 from typing import Dict, List, Any
 import argparse, json, sys, subprocess, os
 
+from PIL import Image, ImageDraw
+
+# Simple class -> color mapping for visualizations (RGB)
+CLASS_COLORS = {
+    "blue":   (0, 0, 255),
+    "red":    (255, 0, 0),
+    "green":  (0, 255, 0),
+    "yellow": (255, 255, 0),
+    # fallback for any other class
+}
+
+DEFAULT_COLOR = (255, 255, 255)  # white outline for unknown classes
+TEXT_COLOR = (0, 0, 0)           # black text
+
+
+
+def _draw_and_save_vis_image(
+    *,
+    image_path: str,
+    detections: List[Dict[str, Any]],
+    vis_root: Path,
+    vis_scale: float = 3.0,
+    score_thresh: float = 0.5,
+) -> None:
+    """
+    Draw boxes + labels on image_path and save to vis_root/<stem>_pred.png.
+
+    detections: list of dicts with keys:
+        - x1, y1, x2, y2 (float pixel coords)
+        - cls_name (str)
+        - score   (float)
+    """
+    if not detections:
+        return
+
+    try:
+        img = Image.open(image_path).convert("RGB")
+    except Exception as e:
+        print(f"[vis] failed to open {image_path}: {e}")
+        return
+
+    draw = ImageDraw.Draw(img)
+
+    for det in detections:
+        score = float(det.get("score", 0.0) or 0.0)
+        if score < score_thresh:
+            continue
+
+        x1 = float(det["x1"]); y1 = float(det["y1"])
+        x2 = float(det["x2"]); y2 = float(det["y2"])
+        cls_name = str(det["cls_name"])
+
+        color = CLASS_COLORS.get(cls_name, DEFAULT_COLOR)
+        # box
+        draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
+
+        label = f"{cls_name} {score:.2f}"
+        # text background
+        try:
+            tb = draw.textbbox((0, 0), label)
+            tw, th = tb[2] - tb[0], tb[3] - tb[1]
+        except Exception:
+            tw, th = len(label) * 7, 12
+
+        tx1, ty1 = x1, max(0, y1 - th)
+        tx2, ty2 = x1 + tw, ty1 + th
+
+        draw.rectangle([tx1, ty1, tx2, ty2], fill=color)
+        draw.text((tx1, ty1), label, fill=TEXT_COLOR)
+
+    # upscale at the end
+    if vis_scale and vis_scale != 1.0:
+        w_im, h_im = img.size
+        new_size = (int(w_im * vis_scale), int(h_im * vis_scale))
+        img = img.resize(new_size, Image.NEAREST)
+
+    out_img = vis_root / f"{Path(image_path).stem}_pred.png"
+    try:
+        img.save(out_img)
+    except Exception as e:
+        print(f"[vis] failed to save {out_img}: {e}")
+
 # ---------- Common helpers ----------
 
 def _load_gt_index(ann_json: str):
@@ -37,6 +119,9 @@ def export_ultra_detections(
     imgsz: int | tuple[int, int] | None = None,
     device: str | int | list[int] | None = None,
     batch: int | None = 16,  # kept for API compat, ignored
+    save_vis: bool = False,
+    vis_dir: str | None = None,
+    vis_scale: float = 3.0,
 ) -> None:
     from ultralytics import YOLO
     img_id_by_name, cat_id_by_name = _load_gt_index(ann_json)
@@ -44,9 +129,18 @@ def export_ultra_detections(
 
     print(f"[ultra_export] device={device} batch={batch} (ignored) imgsz={imgsz} n_images={len(images)}")
 
+
     model = YOLO(weights)
     name_by_idx = model.names
     results: List[Dict[str, Any]] = []
+
+    # where visualization PNGs go, if enabled
+    vis_root = None
+    if save_vis:
+        base = Path(vis_dir) if vis_dir else Path(out_json).parent
+        vis_root = base / "ultra_vis"
+        vis_root.mkdir(parents=True, exist_ok=True)
+        print(f"[ultra_vis] saving annotated images under: {vis_root}")
 
     for img_path in images:
         preds = model.predict(
@@ -74,6 +168,8 @@ def export_ultra_detections(
         cls = boxes.cls.cpu().numpy().astype(int)
         confs = boxes.conf.cpu().numpy()
 
+        vis_dets: List[Dict[str, Any]] = []  # for visualization only
+
         for (x1, y1, x2, y2), ci, sc in zip(xyxy, cls, confs):
             w = x2 - x1
             h = y2 - y1
@@ -81,12 +177,36 @@ def export_ultra_detections(
             cat_id = cat_id_by_name.get(cls_name)
             if cat_id is None:
                 continue
+
+            # COCO det JSON (all boxes)
             results.append({
                 "image_id": int(img_id),
                 "category_id": int(cat_id),
                 "bbox": [float(x1), float(y1), float(w), float(h)],
                 "score": float(sc),
             })
+
+            # stash for vis; score filter happens in helper
+            if save_vis and vis_root is not None:
+                vis_dets.append({
+                    "x1": float(x1),
+                    "y1": float(y1),
+                    "x2": float(x2),
+                    "y2": float(y2),
+                    "cls_name": cls_name,
+                    "score": float(sc),
+                })
+
+        # draw once per image
+        if save_vis and vis_root is not None and vis_dets:
+            _draw_and_save_vis_image(
+                image_path=img_path,
+                detections=vis_dets,
+                vis_root=vis_root,
+                vis_scale=vis_scale,
+                score_thresh=0.5,
+            )
+
 
     Path(out_json).parent.mkdir(parents=True, exist_ok=True)
     with open(out_json, "w", encoding="utf-8") as f:
@@ -132,6 +252,10 @@ def _convert_darknet_json_to_coco(
     dk_json_path: str,
     ann_json: str,
     out_json: str,
+    save_vis: bool = False,
+    vis_dir: str | None = None,
+    vis_scale: float = 3.0,
+    vis_conf_thresh: float = 0.5,
 ) -> None:
     # Load Darknet -out JSON (list of frames)
     with open(dk_json_path, "r", encoding="utf-8") as f:
@@ -140,6 +264,16 @@ def _convert_darknet_json_to_coco(
     # Load GT maps and image metadata
     with open(ann_json, "r", encoding="utf-8") as f:
         gt = json.load(f)
+
+    vis_root = None
+    if save_vis:
+        if vis_dir:
+            vis_root = Path(vis_dir)
+        else:
+            vis_root = Path(out_json).parent / "darknet_vis"
+        vis_root.mkdir(parents=True, exist_ok=True)
+        print(f"[darknet_vis] saving annotated images under: {vis_root}")
+
     img_id_by_name = {Path(im["file_name"]).name: im["id"] for im in gt["images"]}
     meta_by_name = {
         Path(im["file_name"]).name: (im["id"], float(im["width"]), float(im["height"]))
@@ -153,6 +287,7 @@ def _convert_darknet_json_to_coco(
 
     for frame in dk:
         fname = Path(frame.get("filename", "")).name
+        full_fname = frame.get("filename", "")
 
         # tolerant width/height parse
         try:
@@ -174,6 +309,9 @@ def _convert_darknet_json_to_coco(
             miss_id += 1
             continue
 
+
+        vis_dets: List[Dict[str, Any]] = []
+
         for obj in frame.get("objects", []) or []:
             name = (obj.get("name") or "").strip()
             cat_id = cat_id_by_name.get(name)
@@ -188,13 +326,35 @@ def _convert_darknet_json_to_coco(
             cx = float(rel.get("center_x", 0.0)); cy = float(rel.get("center_y", 0.0))
             w  = float(rel.get("width", 0.0));    h  = float(rel.get("height", 0.0))
             x = (cx - w/2.0) * W; y = (cy - h/2.0) * H; bw = w * W; bh = h * H
+            x1, y1, x2, y2 = x, y, x + bw, y + bh
+
+            score = float(obj.get("confidence", 0.0) or 0.0)
 
             results.append({
                 "image_id": int(img_id),
                 "category_id": int(cat_id),
                 "bbox": [float(x), float(y), float(bw), float(bh)],
-                "score": float(obj.get("confidence", 0.0) or 0.0),
+                "score": float(score),
             })
+
+            if save_vis and vis_root is not None:
+                vis_dets.append({
+                    "x1": float(x1),
+                    "y1": float(y1),
+                    "x2": float(x2),
+                    "y2": float(y2),
+                    "cls_name": name,
+                    "score": float(score),
+                })
+
+        if save_vis and vis_root is not None and vis_dets and full_fname:
+            _draw_and_save_vis_image(
+                image_path=full_fname,
+                detections=vis_dets,
+                vis_root=vis_root,
+                vis_scale=vis_scale,
+                score_thresh=vis_conf_thresh,
+            )
 
     print(f"[darknet] mapping summary: frames_bad_wh={bad_wh}, frames_missing_id={miss_id}, objs_missing_cat={miss_cat}")
 
@@ -215,6 +375,10 @@ def export_darknet_detections(
     images_txt: str,
     thresh: float = 0.001,
     letter_box: bool = True,
+    save_vis: bool = False,
+    vis_dir: str | None = None,
+    vis_scale: float = 3.0,
+    vis_conf_thresh: float = 0.5,
 ) -> None:
     """Run Darknet on each image (from images_txt) and write COCO-format det JSON."""
     raw_json = str(Path(out_json).with_suffix(".raw_darknet.json"))
@@ -232,7 +396,12 @@ def export_darknet_detections(
         dk_json_path=raw_json,
         ann_json=ann_json,
         out_json=out_json,
+        save_vis=save_vis,
+        vis_dir=vis_dir,
+        vis_scale=vis_scale,
+        vis_conf_thresh=vis_conf_thresh,
     )
+
 
 # ---------- CLI (optional) ----------
 
@@ -249,6 +418,10 @@ def main():
     ap.add_argument("--imgsz", type=int, default=None)
     ap.add_argument("--device", default=None)
     ap.add_argument("--batch", type=int, default=16)
+    ap.add_argument("--save_vis", action="store_true",
+                    help="If set, save PNG/JPGs with predicted boxes during export")  # NEW
+    ap.add_argument("--vis_dir",
+                    help="Optional root dir for Ultralytics visualizations (default: next to out_json)")  # NEW
     # darknet (hank-ai/AB-style)
     ap.add_argument("--darknet_bin", default="darknet")
     ap.add_argument("--data", help="darknet .data")
@@ -271,6 +444,8 @@ def main():
             imgsz=args.imgsz,
             device=args.device,
             batch=args.batch,
+            save_vis=args.save_vis,
+            vis_dir=args.vis_dir,
         )
     else:
         for req in ("data", "cfg", "dk_weights"):
@@ -288,6 +463,9 @@ def main():
             images_txt=args.images_txt,
             thresh=args.conf,
             letter_box=args.letter_box,
+            save_vis=args.save_vis,
+            vis_dir=args.vis_dir,
+            # optional: could also expose vis_scale / vis_conf_thresh as CLI flags later
         )
 
 if __name__ == "__main__":
