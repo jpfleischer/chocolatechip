@@ -1,0 +1,70 @@
+Backend: ultralytics
+Profile: CubesUltra
+YOLO Template: yolo11s.pt
+Benchmark Time (s): 100.828
+CPU Name: Intel(R) Xeon(R) Gold 6226R CPU @ 2.90GHz
+CPU Threads: 64
+GPU Name: NVIDIA RTX A6000
+GPU VRAM: 49140 MiB
+Total Memory: 376.5 GiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.11.13
+Disk Capacity: 1.7T
+Disk Model: INTEL SSDSC2KB01
+Write Speed: 405.24 MiB/s
+Read Speed: 324.80 MiB/s
+Working Dir: /data/jpf/deleteme/chocolatechip/semester-work/fall2025/ultralytics
+CUDA Version: '12.1'
+cuDNN Version: 91.0.2 (91002)
+GPUs Used: 1
+Compute Capability: 8.6, 8.6
+Input Width: 224
+Input Height: 160
+Input Size: 224x160
+Iterations: 6000
+Batch Size: 64
+Subdivisions: 1
+Train Images: 76
+Valid Images: 14
+Approx Epochs: null
+Color Preset: 'off'
+Split Seed: 9001
+Training Seed: null
+Repeat: null
+Val Fraction: 0.15
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 99.5
+mAP (best %): null
+Best Iteration: null
+Conf Thresh (PRF): null
+Precision@Conf: null
+Recall@Conf: null
+F1@Conf: null
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 4
+CM_TotalTP: 32
+CM_TotalFP: 0
+CM_TotalFN: 7
+CM_MicroPrecision: 1.0
+CM_MicroRecall: 0.8205128205128205
+CM_MicroF1: 0.9014084507042254
+CM_MacroPrecision: 1.0
+CM_MacroRecall: 0.8541666666666666
+CM_MacroF1: 0.8970588235294118
+COCO AP50-95 (%): 76.64168298698002
+COCO AP50 (%): 98.52437166793602
+COCO AP75 (%): 98.52437166793602
+COCO AP@50 (%): 87.18339782696218
+COCO AP@55 (%): 87.18339782696218
+COCO AP@60 (%): 87.18339782696218
+COCO AP@65 (%): 87.18339782696218
+COCO AP@70 (%): 87.18339782696218
+COCO AP@75 (%): 87.18339782696218
+COCO AP@80 (%): 85.03818330551003
+COCO AP@85 (%): 53.46750746503223
+COCO AP@89 (%): 14.01952695269527
+COCO AP@95 (%): 4.345434543454345
+mAP50-95 (%): 76.64168298698002
