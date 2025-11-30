@@ -373,7 +373,7 @@ PROFILES = {
         sweep_values={
             "num_gpus": (1,),
             "ultra_model": ("yolo11n.pt", 
-                            # "yolo11s.pt"
+                            "yolo11s.pt"
                             ),
         },
         dataset=DatasetSpec(
