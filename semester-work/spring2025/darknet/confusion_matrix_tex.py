@@ -79,6 +79,8 @@ def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
                             dataset = "FisheyeTraffic"
                         elif "Leather" in profile:
                             dataset = "Leather"
+                        elif "Cubes" in profile:
+                            dataset = "Cubes"
                         else:
                             # Try to extract the first part before underscore or other delimiter
                             match = re.match(r'^([A-Za-z]+)', profile)
