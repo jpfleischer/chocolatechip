@@ -1,203 +1,132 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import os
 import argparse
-import pandas as pd
-from typing import List
 import re
+from typing import List
 
-import subprocess
-from pathlib import Path
-import hashlib
-
+import pandas as pd
 import numpy as np
 
-def git_repo_root() -> Path:
-    """
-    Return git toplevel (repo root). If not in a git repo, fall back to CWD.
-    """
-    try:
-        out = subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"],
-            stderr=subprocess.DEVNULL,
-            text=True
-        ).strip()
-        return Path(out)
-    except Exception:
-        return Path.cwd()
+from pathlib import Path
+
+from plot_common import (
+    git_repo_root,
+    find_valid_file,
+    valid_basename_signature,
+    normalize_dataset_name,
+    iter_benchmark_csvs,
+)
+
 
 def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
     """
     Walk one or more base_dirs, read benchmark__*.csv, and collect confusion totals
-    plus yolo version and validation fraction.
+    plus yolo version, dataset, validation fraction, color preset, etc.
     """
     records = []
-    for base_dir in base_dirs:
-        for root, _, files in os.walk(base_dir):
-            for f in files:
-                if not f.endswith(".csv"):
-                    continue
-                if "benchmark__" not in f:
-                    continue
 
-                csv_path = os.path.join(root, f)
-                try:
-                    df = pd.read_csv(csv_path)
-                except Exception:
-                    df = pd.read_csv(csv_path, engine="python")
+    for csv_path in iter_benchmark_csvs(base_dirs):
+        root = os.path.dirname(csv_path)
 
-                # Skip if required columns are missing
-                required = ["CM_TotalTP", "CM_TotalFP", "CM_TotalFN"]
-                if not all(col in df.columns for col in required):
-                    continue
+        try:
+            df = pd.read_csv(csv_path)
+        except Exception:
+            df = pd.read_csv(csv_path, engine="python")
 
-                for _, row in df.iterrows():
-                    # YOLO version from CSV ("YOLO Template"), fallback directory name
-                    if "YOLO Template" in df.columns:
-                        yolo_raw = str(row["YOLO Template"])
-                        # strip .pt so legend shows "yolo11n" not "yolo11n.pt"
-                        yolo = yolo_raw.replace(".pt", "")
-                    else:
-                        yolo = os.path.basename(os.path.dirname(root))
-                    
-                    # Determine framework (darknet vs ultralytics)
-                    framework = "ultralytics"  # default
-                    if "darknet" in csv_path.lower() or "darknet" in root.lower():
-                        framework = "darknet"
+        # Skip if required columns are missing
+        required = ["CM_TotalTP", "CM_TotalFP", "CM_TotalFN"]
+        if not all(col in df.columns for col in required):
+            continue
 
-                    # Get Profile if available
-                    profile = "unknown"
-                    if "Profile" in df.columns:
-                        profile = str(row["Profile"])
+        for _, row in df.iterrows():
+            # YOLO version from CSV ("YOLO Template"), fallback directory name
+            if "YOLO Template" in df.columns:
+                yolo_raw = str(row["YOLO Template"])
+                # strip .pt so legend shows "yolo11n" not "yolo11n.pt"
+                yolo = yolo_raw.replace(".pt", "")
+            else:
+                yolo = os.path.basename(os.path.dirname(root))
 
-                    # Extract dataset identifier from profile (e.g., "LegoGears" from "LegoGears_color_off")
-                    dataset = "unknown"
-                    if profile != "unknown":
-                        # Look for common dataset names in the profile
-                        if "LegoGears" in profile:
-                            dataset = "LegoGears"
-                        elif "FisheyeTraffic" in profile:
-                            dataset = "FisheyeTraffic"
-                        elif "Leather" in profile:
-                            dataset = "Leather"
-                        elif "Cubes" in profile:
-                            dataset = "Cubes"
-                        else:
-                            # Try to extract the first part before underscore or other delimiter
-                            match = re.match(r'^([A-Za-z]+)', profile)
-                            if match:
-                                dataset = match.group(1)
+            # Determine framework (darknet vs ultralytics)
+            framework = "ultralytics"  # default
+            if "darknet" in csv_path.lower() or "darknet" in root.lower():
+                framework = "darknet"
 
-                    # Get Val Fraction if available
-                    val_fraction = "unknown"
-                    if "Val Fraction" in df.columns:
-                        val_frac_raw = pd.to_numeric(row["Val Fraction"], errors="coerce")
-                        if not pd.isna(val_frac_raw):
-                            val_fraction = f"{val_frac_raw:.2f}"
+            # Get Profile if available
+            profile = "unknown"
+            if "Profile" in df.columns:
+                profile = str(row["Profile"])
 
-                    # Color preset (needed for Leather)
-                    color_preset = "unknown"
-                    if "Color Preset" in df.columns:
-                        color_preset = str(row["Color Preset"]).strip()
-                    else:
-                        # fallback: try to parse from profile or path
-                        m = re.search(r'color_(off|on|preserve|auto)', profile, re.IGNORECASE)
-                        if not m:
-                            m = re.search(r'color_(off|on|preserve|auto)', csv_path, re.IGNORECASE)
-                        if m:
-                            color_preset = m.group(1).lower()
+            # Extract dataset identifier from profile/path
+            dataset = normalize_dataset_name(profile, csv_path)
 
+            # Get Val Fraction if available
+            val_fraction = "unknown"
+            if "Val Fraction" in df.columns:
+                val_frac_raw = pd.to_numeric(row["Val Fraction"], errors="coerce")
+                if not pd.isna(val_frac_raw):
+                    val_fraction = f"{val_frac_raw:.2f}"
 
-                    tp = pd.to_numeric(row["CM_TotalTP"], errors="coerce")
-                    fp = pd.to_numeric(row["CM_TotalFP"], errors="coerce")
-                    fn = pd.to_numeric(row["CM_TotalFN"], errors="coerce")
-                    if any(pd.isna(x) for x in (tp, fp, fn)):
-                        continue
+            # Color preset (needed for Leather)
+            color_preset = "unknown"
+            if "Color Preset" in df.columns:
+                color_preset = str(row["Color Preset"]).strip()
+            else:
+                # fallback: try to parse from profile or path
+                m = re.search(r'color_(off|on|preserve|auto)', profile, re.IGNORECASE)
+                if not m:
+                    m = re.search(r'color_(off|on|preserve|auto)', csv_path, re.IGNORECASE)
+                if m:
+                    color_preset = m.group(1).lower()
 
-                    total = tp + fn  # Only sum TP and FN
+            tp = pd.to_numeric(row["CM_TotalTP"], errors="coerce")
+            fp = pd.to_numeric(row["CM_TotalFP"], errors="coerce")
+            fn = pd.to_numeric(row["CM_TotalFN"], errors="coerce")
+            if any(pd.isna(x) for x in (tp, fp, fn)):
+                continue
 
-                    # Jaccard / IoU-like score from TP, FP, FN
-                    denom_j = tp + fp + fn
-                    jaccard = float(tp / denom_j) if denom_j > 0 else 0.0
+            total = tp + fn  # Only sum TP and FN
 
+            # Jaccard / IoU-like score from TP, FP, FN
+            denom_j = tp + fp + fn
+            jaccard = float(tp / denom_j) if denom_j > 0 else 0.0
 
-                    # --- Find valid split file and hash it ---
-                    valid_path = find_valid_file(root, max_up=5)
-                    valid_sig = valid_basename_signature(valid_path) if valid_path else None
+            # --- Find valid split file and hash it ---
+            valid_path = find_valid_file(root, max_up=5)
+            valid_sig = valid_basename_signature(valid_path) if valid_path else None
 
-                    
-                    records.append(
-                        {
-                            "framework": str(framework),
-                            "yolo_type": str(yolo),
-                            "dataset": str(dataset),
-                            "profile": str(profile),
-                            "val_fraction": str(val_fraction),
-                            "color_preset": str(color_preset),
-                            "tp": float(tp),
-                            "fp": float(fp),
-                            "fn": float(fn),
-                            "total": float(total),
-                            "jaccard": jaccard,
-                            "valid_path": valid_path or "missing",
-                            "valid_sig": valid_sig,
-                            "source_csv": csv_path,
-                            "source_dir": root,
-                        }
-                    )
+            records.append(
+                {
+                    "framework": str(framework),
+                    "yolo_type": str(yolo),
+                    "dataset": str(dataset),
+                    "profile": str(profile),
+                    "val_fraction": str(val_fraction),
+                    "color_preset": str(color_preset),
+                    "tp": float(tp),
+                    "fp": float(fp),
+                    "fn": float(fn),
+                    "total": float(total),
+                    "jaccard": jaccard,
+                    "valid_path": valid_path or "missing",
+                    "valid_sig": valid_sig,
+                    "source_csv": csv_path,
+                    "source_dir": root,
+                }
+            )
 
     return pd.DataFrame.from_records(records)
-
-
-def find_valid_file(run_dir: str, max_up=5):
-    run_path = Path(run_dir).resolve()
-    parents = run_path.parents
-    for up in range(max_up + 1):
-        if up == 0:
-            p = run_path
-        else:
-            if up - 1 >= len(parents):
-                break
-            p = parents[up - 1]
-        candidate = p / "valid.txt"
-        if candidate.is_file():
-            return str(candidate)
-    return None
-
-
-
-def file_sha1(path: str) -> str:
-    """SHA1 of file contents (small & stable for equality checks)."""
-    h = hashlib.sha1()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def valid_basename_signature(path: str):
-    """
-    Read valid.txt and return a tuple of basenames, in order.
-    Blank lines / comments are ignored.
-    Two valid.txt are considered identical if this tuple matches.
-    """
-    names = []
-    with open(path, "r") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            names.append(Path(line).name)  # <-- only the filename at the end
-    return tuple(names)
-
 
 
 def escape_latex(text):
     """Escape special LaTeX characters"""
     text = str(text)
-    text = text.replace('_', '\\_')
-    text = text.replace('#', '\\#')
-    text = text.replace('&', '\\&')
-    text = text.replace('%', '\\%')
+    text = text.replace("_", "\\_")
+    text = text.replace("#", "\\#")
+    text = text.replace("&", "\\&")
+    text = text.replace("%", "\\%")
     return text
 
 
@@ -217,7 +146,7 @@ def main():
         type=str,
         nargs="+",
         default=[str(p) for p in default_bases],
-        help="One or more base output directories to scan for benchmark CSVs."
+        help="One or more base output directories to scan for benchmark CSVs.",
     )
     args = parser.parse_args()
 
@@ -270,7 +199,6 @@ def main():
                 preview = ", ".join(sig[:3]) + ("..." if len(sig) > 3 else "")
                 print(f"      group {i}: ({r['count']} runs) e.g. {preview}")
 
-
     if total_outliers:
         print("\nRuns with non-standard TP+FN totals:")
         for dataset, val_fraction, expected_total, bad_df in total_outliers:
@@ -314,24 +242,23 @@ def main():
     else:
         print("\n✓ All valid.txt splits consistent per dataset+val_fraction")
 
-    
     print("-" * 140)
 
     # Group by dataset, val_fraction, framework, then other dimensions
     summary = (
         df.groupby(["dataset", "val_fraction", "framework", "yolo_type", "profile", "color_preset"])
-          .agg(
-              count=("tp", "size"),
-              avg_tp=("tp", "mean"),
-              avg_fp=("fp", "mean"),
-              avg_fn=("fn", "mean"),
-              avg_jaccard=("jaccard", "mean"),
-          )
-          .reset_index()
+        .agg(
+            count=("tp", "size"),
+            avg_tp=("tp", "mean"),
+            avg_fp=("fp", "mean"),
+            avg_fn=("fn", "mean"),
+            avg_jaccard=("jaccard", "mean"),
+        )
+        .reset_index()
     )
 
     summary = summary.sort_values(
-        ['dataset', 'val_fraction', 'framework', 'yolo_type', 'profile', 'color_preset']
+        ["dataset", "val_fraction", "framework", "yolo_type", "profile", "color_preset"]
     )
 
     # Which (dataset, val_fraction) have inconsistent TP+FN totals across runs?
@@ -344,9 +271,10 @@ def main():
     # Datasets that have ANY inconsistent TP+FN totals; we'll skip their LaTeX.
     bad_datasets = {ds for (ds, _vf) in unequal_totals}
 
-
-
-    print("Dataset      | Val Frac | Framework | YOLO Type | Profile        | Count | Avg TP | Avg FP | Avg FN | Avg Jaccard")
+    print(
+        "Dataset      | Val Frac | Framework | YOLO Type | Profile        | "
+        "Count | Avg TP | Avg FP | Avg FN | Avg Jaccard"
+    )
     print("-" * 160)
 
     for _, row in summary.iterrows():
@@ -357,19 +285,18 @@ def main():
             f"{row['avg_jaccard']:<10.3f}"
         )
 
-
     # LATEX OUTPUT - Separate tables by dataset
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("LATEX TABLES")
-    print("="*50)
+    print("=" * 50)
 
-    datasets = sorted(df['dataset'].unique())
+    datasets = sorted(df["dataset"].unique())
 
     def wavg(g, col):
         return (g[col] * g["count"]).sum() / g["count"].sum()
 
     for dataset in datasets:
-        dataset_summary = summary[summary['dataset'] == dataset].copy()
+        dataset_summary = summary[summary["dataset"] == dataset].copy()
         if dataset_summary.empty:
             continue
 
@@ -382,21 +309,21 @@ def main():
             )
             continue
 
-
         print(f"\n% LaTeX Table: {dataset} Dataset Summary Statistics")
 
         if dataset == "Leather":
             leather_df = df[df["dataset"] == dataset].copy()
 
             leather_latex = (
-                leather_df
-                .groupby(["framework", "yolo_type", "color_preset", "val_fraction"], as_index=False)
-                .agg(
+                leather_df.groupby(
+                    ["framework", "yolo_type", "color_preset", "val_fraction"], as_index=False
+                ).agg(
                     count=("tp", "size"),
                     avg_tp=("tp", "mean"),
                     avg_fp=("fp", "mean"),
                     avg_fn=("fn", "mean"),
                     avg_jaccard=("jaccard", "mean"),
+                    median_jaccard=("jaccard", "median"),
                     std_jaccard=("jaccard", "std"),
                 )
             )
@@ -420,13 +347,15 @@ def main():
 
             print("\\begin{table}[htbp]")
             print("\\centering")
-            print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|}")
+            print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|c|}")
             print("\\hline")
-            print("Framework & YOLO Type & Color & Val Frac & Count & Avg TP & Avg FP & Avg FN & Avg Jaccard \\\\")
+            print(
+                "Framework & YOLO Type & Color & Val Frac & Count & Avg TP & Avg FP & "
+                "Avg FN & Avg Jaccard & Med Jaccard \\\\"
+            )
             print("\\hline")
 
             for vf, g in leather_latex.groupby("val_fraction", sort=False):
-
                 # --- significance check within this val-fraction block ---
                 sig_best = False
                 best = None
@@ -435,29 +364,31 @@ def main():
                     best = g_sorted.iloc[0]
                     second = g_sorted.iloc[1]
 
-                    se_best   = best["std_jaccard"] / np.sqrt(best["count"])
+                    se_best = best["std_jaccard"] / np.sqrt(best["count"])
                     se_second = second["std_jaccard"] / np.sqrt(second["count"])
-                    se_diff   = np.sqrt(se_best**2 + se_second**2)
+                    se_diff = np.sqrt(se_best**2 + se_second**2)
                     if se_diff > 0:
                         t = (best["avg_jaccard"] - second["avg_jaccard"]) / se_diff
                         # For n ~ 20 per model, t_crit for 95% two-sided is ≈ 2.09.
-                        sig_best = (abs(t) >= 2.09)
-
+                        sig_best = abs(t) >= 2.09
 
                 for _, row in g.iterrows():
                     max_j = max_j_per_vf.get(row["val_fraction"], row["avg_jaccard"])
-                    is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
+                    is_best = np.isclose(
+                        row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12
+                    )
 
                     # is this row the significant-best one?
                     is_sig = False
                     if sig_best and best is not None and is_best:
                         is_sig = (
-                            (row["framework"] == best["framework"]) and
-                            (row["yolo_type"] == best["yolo_type"]) and
-                            (row["color_preset"] == best["color_preset"])
+                            (row["framework"] == best["framework"])
+                            and (row["yolo_type"] == best["yolo_type"])
+                            and (row["color_preset"] == best["color_preset"])
                         )
 
                     j_str = f"{row['avg_jaccard']:.3f}"
+                    med_j_str = f"{row['median_jaccard']:.3f}"
                     if (dataset, row["val_fraction"]) in unequal_totals:
                         j_str += "*"
 
@@ -474,7 +405,7 @@ def main():
                         f"{escape_latex(row['val_fraction'])} & "
                         f"{int(row['count'])} & "
                         f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & {row['avg_fn']:.1f} & "
-                        f"{j_str} \\\\"
+                        f"{j_str} & {med_j_str} \\\\"
                     )
 
             print("\\hline")
@@ -484,7 +415,6 @@ def main():
                 f"color preset, and validation fraction."
             )
             print(f"\\caption{{{cap}}}")
-
             print("\\label{tab:" + dataset.lower() + "_summary}")
             print("\\end{table}")
 
@@ -495,14 +425,14 @@ def main():
                 continue
 
             other_latex = (
-                ds_df
-                .groupby(["val_fraction", "framework", "yolo_type"], as_index=False)
+                ds_df.groupby(["val_fraction", "framework", "yolo_type"], as_index=False)
                 .agg(
                     count=("tp", "size"),
                     avg_tp=("tp", "mean"),
                     avg_fp=("fp", "mean"),
                     avg_fn=("fn", "mean"),
                     avg_jaccard=("jaccard", "mean"),
+                    median_jaccard=("jaccard", "median"),
                     std_jaccard=("jaccard", "std"),
                 )
             )
@@ -522,14 +452,20 @@ def main():
             print("\\begin{table}[htbp]")
             print("\\centering")
             # NOTE: Val Frac column removed, since it becomes a block header
-            print("\\begin{tabular}{|l|l|c|c|c|c|c|}")
+            print("\\begin{tabular}{|l|l|c|c|c|c|c|c|}")
             print("\\hline")
-            print("Framework & YOLO Type & Count & Avg TP & Avg FP & Avg FN & Avg Jaccard \\\\")
+            print(
+                "Framework & YOLO Type & Count & Avg TP & Avg FP & Avg FN & "
+                "Avg Jaccard & Med Jaccard \\\\"
+            )
             print("\\hline")
 
             for vf, g in other_latex.groupby("val_fraction", sort=False):
                 # block header row spanning all 7 cols
-                print(f"\\multicolumn{{7}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\")
+                print(
+                    f"\\multicolumn{{7}}{{|c|}}{{\\textbf{{Val Frac = "
+                    f"{escape_latex(vf)}}}}} \\\\"
+                )
                 print("\\hline")
 
                 max_j = g["avg_jaccard"].max()  # best in this val-frac block
@@ -542,26 +478,28 @@ def main():
                     best = g_sorted.iloc[0]
                     second = g_sorted.iloc[1]
 
-                    se_best   = best["std_jaccard"] / np.sqrt(best["count"])
+                    se_best = best["std_jaccard"] / np.sqrt(best["count"])
                     se_second = second["std_jaccard"] / np.sqrt(second["count"])
-                    se_diff   = np.sqrt(se_best**2 + se_second**2)
+                    se_diff = np.sqrt(se_best**2 + se_second**2)
                     if se_diff > 0:
                         t = (best["avg_jaccard"] - second["avg_jaccard"]) / se_diff
-                        sig_best = (abs(t) >= 2.09)
-
+                        sig_best = abs(t) >= 2.09
 
                 for _, row in g.iterrows():
-                    is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
+                    is_best = np.isclose(
+                        row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12
+                    )
 
                     # does this row correspond to the significant-best one?
                     is_sig = False
                     if sig_best and best is not None and is_best:
                         is_sig = (
-                            (row["framework"] == best["framework"]) and
-                            (row["yolo_type"] == best["yolo_type"])
+                            (row["framework"] == best["framework"])
+                            and (row["yolo_type"] == best["yolo_type"])
                         )
 
                     j_str = f"{row['avg_jaccard']:.3f}"
+                    med_j_str = f"{row['median_jaccard']:.3f}"
                     if (dataset, vf) in unequal_totals:
                         j_str += "*"
 
@@ -575,20 +513,21 @@ def main():
                         f"{escape_latex(row['framework'])} & "
                         f"{escape_latex(row['yolo_type'])} & "
                         f"{int(row['count'])} & "
-                        f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & {row['avg_fn']:.1f} & "
-                        f"{j_str} \\\\"
+                        f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & "
+                        f"{row['avg_fn']:.1f} & {j_str} & {med_j_str} \\\\"
                     )
                 print("\\hline")
 
             print("\\end{tabular}")
 
             cap = (
-                f"Average confusion matrix values for {dataset} grouped by validation fraction, "
-                f"framework, and YOLO type."
+                f"Average confusion matrix values for {dataset} grouped by validation "
+                f"fraction, framework, and YOLO type."
             )
             print(f"\\caption{{{cap}}}")
             print("\\label{tab:" + dataset.lower() + "_summary}")
             print("\\end{table}")
+
 
 if __name__ == "__main__":
     main()
