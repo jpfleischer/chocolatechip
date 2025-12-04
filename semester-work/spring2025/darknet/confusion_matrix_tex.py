@@ -9,7 +9,6 @@ from typing import List
 import pandas as pd
 import numpy as np
 
-from pathlib import Path
 
 from plot_common import (
     git_repo_root,
@@ -18,6 +17,12 @@ from plot_common import (
     normalize_dataset_name,
     iter_benchmark_csvs,
 )
+
+
+try:
+    from scipy import stats
+except ImportError:
+    stats = None
 
 
 def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
@@ -128,6 +133,102 @@ def escape_latex(text):
     text = text.replace("&", "\\&")
     text = text.replace("%", "\\%")
     return text
+
+
+def _find_significant_best(g: pd.DataFrame, id_cols, alpha: float = 0.05):
+    """
+    Given an aggregated table g with columns:
+      - 'framework'
+      - 'count' (n)
+      - 'avg_jaccard'
+      - 'std_jaccard'
+    and identifier columns id_cols (e.g. ["framework","yolo_type"] or
+    ["framework","yolo_type","color_preset"]),
+
+    Return (best_key_dict, True) if there is a **unique** best model whose
+    avg_jaccard is significantly higher than all models in the *other framework*
+    (darknet vs ultralytics) using Welch t-tests with Holm–Bonferroni
+    correction at level alpha.
+
+    Otherwise return (None, False).
+    """
+    if stats is None:
+        # SciPy not available; skip significance
+        return None, False
+
+    g2 = g.copy()
+
+    # Need usable stats
+    g2 = g2[g2["std_jaccard"].notna() & (g2["count"] > 1)]
+    if len(g2) < 2:
+        return None, False
+
+    # Find unique best by avg_jaccard across all rows (any framework)
+    max_val = g2["avg_jaccard"].max()
+    best_rows = g2[np.isclose(g2["avg_jaccard"], max_val, rtol=1e-9, atol=1e-12)]
+    if len(best_rows) != 1:
+        # tie for best -> no unique best, so no star
+        return None, False
+
+    best = best_rows.iloc[0]
+    best_framework = str(best["framework"])
+
+    # Only compare against models from the *other* framework(s)
+    pvals = []
+    for idx, other in g2.iterrows():
+        if idx == best.name:
+            continue
+
+        other_framework = str(other["framework"])
+        if other_framework == best_framework:
+            # same framework -> skip this comparison
+            continue
+
+        n1 = float(best["count"])
+        n2 = float(other["count"])
+        if n1 < 2 or n2 < 2:
+            continue
+
+        mean1 = float(best["avg_jaccard"])
+        mean2 = float(other["avg_jaccard"])
+        std1 = float(best["std_jaccard"])
+        std2 = float(other["std_jaccard"])
+
+        var1 = std1**2
+        var2 = std2**2
+
+        denom = np.sqrt(var1 / n1 + var2 / n2)
+        if denom <= 0.0:
+            continue
+
+        t = (mean1 - mean2) / denom
+
+        # Welch–Satterthwaite df
+        num = (var1 / n1 + var2 / n2) ** 2
+        denom_df = (var1**2 / (n1**2 * (n1 - 1))) + (var2**2 / (n2**2 * (n2 - 1)))
+        if denom_df <= 0.0:
+            continue
+
+        df = num / denom_df
+        p = 2.0 * stats.t.sf(abs(t), df)
+        pvals.append(p)
+
+    m = len(pvals)
+    if m == 0:
+        # No cross-framework competitors -> no way to declare cross-framework "best"
+        return None, False
+
+    # Holm–Bonferroni: require **all** cross-framework comparisons (best vs each other) to pass
+    p_sorted = sorted(pvals)
+    for i, p in enumerate(p_sorted):
+        critical = alpha / (m - i)
+        if p > critical:
+            # at least one comparison is not significant
+            return None, False
+
+    # Survived all → unique best significantly better than all models in *other* framework(s)
+    best_key = {col: best[col] for col in id_cols}
+    return best_key, True
 
 
 def main():
@@ -351,26 +452,21 @@ def main():
             print("\\hline")
             print(
                 "Framework & YOLO Type & Color & Val Frac & Count & Avg TP & Avg FP & "
-                "Avg FN & Avg Jaccard & Med Jaccard \\\\"
+                "Avg FN & Med Jaccard & Avg Jaccard \\\\"
             )
             print("\\hline")
 
             for vf, g in leather_latex.groupby("val_fraction", sort=False):
-                # --- significance check within this val-fraction block ---
-                sig_best = False
-                best = None
-                if len(g) >= 2 and g["std_jaccard"].notna().all():
-                    g_sorted = g.sort_values("avg_jaccard", ascending=False)
-                    best = g_sorted.iloc[0]
-                    second = g_sorted.iloc[1]
 
-                    se_best = best["std_jaccard"] / np.sqrt(best["count"])
-                    se_second = second["std_jaccard"] / np.sqrt(second["count"])
-                    se_diff = np.sqrt(se_best**2 + se_second**2)
-                    if se_diff > 0:
-                        t = (best["avg_jaccard"] - second["avg_jaccard"]) / se_diff
-                        # For n ~ 20 per model, t_crit for 95% two-sided is ≈ 2.09.
-                        sig_best = abs(t) >= 2.09
+                # Decide if there's a unique significantly-best row (Welch + Holm)
+                best_key = None
+                sig_best = False
+                if len(g) >= 2:
+                    best_key, sig_best = _find_significant_best(
+                        g,
+                        id_cols=["framework", "yolo_type", "color_preset"],
+                        alpha=0.05,
+                    )
 
                 for _, row in g.iterrows():
                     max_j = max_j_per_vf.get(row["val_fraction"], row["avg_jaccard"])
@@ -380,12 +476,13 @@ def main():
 
                     # is this row the significant-best one?
                     is_sig = False
-                    if sig_best and best is not None and is_best:
+                    if sig_best and best_key is not None:
                         is_sig = (
-                            (row["framework"] == best["framework"])
-                            and (row["yolo_type"] == best["yolo_type"])
-                            and (row["color_preset"] == best["color_preset"])
+                            (row["framework"] == best_key["framework"]) and
+                            (row["yolo_type"] == best_key["yolo_type"]) and
+                            (row["color_preset"] == best_key["color_preset"])
                         )
+
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     med_j_str = f"{row['median_jaccard']:.3f}"
@@ -405,7 +502,7 @@ def main():
                         f"{escape_latex(row['val_fraction'])} & "
                         f"{int(row['count'])} & "
                         f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & {row['avg_fn']:.1f} & "
-                        f"{j_str} & {med_j_str} \\\\"
+                        f"{med_j_str} & {j_str} \\\\"
                     )
 
             print("\\hline")
@@ -456,46 +553,36 @@ def main():
             print("\\hline")
             print(
                 "Framework & YOLO Type & Count & Avg TP & Avg FP & Avg FN & "
-                "Avg Jaccard & Med Jaccard \\\\"
+                "Med Jaccard & Avg Jaccard \\\\"
             )
             print("\\hline")
 
             for vf, g in other_latex.groupby("val_fraction", sort=False):
-                # block header row spanning all 7 cols
-                print(
-                    f"\\multicolumn{{7}}{{|c|}}{{\\textbf{{Val Frac = "
-                    f"{escape_latex(vf)}}}}} \\\\"
-                )
+                # block header row spanning all cols
+                print(f"\\multicolumn{{8}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\")
                 print("\\hline")
 
                 max_j = g["avg_jaccard"].max()  # best in this val-frac block
 
-                # --- significance check: best vs second best in this block ---
+                # Decide if there's a unique significantly-best row (Welch + Holm)
+                best_key = None
                 sig_best = False
-                best = None
-                if len(g) >= 2 and g["std_jaccard"].notna().all():
-                    g_sorted = g.sort_values("avg_jaccard", ascending=False)
-                    best = g_sorted.iloc[0]
-                    second = g_sorted.iloc[1]
-
-                    se_best = best["std_jaccard"] / np.sqrt(best["count"])
-                    se_second = second["std_jaccard"] / np.sqrt(second["count"])
-                    se_diff = np.sqrt(se_best**2 + se_second**2)
-                    if se_diff > 0:
-                        t = (best["avg_jaccard"] - second["avg_jaccard"]) / se_diff
-                        sig_best = abs(t) >= 2.09
+                if len(g) >= 2:
+                    best_key, sig_best = _find_significant_best(
+                        g,
+                        id_cols=["framework", "yolo_type"],
+                        alpha=0.05,
+                    )
 
                 for _, row in g.iterrows():
-                    is_best = np.isclose(
-                        row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12
-                    )
+                    is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
 
                     # does this row correspond to the significant-best one?
                     is_sig = False
-                    if sig_best and best is not None and is_best:
+                    if sig_best and best_key is not None:
                         is_sig = (
-                            (row["framework"] == best["framework"])
-                            and (row["yolo_type"] == best["yolo_type"])
+                            (row["framework"] == best_key["framework"]) and
+                            (row["yolo_type"] == best_key["yolo_type"])
                         )
 
                     j_str = f"{row['avg_jaccard']:.3f}"
@@ -514,7 +601,7 @@ def main():
                         f"{escape_latex(row['yolo_type'])} & "
                         f"{int(row['count'])} & "
                         f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & "
-                        f"{row['avg_fn']:.1f} & {j_str} & {med_j_str} \\\\"
+                        f"{row['avg_fn']:.1f} & {med_j_str} & {j_str} \\\\"
                     )
                 print("\\hline")
 
