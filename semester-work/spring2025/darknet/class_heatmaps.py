@@ -1,9 +1,12 @@
-import json, argparse
+#!/usr/bin/env python3
+import json
+import argparse
 from pathlib import Path
 import pandas as pd
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import seaborn as sns
+from plot_common import get_ordered_yolos, normalize_dataset_name
 
 DEFAULT_BASES = [
     Path("/home/artur/chocolatechip/semester-work/spring2025/darknet"),
@@ -40,14 +43,15 @@ def main():
                 continue
             yolo_template = df_csv["YOLO Template"].dropna().iloc[0]
             backend = df_csv["Backend"].dropna().iloc[0]
+            val_fraction = df_csv["Val Fraction"].dropna().iloc[0] if "Val Fraction" in df_csv.columns else "unknown"
             yolo_val = f"{yolo_template} / {backend}"
             data = load_json(cm_path)
             for rec in data.get("per_class", []):
-                key = (rec["class"], yolo_val)
+                key = (rec["class"], yolo_val, val_fraction)
                 scores[key].append(rec["f1"])
 
     rows = [
-        {"class": k[0], "YOLO": k[1], "avg_f1": avg_f1(v), "count": len(v)}
+        {"class": k[0], "YOLO": k[1], "val_fraction": k[2], "avg_f1": avg_f1(v), "count": len(v)}
         for k, v in scores.items()
     ]
     df = pd.DataFrame(rows)
@@ -73,21 +77,34 @@ def main():
         sub = df[df["class"].isin(classes)]
         if sub.empty:
             continue
-        heatmap_data = sub.pivot(index="class", columns="YOLO", values="avg_f1")
-        class_means = heatmap_data.mean(axis=1).sort_values(ascending=False)
-        heatmap_data = heatmap_data.loc[class_means.index]
-        plt.figure(figsize=(12, 6))
-        sns.heatmap(heatmap_data, annot=True, fmt=".3f", cmap="RdYlGn", 
-                    cbar_kws={"label": "Avg F1"}, vmin=0, vmax=1)
-        plt.title(f"Average F1 Heatmap – {name.title()} Classes")
-        plt.xlabel("YOLO Version / Backend")
-        plt.ylabel("Class")
-        plt.tight_layout()
-        out_path = output_dir / f"{name}_heatmap.png"
-        plt.savefig(out_path, dpi=300, bbox_inches="tight")
-        print(f"Saved {out_path}")
-        plt.show()
+        
+        val_fractions = sorted(sub["val_fraction"].unique())
+        
+        for val_frac in val_fractions:
+            sub_val = sub[sub["val_fraction"] == val_frac]
+            if sub_val.empty:
+                continue
+            
+            heatmap_data = sub_val.pivot(index="class", columns="YOLO", values="avg_f1")
+            
+            present_yolos = heatmap_data.columns.tolist()
+            ordered_yolos = get_ordered_yolos(present_yolos)
+            heatmap_data = heatmap_data[ordered_yolos]
+            
+            class_means = heatmap_data.mean(axis=1).sort_values(ascending=False)
+            heatmap_data = heatmap_data.loc[class_means.index]
+            
+            plt.figure(figsize=(12, 6))
+            sns.heatmap(heatmap_data, annot=True, fmt=".3f", cmap="RdYlGn",
+                        cbar_kws={"label": "Avg F1"}, vmin=0, vmax=1, square=True)
+            plt.yticks(rotation=0)
+            plt.xlabel("YOLO Version / Backend")
+            plt.ylabel("Class")
+            plt.tight_layout()
+            out_path = output_dir / f"{name}_val{val_frac}_heatmap.pdf"
+            plt.savefig(out_path, dpi=300, bbox_inches="tight")
+            print(f"Saved {out_path}")
+            plt.show()
 
 if __name__ == "__main__":
     main()
-
