@@ -1,0 +1,70 @@
+Backend: ultralytics
+Profile: CubesUltra
+YOLO Template: yolo11s.pt
+Benchmark Time (s): 91.214
+CPU Name: AMD EPYC 9655P 96-Core Processor
+CPU Threads: 96
+GPU Name: NVIDIA L4
+GPU VRAM: 23034 MiB
+Total Memory: 755.0 GiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.11.14
+Disk Capacity: 1.7T
+Disk Model: SAMSUNG MZWLO1T9HCJR-00A07
+Write Speed: 487.21 MiB/s
+Read Speed: 963.81 MiB/s
+Working Dir: N/A
+CUDA Version: '12.8'
+cuDNN Version: Unknown
+GPUs Used: 1
+Compute Capability: '8.9'
+Input Width: 224
+Input Height: 160
+Input Size: 224x160
+Iterations: 6000
+Batch Size: 64
+Subdivisions: 1
+Train Images: 76
+Valid Images: 14
+Approx Epochs: null
+Color Preset: preserve
+Split Seed: 9001
+Training Seed: null
+Repeat: '1'
+Val Fraction: 0.15
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 99.5
+mAP (best %): null
+Best Iteration: null
+Conf Thresh (PRF): null
+Precision@Conf: null
+Recall@Conf: null
+F1@Conf: null
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 4
+CM_TotalTP: 37
+CM_TotalFP: 4
+CM_TotalFN: 2
+CM_MicroPrecision: 0.9024390243902439
+CM_MicroRecall: 0.9487179487179487
+CM_MicroF1: 0.9249999999999999
+CM_MacroPrecision: 0.8972222222222221
+CM_MacroRecall: 0.9583333333333334
+CM_MacroF1: 0.9184491978609626
+COCO AP50-95 (%): 74.13132563256326
+COCO AP50 (%): 97.41474147414742
+COCO AP75 (%): 97.41474147414742
+COCO AP@50 (%): 86.56032269893656
+COCO AP@55 (%): 86.56032269893656
+COCO AP@60 (%): 86.56032269893656
+COCO AP@65 (%): 86.56032269893656
+COCO AP@70 (%): 86.56032269893656
+COCO AP@75 (%): 86.56032269893656
+COCO AP@80 (%): 79.87076981507674
+COCO AP@85 (%): 40.285766671905286
+COCO AP@89 (%): 17.920333700036668
+COCO AP@95 (%): 3.2178217821782167
+mAP50-95 (%): 74.13132563256326
