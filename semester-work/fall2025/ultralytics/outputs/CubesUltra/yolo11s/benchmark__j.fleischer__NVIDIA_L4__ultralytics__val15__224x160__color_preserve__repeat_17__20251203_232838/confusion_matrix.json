@@ -1,0 +1,109 @@
+{
+  "params": {
+    "iou_thresh": 0.5,
+    "conf_thresh": 0.5
+  },
+  "classes": [
+    "blue",
+    "red",
+    "green",
+    "yellow"
+  ],
+  "matrix": [
+    [
+      11,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      12,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      7,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      8
+    ]
+  ],
+  "per_class": [
+    {
+      "class": "blue",
+      "TP": 11,
+      "FP": 0,
+      "FN": 1,
+      "precision": 1.0,
+      "recall": 0.9166666666666666,
+      "f1": 0.9565217391304348,
+      "GT_total": 12
+    },
+    {
+      "class": "red",
+      "TP": 12,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 12
+    },
+    {
+      "class": "green",
+      "TP": 7,
+      "FP": 0,
+      "FN": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "GT_total": 7
+    },
+    {
+      "class": "yellow",
+      "TP": 8,
+      "FP": 4,
+      "FN": 0,
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1": 0.8,
+      "GT_total": 8
+    }
+  ],
+  "totals": {
+    "TP": 38,
+    "FP": 4,
+    "FN": 1
+  },
+  "micro": {
+    "precision": 0.9047619047619048,
+    "recall": 0.9743589743589743,
+    "f1": 0.9382716049382716
+  },
+  "macro": {
+    "precision": 0.9166666666666666,
+    "recall": 0.9791666666666666,
+    "f1": 0.9391304347826087
+  },
+  "csv_cols": {
+    "CM_IoU_Thresh": 0.5,
+    "CM_Conf_Thresh": 0.5,
+    "CM_Classes": 4,
+    "CM_TotalTP": 38,
+    "CM_TotalFP": 4,
+    "CM_TotalFN": 1,
+    "CM_MicroPrecision": 0.9047619047619048,
+    "CM_MicroRecall": 0.9743589743589743,
+    "CM_MicroF1": 0.9382716049382716,
+    "CM_MacroPrecision": 0.9166666666666666,
+    "CM_MacroRecall": 0.9791666666666666,
+    "CM_MacroF1": 0.9391304347826087
+  }
+}
