@@ -19,10 +19,7 @@ from plot_common import (
 )
 
 
-try:
-    from scipy import stats
-except ImportError:
-    stats = None
+from scipy import stats
 
 
 def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
@@ -135,100 +132,105 @@ def escape_latex(text):
     return text
 
 
-def _find_significant_best(g: pd.DataFrame, id_cols, alpha: float = 0.05):
+def _find_significant_rows(g: pd.DataFrame, id_cols, alpha: float = 0.05):
     """
     Given an aggregated table g with columns:
       - 'framework'
       - 'count' (n)
       - 'avg_jaccard'
       - 'std_jaccard'
-    and identifier columns id_cols (e.g. ["framework","yolo_type"] or
-    ["framework","yolo_type","color_preset"]),
 
-    Return (best_key_dict, True) if there is a **unique** best model whose
-    avg_jaccard is significantly higher than all models in the *other framework*
-    (darknet vs ultralytics) using Welch t-tests with Holm–Bonferroni
-    correction at level alpha.
+    Return (set_of_best_keys, True) where set_of_best_keys is a set of tuples
+    of (col -> value) for rows that:
+      1. Are best in their val-fraction block up to 3 decimals, AND
+      2. Are significantly better than all models in the *other* framework(s)
+         using Welch t-tests with Holm–Bonferroni correction.
 
-    Otherwise return (None, False).
+    If SciPy is unavailable or no rows qualify, return (empty_set, False).
     """
     if stats is None:
-        # SciPy not available; skip significance
-        return None, False
-
-    g2 = g.copy()
+        return set(), False
 
     # Need usable stats
+    g2 = g.copy()
     g2 = g2[g2["std_jaccard"].notna() & (g2["count"] > 1)]
     if len(g2) < 2:
-        return None, False
+        return set(), False
 
-    # Find unique best by avg_jaccard across all rows (any framework)
-    max_val = g2["avg_jaccard"].max()
-    best_rows = g2[np.isclose(g2["avg_jaccard"], max_val, rtol=1e-9, atol=1e-12)]
-    if len(best_rows) != 1:
-        # tie for best -> no unique best, so no star
-        return None, False
+    # Determine "best" per block in terms of thousandths
+    g2 = g2.assign(avg3=g2["avg_jaccard"].round(3))
+    max3 = g2["avg3"].max()
 
-    best = best_rows.iloc[0]
-    best_framework = str(best["framework"])
+    # Candidates: rows that are "best" to 3 decimals
+    candidates = g2[g2["avg3"] == max3]
+    if candidates.empty:
+        return set(), False
 
-    # Only compare against models from the *other* framework(s)
-    pvals = []
-    for idx, other in g2.iterrows():
-        if idx == best.name:
+    significant_keys = set()
+
+    # For each candidate: test vs all other-framework rows
+    for idx, cand in candidates.iterrows():
+        cand_framework = str(cand["framework"])
+        n1 = float(cand["count"])
+        if n1 < 2:
             continue
 
-        other_framework = str(other["framework"])
-        if other_framework == best_framework:
-            # same framework -> skip this comparison
-            continue
-
-        n1 = float(best["count"])
-        n2 = float(other["count"])
-        if n1 < 2 or n2 < 2:
-            continue
-
-        mean1 = float(best["avg_jaccard"])
-        mean2 = float(other["avg_jaccard"])
-        std1 = float(best["std_jaccard"])
-        std2 = float(other["std_jaccard"])
-
+        mean1 = float(cand["avg_jaccard"])
+        std1 = float(cand["std_jaccard"])
         var1 = std1**2
-        var2 = std2**2
 
-        denom = np.sqrt(var1 / n1 + var2 / n2)
-        if denom <= 0.0:
+        pvals = []
+        for jdx, other in g2.iterrows():
+            if jdx == idx:
+                continue
+
+            other_framework = str(other["framework"])
+            if other_framework == cand_framework:
+                continue
+
+            n2 = float(other["count"])
+            if n2 < 2:
+                continue
+
+            mean2 = float(other["avg_jaccard"])
+            std2 = float(other["std_jaccard"])
+            var2 = std2**2
+
+            denom = np.sqrt(var1 / n1 + var2 / n2)
+            if denom <= 0.0:
+                continue
+
+            t = (mean1 - mean2) / denom
+
+            # Welch–Satterthwaite df
+            num = (var1 / n1 + var2 / n2) ** 2
+            denom_df = (var1**2 / (n1**2 * (n1 - 1))) + (var2**2 / (n2**2 * (n2 - 1)))
+            if denom_df <= 0.0:
+                continue
+
+            df = num / denom_df
+            p = 2.0 * stats.t.sf(abs(t), df)
+            pvals.append(p)
+
+        m = len(pvals)
+        if m == 0:
+            # no usable cross-framework comparisons → can't call it "significant"
             continue
 
-        t = (mean1 - mean2) / denom
+        # Holm–Bonferroni for this candidate only
+        p_sorted = sorted(pvals)
+        all_significant = True
+        for i, p in enumerate(p_sorted):
+            critical = alpha / (m - i)
+            if p > critical:
+                all_significant = False
+                break
 
-        # Welch–Satterthwaite df
-        num = (var1 / n1 + var2 / n2) ** 2
-        denom_df = (var1**2 / (n1**2 * (n1 - 1))) + (var2**2 / (n2**2 * (n2 - 1)))
-        if denom_df <= 0.0:
-            continue
+        if all_significant:
+            key_tuple = tuple((col, cand[col]) for col in id_cols)
+            significant_keys.add(key_tuple)
 
-        df = num / denom_df
-        p = 2.0 * stats.t.sf(abs(t), df)
-        pvals.append(p)
-
-    m = len(pvals)
-    if m == 0:
-        # No cross-framework competitors -> no way to declare cross-framework "best"
-        return None, False
-
-    # Holm–Bonferroni: require **all** cross-framework comparisons (best vs each other) to pass
-    p_sorted = sorted(pvals)
-    for i, p in enumerate(p_sorted):
-        critical = alpha / (m - i)
-        if p > critical:
-            # at least one comparison is not significant
-            return None, False
-
-    # Survived all → unique best significantly better than all models in *other* framework(s)
-    best_key = {col: best[col] for col in id_cols}
-    return best_key, True
+    return significant_keys, bool(significant_keys)
 
 
 def main():
@@ -477,10 +479,10 @@ def main():
                 max_j_3 = g["avg_jaccard"].round(3).max()
 
                 # Decide if there's a unique significantly-best row (Welch + Holm)
-                best_key = None
-                sig_best = False
+                sig_keys = set()
+                sig_any = False
                 if len(g) >= 2:
-                    best_key, sig_best = _find_significant_best(
+                    sig_keys, sig_any = _find_significant_rows(
                         g,
                         id_cols=["framework", "yolo_type", "color_preset"],
                         alpha=0.05,
@@ -492,13 +494,12 @@ def main():
                     is_best = (row_j_3 == max_j_3)
 
                     # is this row the significant-best one?
-                    is_sig = False
-                    if sig_best and best_key is not None:
-                        is_sig = (
-                            (row["framework"] == best_key["framework"]) and
-                            (row["yolo_type"] == best_key["yolo_type"]) and
-                            (row["color_preset"] == best_key["color_preset"])
-                        )
+                    key_tuple = (
+                        ("framework", row["framework"]),
+                        ("yolo_type", row["yolo_type"]),
+                        ("color_preset", row["color_preset"]),
+                    )
+                    is_sig = sig_any and key_tuple in sig_keys
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     med_j_str = f"{row['median_jaccard']:.3f}"
@@ -590,10 +591,10 @@ def main():
                 print("\\hline")
 
                 # Decide if there's a unique significantly-best row (Welch + Holm)
-                best_key = None
-                sig_best = False
+                sig_keys = set()
+                sig_any = False
                 if len(g) >= 2:
-                    best_key, sig_best = _find_significant_best(
+                    sig_keys, sig_any = _find_significant_rows(
                         g,
                         id_cols=["framework", "yolo_type"],
                         alpha=0.05,
@@ -605,12 +606,11 @@ def main():
                     is_best = (row_j_3 == max_j_3)
 
                     # does this row correspond to the significant-best one?
-                    is_sig = False
-                    if sig_best and best_key is not None:
-                        is_sig = (
-                            (row["framework"] == best_key["framework"]) and
-                            (row["yolo_type"] == best_key["yolo_type"])
-                        )
+                    key_tuple = (
+                        ("framework", row["framework"]),
+                        ("yolo_type", row["yolo_type"]),
+                    )
+                    is_sig = sig_any and key_tuple in sig_keys
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     med_j_str = f"{row['median_jaccard']:.3f}"
