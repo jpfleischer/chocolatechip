@@ -469,12 +469,17 @@ def main():
                     )
 
                 for _, row in g.iterrows():
-                    max_j = max_j_per_vf.get(row["val_fraction"], row["avg_jaccard"])
-                    is_best = np.isclose(
-                        row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12
+                    # best value in this val_fraction, rounded to 3 decimals
+                    max_j_3 = max_j_per_vf.get(
+                        row["val_fraction"],
+                        round(row["avg_jaccard"], 3),
                     )
 
-                    # is this row the significant-best one?
+                    # this row’s value, rounded to 3 decimals
+                    row_j_3 = round(row["avg_jaccard"], 3)
+                    is_best = (row_j_3 == max_j_3)
+
+                    # is this row the significant-best one? (unchanged)
                     is_sig = False
                     if sig_best and best_key is not None:
                         is_sig = (
@@ -482,7 +487,6 @@ def main():
                             (row["yolo_type"] == best_key["yolo_type"]) and
                             (row["color_preset"] == best_key["color_preset"])
                         )
-
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     med_j_str = f"{row['median_jaccard']:.3f}"
@@ -562,7 +566,8 @@ def main():
                 print(f"\\multicolumn{{8}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\")
                 print("\\hline")
 
-                max_j = g["avg_jaccard"].max()  # best in this val-frac block
+                # best avg_jaccard in this block, rounded to 3 decimals
+                max_j_3 = g["avg_jaccard"].round(3).max()
 
                 # Decide if there's a unique significantly-best row (Welch + Holm)
                 best_key = None
@@ -575,7 +580,8 @@ def main():
                     )
 
                 for _, row in g.iterrows():
-                    is_best = np.isclose(row["avg_jaccard"], max_j, rtol=1e-9, atol=1e-12)
+                    row_j_3 = round(row["avg_jaccard"], 3)
+                    is_best = (row_j_3 == max_j_3)
 
                     # does this row correspond to the significant-best one?
                     is_sig = False
