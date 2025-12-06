@@ -441,22 +441,40 @@ def main():
                 ["val_fraction", "framework", "yolo_sort", "yolo_type", "color_preset"]
             )
 
-            # Best Jaccard per val_fraction (ties will all be bolded)
-            max_j_per_vf = (
-                leather_latex.groupby("val_fraction")["avg_jaccard"].max().to_dict()
+            print(f"\n% LaTeX Table: {dataset} Dataset Summary Statistics")
+
+            cap = (
+                f"Average confusion matrix values for {dataset} by framework, YOLO type, "
+                f"color preset, and validation fraction."
             )
 
-            print("\\begin{table}[htbp]")
+            # Table* with caption + label ABOVE the tabular
+            print("\\begin{table*}[htbp]")
+            print(f"\\caption{{{cap}}}")
+            print("\\label{tab:" + dataset.lower() + "_summary}")
             print("\\centering")
-            print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|c|}")
+
+            # Note: Val Frac is shown as a block header, not a separate column
+            print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|}")
             print("\\hline")
             print(
-                "Framework & YOLO Type & Color & Val Frac & Count & Avg TP & Avg FP & "
-                "Avg FN & Med Jaccard & Avg Jaccard \\\\"
+                "\\rowcolor{darkgray!20}"
+                "\\textbf{Framework} & \\textbf{YOLO Type} & \\textbf{Color} & "
+                "\\textbf{Count} & \\textbf{Avg TP} & \\textbf{Avg FP} & "
+                "\\textbf{Avg FN} & \\textbf{Med Jaccard} & \\textbf{Avg Jaccard} \\\\"
             )
             print("\\hline")
 
             for vf, g in leather_latex.groupby("val_fraction", sort=False):
+                # Block header row for this Val Frac (gray band)
+                print(
+                    f"\\rowcolor{{gray!20}}"
+                    f"\\multicolumn{{9}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
+                )
+                print("\\hline")
+
+                # Best Avg Jaccard in this block, by thousandths
+                max_j_3 = g["avg_jaccard"].round(3).max()
 
                 # Decide if there's a unique significantly-best row (Welch + Holm)
                 best_key = None
@@ -469,17 +487,11 @@ def main():
                     )
 
                 for _, row in g.iterrows():
-                    # best value in this val_fraction, rounded to 3 decimals
-                    max_j_3 = max_j_per_vf.get(
-                        row["val_fraction"],
-                        round(row["avg_jaccard"], 3),
-                    )
-
-                    # this row’s value, rounded to 3 decimals
+                    # Thousandths-based "best" logic
                     row_j_3 = round(row["avg_jaccard"], 3)
                     is_best = (row_j_3 == max_j_3)
 
-                    # is this row the significant-best one? (unchanged)
+                    # is this row the significant-best one?
                     is_sig = False
                     if sig_best and best_key is not None:
                         is_sig = (
@@ -503,21 +515,15 @@ def main():
                         f"{escape_latex(row['framework'])} & "
                         f"{escape_latex(row['yolo_type'])} & "
                         f"{escape_latex(row['color_preset'])} & "
-                        f"{escape_latex(row['val_fraction'])} & "
                         f"{int(row['count'])} & "
                         f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & {row['avg_fn']:.1f} & "
                         f"{med_j_str} & {j_str} \\\\"
                     )
 
-            print("\\hline")
+                print("\\hline")
+
             print("\\end{tabular}")
-            cap = (
-                f"Average confusion matrix values for {dataset} by framework, YOLO type, "
-                f"color preset, and validation fraction."
-            )
-            print(f"\\caption{{{cap}}}")
-            print("\\label{tab:" + dataset.lower() + "_summary}")
-            print("\\end{table}")
+            print("\\end{table*}")
 
         else:
             # --- Non-Leather: grouped by val_fraction ---
@@ -550,24 +556,38 @@ def main():
                 ["val_fraction", "framework", "yolo_sort", "yolo_type"]
             )
 
-            print("\\begin{table}[htbp]")
+            # Caption text (used above the table)
+            cap = (
+                f"Average confusion matrix values for {dataset} grouped by validation "
+                f"fraction, framework, and YOLO type."
+            )
+
+            # Table environment + caption/label ABOVE the tabular
+            print("\\begin{table*}[htbp]")
+            print(f"\\caption{{{cap}}}")
+            print("\\label{tab:" + dataset.lower() + "_summary}")
             print("\\centering")
-            # NOTE: Val Frac column removed, since it becomes a block header
+
             print("\\begin{tabular}{|l|l|c|c|c|c|c|c|}")
             print("\\hline")
             print(
-                "Framework & YOLO Type & Count & Avg TP & Avg FP & Avg FN & "
-                "Med Jaccard & Avg Jaccard \\\\"
+                "\\rowcolor{darkgray!20}"
+                "\\textbf{Framework} & \\textbf{YOLO Type} & \\textbf{Count} & "
+                "\\textbf{Avg TP} & \\textbf{Avg FP} & \\textbf{Avg FN} & "
+                "\\textbf{Med Jaccard} & \\textbf{Avg Jaccard} \\\\"
             )
             print("\\hline")
 
             for vf, g in other_latex.groupby("val_fraction", sort=False):
-                # block header row spanning all cols
-                print(f"\\multicolumn{{8}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\")
-                print("\\hline")
-
-                # best avg_jaccard in this block, rounded to 3 decimals
+                # best avg_jaccard in this block, rounded to 3 decimals (thousandths)
                 max_j_3 = g["avg_jaccard"].round(3).max()
+
+                # block header row spanning all cols, with gray background
+                print(
+                    f"\\rowcolor{{gray!20}}"
+                    f"\\multicolumn{{8}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
+                )
+                print("\\hline")
 
                 # Decide if there's a unique significantly-best row (Welch + Holm)
                 best_key = None
@@ -580,6 +600,7 @@ def main():
                     )
 
                 for _, row in g.iterrows():
+                    # Thousandths-based "best" logic
                     row_j_3 = round(row["avg_jaccard"], 3)
                     is_best = (row_j_3 == max_j_3)
 
@@ -612,14 +633,7 @@ def main():
                 print("\\hline")
 
             print("\\end{tabular}")
-
-            cap = (
-                f"Average confusion matrix values for {dataset} grouped by validation "
-                f"fraction, framework, and YOLO type."
-            )
-            print(f"\\caption{{{cap}}}")
-            print("\\label{tab:" + dataset.lower() + "_summary}")
-            print("\\end{table}")
+            print("\\end{table*}")
 
 
 if __name__ == "__main__":
