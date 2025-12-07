@@ -1,132 +1,291 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import json
 import argparse
 from pathlib import Path
-import pandas as pd
 from collections import defaultdict
+from typing import Dict, List, Tuple
+import numpy as np
+
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from plot_common import get_ordered_yolos, normalize_dataset_name
 
-DEFAULT_BASES = [
-    Path("/home/artur/chocolatechip/semester-work/spring2025/darknet"),
-    Path("/home/artur/chocolatechip/semester-work/fall2025/ultralytics"),
-]
+from plot_common import get_ordered_yolos, git_repo_root, iter_benchmark_csvs
 
-def find_cm_files(root: Path):
-    return list(root.rglob("confusion_matrix.json"))
+# Map between short labels used on plots and full YOLO names used in plot_common
+SHORT_TO_FULL: Dict[str, str] = {
+    "v4-tiny": "yolov4-tiny",
+    "v7-tiny": "yolov7-tiny",
+    "11n": "yolo11n",
+    "11s": "yolo11s",
+    "11m": "yolo11m",
+}
 
-def load_json(p):
+FULL_TO_SHORT: Dict[str, str] = {v: k for k, v in SHORT_TO_FULL.items()}
+
+# Preferred validation fractions ordering
+VAL_ORDER: List[str] = ["0.1", "0.15", "0.2", "0.8"]
+
+
+def load_json(p: Path) -> dict:
     with p.open("r", encoding="utf-8") as f:
         return json.load(f)
 
-def avg_f1(values):
+
+def avg_f1(values: List[float]) -> float:
     return sum(values) / len(values) if values else float("nan")
 
-def clean_yolo_name(yolo_template):
-    # Remove "yolo" prefix
-    cleaned = yolo_template.lower().replace("yolo", "")
-    # Remove anything after the dot
+
+def clean_yolo_name(yolo_template: str) -> str:
+    """
+    Normalize YOLO template to short labels like 'v4-tiny', '11n', etc.
+    Example: 'yolov4-tiny' -> 'v4-tiny', 'yolo11n' -> '11n'.
+    """
+    cleaned = yolo_template.lower()
+    if cleaned.startswith("yolo"):
+        cleaned = cleaned[len("yolo"):]
     if "." in cleaned:
         cleaned = cleaned.split(".")[0]
     return cleaned
 
-def main():
+
+def infer_dataset_name(cm_path: Path) -> str:
+    """
+    Infer a dataset name from the path to confusion_matrix.json.
+
+    Expected layout (example):
+      .../artifacts/outputs/CubesDarknet/yolov4-tiny/benchmark__/confusion_matrix.json
+
+    We treat the directory two levels above as the dataset dir (CubesDarknet),
+    then strip common backend suffixes to get a clean dataset name.
+    """
+    # Parents: [0]=benchmark__, [1]=yolov4-tiny, [2]=CubesDarknet, ...
+    if len(cm_path.parents) >= 3:
+        dataset_dir = cm_path.parents[2].name
+    else:
+        dataset_dir = cm_path.parent.name
+
+    ds = dataset_dir
+
+    # Strip a few known backend suffixes to get a cleaner dataset name
+    suffixes = ["DarknetLocal", "Darknet", "Ultra", "Ultralytics"]
+    lower_ds = ds.lower()
+    for suf in suffixes:
+        ls = suf.lower()
+        if lower_ds.endswith(ls):
+            ds = ds[: -len(suf)]
+            break
+
+    return ds or "unknowndataset"
+
+
+def iter_runs(base_dirs: List[str]):
+    """
+    Yield (csv_path, confusion_matrix_path) pairs.
+
+    Use plot_common.iter_benchmark_csvs to find benchmark__*.csv files
+    anywhere under the given base dirs, and assume confusion_matrix.json
+    lives in the same directory.
+    """
+    for csv_path in iter_benchmark_csvs(base_dirs):
+        csv_p = Path(csv_path)
+        cm_path = csv_p.parent / "confusion_matrix.json"
+        if cm_path.is_file():
+            yield csv_p, cm_path
+
+
+
+
+def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("root", nargs="?", default="", help="optional root directory")
+    parser.add_argument(
+        "base",
+        nargs="*",
+        help="Base directory/directories to search. "
+             "If omitted, defaults to <git_root>/artifacts/outputs.",
+    )
     args = parser.parse_args()
-    
-    roots = [Path(args.root)] if args.root else DEFAULT_BASES
-    scores = defaultdict(list)
-    
-    for root in roots:
-        for cm_path in find_cm_files(root):
-            dir_path = cm_path.parent
-            csv_files = list(dir_path.glob("*.csv"))
-            if not csv_files:
-                continue
-            
-            csv_path = csv_files[0]
-            df_csv = pd.read_csv(csv_path, dtype=str)
-            
-            if "YOLO Template" not in df_csv.columns or "Backend" not in df_csv.columns:
-                continue
-            
-            yolo_template = df_csv["YOLO Template"].dropna().iloc[0]
-            val_fraction = df_csv["Val Fraction"].dropna().iloc[0] if "Val Fraction" in df_csv.columns else "unknown"
-            
-            cleaned_yolo = clean_yolo_name(yolo_template)
-            combined_key = f"{cleaned_yolo} / {val_fraction}"
-            
-            data = load_json(cm_path)
-            for rec in data.get("per_class", []):
-                key = (rec["class"], combined_key)
-                scores[key].append(rec["f1"])
-    
+
+    if args.base:
+        # user-specified roots
+        base_dirs = [str(Path(b).resolve()) for b in args.base]
+    else:
+        # auto: search from git repo root using plot_common logic
+        repo_root = git_repo_root()
+        base_dirs = [str(repo_root)]
+
+
+
+    # key: (dataset, class_name, "short_yolo / val_frac") -> list of f1 values
+    scores: Dict[Tuple[str, str, str], List[float]] = defaultdict(list)
+
+    for csv_path, cm_path in iter_runs(base_dirs):
+        df_csv = pd.read_csv(csv_path, dtype=str)
+
+
+        # Require at least these columns to avoid legacy runs with different schema
+        if "YOLO Template" not in df_csv.columns or "Backend" not in df_csv.columns:
+            continue
+
+        yolo_template = df_csv["YOLO Template"].dropna().iloc[0]
+        val_fraction = (
+            df_csv["Val Fraction"].dropna().iloc[0]
+            if "Val Fraction" in df_csv.columns
+            else "unknown"
+        )
+
+        short_yolo = clean_yolo_name(yolo_template)
+        combined_key = f"{short_yolo} / {val_fraction}"
+
+        dataset_name = infer_dataset_name(cm_path)
+
+        data = load_json(cm_path)
+        for rec in data.get("per_class", []):
+            cls = rec["class"]
+            f1 = rec.get("f1", float("nan"))
+            key = (dataset_name, cls, combined_key)
+            scores[key].append(f1)
+
+    # Build a DataFrame with dataset info included
     rows = [
-        {"class": k[0], "YOLO_Val": k[1], "avg_f1": avg_f1(v), "count": len(v)}
+        {
+            "dataset": k[0],
+            "class": k[1],
+            "YOLO_Val": k[2],
+            "avg_f1": avg_f1(v),
+            "count": len(v),
+        }
         for k, v in scores.items()
     ]
     df = pd.DataFrame(rows)
     print(df)
     df.to_csv("per_class_yolo_f1.csv", index=False)
-    
-    cars_classes = ["motorbike", "car", "truck", "bus", "pedestrian"]
-    leather_classes = ["color", "cut", "fold", "glue", "poke"]
-    lego_classes = ["red light", "pin", "center", "small gear", "medium gear"]
-    
-    groups = {
-        "cars": cars_classes,
-        "leather": leather_classes,
-        "lego": lego_classes,
-    }
-    
+
     output_dir = Path("heatmaps")
     output_dir.mkdir(exist_ok=True)
-    
+
     sns.set(style="whitegrid", font_scale=1.15)
-    
-    # Define YOLO version order
-    yolo_order = ["v4-tiny", "v7-tiny", "11n", "11s"]
-    val_order = ["0.1", "0.15", "0.2", "0.8"]
-    
-    def sort_key(col):
-        parts = col.split(" / ")
-        if len(parts) != 2:
-            return (999, 999)
-        yolo_ver = parts[0]
-        val_frac = parts[1]
-        yolo_idx = yolo_order.index(yolo_ver) if yolo_ver in yolo_order else 999
-        val_idx = val_order.index(val_frac) if val_frac in val_order else 999
-        return (yolo_idx, val_idx)
-    
-    for name, classes in groups.items():
-        sub = df[df["class"].isin(classes)]
+
+    # One figure per dataset, with one subplot per YOLO version
+    for dataset_name in sorted(df["dataset"].unique()):
+        sub = df[df["dataset"] == dataset_name]
         if sub.empty:
             continue
-        
-        heatmap_data = sub.pivot(index="class", columns="YOLO_Val", values="avg_f1")
-        
-        present_cols = heatmap_data.columns.tolist()
-        ordered_cols = sorted(present_cols, key=sort_key)
-        heatmap_data = heatmap_data[ordered_cols]
-        
-        class_means = heatmap_data.mean(axis=1).sort_values(ascending=False)
-        heatmap_data = heatmap_data.loc[class_means.index]
-        
-        plt.figure(figsize=(max(12, len(ordered_cols)*0.8), 6))
-        sns.heatmap(heatmap_data, annot=True, fmt=".3f", cmap="RdYlGn",
-                    cbar_kws={"label": "Avg F1", "shrink": 0.7}, vmin=0, vmax=1, square=True)
-        plt.yticks(rotation=0)
-        plt.xlabel("")
-        plt.ylabel("Class")
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
-        
-        out_path = output_dir / f"{name}_heatmap.pdf"
-        plt.savefig(out_path, dpi=300, bbox_inches="tight")
+
+        # Order classes by mean F1 (descending) for this dataset
+        class_means = sub.groupby("class")["avg_f1"].mean().sort_values(ascending=False)
+        classes = list(class_means.index)
+
+        # Find which YOLO short names are present
+        present_pairs = sub["YOLO_Val"].unique()
+        present_full_names = set()
+        short_to_full_local: Dict[str, str] = {}
+
+        # derive the set of val fractions that actually exist for this dataset
+        val_fracs_present = {
+            part.split(" / ")[1]
+            for part in present_pairs
+            if " / " in part
+        }
+
+        # sort them using VAL_ORDER as a preference, then anything extra at the end
+        def _val_sort_key(v: str) -> tuple[int, str]:
+            if v in VAL_ORDER:
+                return (VAL_ORDER.index(v), v)
+            return (len(VAL_ORDER), v)
+
+        val_fracs = sorted(val_fracs_present, key=_val_sort_key)
+
+        for yv in present_pairs:
+            parts = yv.split(" / ")
+            if len(parts) != 2:
+                continue
+            short_y, _val = parts
+            full_name = SHORT_TO_FULL.get(short_y, short_y)
+            present_full_names.add(full_name)
+            short_to_full_local[short_y] = full_name
+
+        if not present_full_names:
+            continue
+
+        ordered_full = get_ordered_yolos(list(present_full_names))
+        ordered_short = [
+            FULL_TO_SHORT.get(full_name, full_name) for full_name in ordered_full
+        ]
+
+        num_yolos = len(ordered_short)
+        fig, axes = plt.subplots(
+            1,
+            num_yolos,
+            figsize=(3 * num_yolos + 2, 5),   # a bit narrower
+            squeeze=False,
+        )
+
+        fig.tight_layout()
+        fig.subplots_adjust(wspace=0.1)       # smaller horizontal gap between panels
+
+
+        axes = axes[0]  # flatten row
+
+        # Build one heatmap per YOLO version
+        for ax, short_y in zip(axes, ordered_short):
+            # Build array: rows = classes, cols = val_fracs that actually exist
+            data_matrix = []
+            for cls in classes:
+                row_vals = []
+                for v in val_fracs:
+                    key_val = f"{short_y} / {v}"
+                    mask = (sub["class"] == cls) & (sub["YOLO_Val"] == key_val)
+                    vals = sub.loc[mask, "avg_f1"]
+                    if not vals.empty:
+                        row_vals.append(float(vals.iloc[0]))
+                    else:
+                        row_vals.append(float("nan"))
+                data_matrix.append(row_vals)
+
+            matrix_df = pd.DataFrame(data_matrix, index=classes, columns=val_fracs)
+
+
+            sns.heatmap(
+                matrix_df,
+                ax=ax,
+                annot=True,
+                fmt=".3f",
+                cmap="RdYlGn",
+                cbar=False,          # one colorbar for figure if you want, or leave as is
+                vmin=0,
+                vmax=1,
+            )
+
+            ax.set_title(short_y)
+            ax.set_xlabel("Val Fraction")
+            ax.set_xticklabels(val_fracs, rotation=45, ha="right")
+            ax.tick_params(axis="x", bottom=True, labelbottom=True)
+
+
+
+        # left-most subplot: keep class names, rotate nicely
+        axes[0].set_ylabel("Class")
+        axes[0].set_yticklabels(axes[0].get_yticklabels(), rotation=0)
+
+        # all other subplots: hide y tick labels
+        for ax in axes[1:]:
+            ax.set_ylabel("")
+            ax.set_yticklabels([])
+
+
+        fig.suptitle(dataset_name)
+        fig.tight_layout()
+        fig.subplots_adjust(wspace=0.15)  # was 0.4, much tighter gaps
+
+        # Lowercase filename
+        out_path = output_dir / f"{dataset_name.lower()}_heatmap.pdf"
+        fig.savefig(out_path, dpi=300, bbox_inches="tight")
         print(f"Saved {out_path}")
-        plt.show()
+        plt.close(fig)
+
 
 if __name__ == "__main__":
     main()
