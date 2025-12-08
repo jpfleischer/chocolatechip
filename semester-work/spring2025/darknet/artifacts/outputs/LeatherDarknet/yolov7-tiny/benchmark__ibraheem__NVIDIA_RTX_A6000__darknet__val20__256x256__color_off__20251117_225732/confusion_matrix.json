@@ -56,7 +56,8 @@
       "precision": 0.0,
       "recall": 0.0,
       "f1": 0.0,
-      "GT_total": 23
+      "GT_total": 23,
+      "jaccard": 0.0
     },
     {
       "class": "cut",
@@ -66,7 +67,8 @@
       "precision": 1.0,
       "recall": 0.8888888888888888,
       "f1": 0.9411764705882353,
-      "GT_total": 27
+      "GT_total": 27,
+      "jaccard": 0.8888888888888888
     },
     {
       "class": "fold",
@@ -76,7 +78,8 @@
       "precision": 1.0,
       "recall": 0.5925925925925926,
       "f1": 0.7441860465116279,
-      "GT_total": 27
+      "GT_total": 27,
+      "jaccard": 0.5925925925925926
     },
     {
       "class": "glue",
@@ -86,7 +89,8 @@
       "precision": 1.0,
       "recall": 0.6,
       "f1": 0.7499999999999999,
-      "GT_total": 25
+      "GT_total": 25,
+      "jaccard": 0.6
     },
     {
       "class": "poke",
@@ -96,7 +100,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "GT_total": 28
+      "GT_total": 28,
+      "jaccard": 1.0
     }
   ],
   "totals": {
@@ -107,12 +112,14 @@
   "micro": {
     "precision": 1.0,
     "recall": 0.6384615384615384,
-    "f1": 0.7793427230046948
+    "f1": 0.7793427230046948,
+    "jaccard": 0.6384615384615384
   },
   "macro": {
     "precision": 0.8,
     "recall": 0.6162962962962962,
-    "f1": 0.6870725034199726
+    "f1": 0.6870725034199726,
+    "jaccard": 0.6162962962962963
   },
   "csv_cols": {
     "CM_IoU_Thresh": 0.5,

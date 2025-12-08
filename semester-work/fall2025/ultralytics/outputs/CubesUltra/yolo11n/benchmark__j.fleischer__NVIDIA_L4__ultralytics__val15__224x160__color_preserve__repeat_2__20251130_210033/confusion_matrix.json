@@ -44,7 +44,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "GT_total": 12
+      "GT_total": 12,
+      "jaccard": 1.0
     },
     {
       "class": "red",
@@ -54,7 +55,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "GT_total": 12
+      "GT_total": 12,
+      "jaccard": 1.0
     },
     {
       "class": "green",
@@ -64,7 +66,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "GT_total": 7
+      "GT_total": 7,
+      "jaccard": 1.0
     },
     {
       "class": "yellow",
@@ -74,7 +77,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "GT_total": 8
+      "GT_total": 8,
+      "jaccard": 1.0
     }
   ],
   "totals": {
@@ -85,12 +89,14 @@
   "micro": {
     "precision": 1.0,
     "recall": 1.0,
-    "f1": 1.0
+    "f1": 1.0,
+    "jaccard": 1.0
   },
   "macro": {
     "precision": 1.0,
     "recall": 1.0,
-    "f1": 1.0
+    "f1": 1.0,
+    "jaccard": 1.0
   },
   "csv_cols": {
     "CM_IoU_Thresh": 0.5,
