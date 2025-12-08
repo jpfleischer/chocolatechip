@@ -12,7 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from plot_common import get_ordered_yolos, git_repo_root, iter_benchmark_csvs
+from plot_common import get_ordered_yolos, git_repo_root, iter_benchmark_csvs, normalize_dataset_name
 
 # Map between short labels used on plots and full YOLO names used in plot_common
 SHORT_TO_FULL: Dict[str, str] = {
@@ -53,32 +53,18 @@ def clean_yolo_name(yolo_template: str) -> str:
 
 def infer_dataset_name(cm_path: Path) -> str:
     """
-    Infer a dataset name from the path to confusion_matrix.json.
-
-    Expected layout (example):
-      .../artifacts/outputs/CubesDarknet/yolov4-tiny/benchmark__/confusion_matrix.json
-
-    We treat the directory two levels above as the dataset dir (CubesDarknet),
-    then strip common backend suffixes to get a clean dataset name.
+    Infer a dataset name using plot_common.normalize_dataset_name so that:
+      - FisheyeTraffic*JPG → FisheyeTrafficJPG
+      - other FisheyeTraffic variants → FisheyeTraffic
+      - LegoGears*, Leather*, Cubes* → their canonical names
     """
-    # Parents: [0]=benchmark__, [1]=yolov4-tiny, [2]=CubesDarknet, ...
     if len(cm_path.parents) >= 3:
         dataset_dir = cm_path.parents[2].name
     else:
         dataset_dir = cm_path.parent.name
 
-    ds = dataset_dir
-
-    # Strip a few known backend suffixes to get a cleaner dataset name
-    suffixes = ["DarknetLocal", "Darknet", "Ultra", "Ultralytics"]
-    lower_ds = ds.lower()
-    for suf in suffixes:
-        ls = suf.lower()
-        if lower_ds.endswith(ls):
-            ds = ds[: -len(suf)]
-            break
-
-    return ds or "unknowndataset"
+    # Use the dir name as "profile" and the full path as csv_path-ish
+    return normalize_dataset_name(dataset_dir, str(cm_path))
 
 
 def iter_runs(base_dirs: List[str]):
@@ -216,18 +202,23 @@ def main() -> None:
         ]
 
         num_yolos = len(ordered_short)
+
+        
+        # --- NEW: choose figure size based on grid shape ---
+        cell_size = 0.6  # inches per cell side; tweak 0.5–0.8 if you like
+        fig_width  = num_yolos * len(val_fracs) * cell_size + 2
+        fig_height = len(classes) * cell_size + 2
+
+
         fig, axes = plt.subplots(
             1,
             num_yolos,
-            figsize=(3 * num_yolos + 2, 5),   # a bit narrower
+            figsize=(fig_width, fig_height),
             squeeze=False,
         )
+        axes = axes[0]
 
-        fig.tight_layout()
-        fig.subplots_adjust(wspace=0.1)       # smaller horizontal gap between panels
-
-
-        axes = axes[0]  # flatten row
+        fig.subplots_adjust(left=0.05, right=0.98, wspace=0.05)
 
         # Build one heatmap per YOLO version
         for ax, short_y in zip(axes, ordered_short):
@@ -254,16 +245,24 @@ def main() -> None:
                 annot=True,
                 fmt=".3f",
                 cmap="RdYlGn",
-                cbar=False,          # one colorbar for figure if you want, or leave as is
+                cbar=False,
                 vmin=0,
                 vmax=1,
+                square=True,
+                annot_kws={"size": 10},  # smaller numbers
             )
 
             ax.set_title(short_y)
-            ax.set_xlabel("Val Fraction")
             ax.set_xticklabels(val_fracs, rotation=45, ha="right")
             ax.tick_params(axis="x", bottom=True, labelbottom=True)
 
+        # One common x-label for the whole figure
+        try:
+            fig.supxlabel("Val Fraction")   # matplotlib ≥ 3.4
+        except AttributeError:
+            # fallback: put label only under the middle axis
+            mid = len(axes) // 2
+            axes[mid].set_xlabel("Val Fraction")
 
 
         # left-most subplot: keep class names, rotate nicely
