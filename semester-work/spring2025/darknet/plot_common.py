@@ -108,6 +108,9 @@ def normalize_dataset_name(profile: str, csv_path: str = "") -> str:
     if "legogears" in lower_profile or "legogears" in lower_path:
         return "LegoGears"
     if "fisheyetraffic" in lower_profile or "fisheyetraffic" in lower_path:
+        # Split JPEG vs non-JPEG
+        if "jpg" in lower_profile or "jpg" in lower_path:
+            return "FisheyeTrafficJPG"
         return "FisheyeTraffic"
     if "leather" in lower_profile or "leather" in lower_path:
         return "Leather"
