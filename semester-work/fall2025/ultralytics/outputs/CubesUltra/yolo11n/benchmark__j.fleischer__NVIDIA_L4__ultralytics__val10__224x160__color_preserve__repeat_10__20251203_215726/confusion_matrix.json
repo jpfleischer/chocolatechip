@@ -44,7 +44,8 @@
       "precision": 1.0,
       "recall": 0.14285714285714285,
       "f1": 0.25,
-      "GT_total": 7
+      "GT_total": 7,
+      "jaccard": 0.14285714285714285
     },
     {
       "class": "red",
@@ -54,7 +55,8 @@
       "precision": 1.0,
       "recall": 0.375,
       "f1": 0.5454545454545454,
-      "GT_total": 8
+      "GT_total": 8,
+      "jaccard": 0.375
     },
     {
       "class": "green",
@@ -64,7 +66,8 @@
       "precision": 1.0,
       "recall": 0.2,
       "f1": 0.33333333333333337,
-      "GT_total": 5
+      "GT_total": 5,
+      "jaccard": 0.2
     },
     {
       "class": "yellow",
@@ -74,7 +77,8 @@
       "precision": 0.0,
       "recall": 0.0,
       "f1": 0.0,
-      "GT_total": 7
+      "GT_total": 7,
+      "jaccard": 0.0
     }
   ],
   "totals": {
@@ -85,12 +89,14 @@
   "micro": {
     "precision": 1.0,
     "recall": 0.18518518518518517,
-    "f1": 0.3125
+    "f1": 0.3125,
+    "jaccard": 0.18518518518518517
   },
   "macro": {
     "precision": 0.75,
     "recall": 0.17946428571428572,
-    "f1": 0.2821969696969697
+    "f1": 0.2821969696969697,
+    "jaccard": 0.17946428571428572
   },
   "csv_cols": {
     "CM_IoU_Thresh": 0.5,

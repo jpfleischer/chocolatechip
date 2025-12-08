@@ -56,7 +56,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "GT_total": 3
+      "GT_total": 3,
+      "jaccard": 1.0
     },
     {
       "class": "pin",
@@ -66,7 +67,8 @@
       "precision": 1.0,
       "recall": 0.6666666666666666,
       "f1": 0.8,
-      "GT_total": 3
+      "GT_total": 3,
+      "jaccard": 0.6666666666666666
     },
     {
       "class": "center",
@@ -76,7 +78,8 @@
       "precision": 0.0,
       "recall": 0.0,
       "f1": 0.0,
-      "GT_total": 4
+      "GT_total": 4,
+      "jaccard": 0.0
     },
     {
       "class": "small gear",
@@ -86,7 +89,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "GT_total": 3
+      "GT_total": 3,
+      "jaccard": 1.0
     },
     {
       "class": "medium gear",
@@ -96,7 +100,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "GT_total": 4
+      "GT_total": 4,
+      "jaccard": 1.0
     }
   ],
   "totals": {
@@ -107,12 +112,14 @@
   "micro": {
     "precision": 1.0,
     "recall": 0.7058823529411765,
-    "f1": 0.8275862068965517
+    "f1": 0.8275862068965517,
+    "jaccard": 0.7058823529411765
   },
   "macro": {
     "precision": 0.8,
     "recall": 0.7333333333333333,
-    "f1": 0.76
+    "f1": 0.76,
+    "jaccard": 0.7333333333333333
   },
   "csv_cols": {
     "CM_IoU_Thresh": 0.5,
