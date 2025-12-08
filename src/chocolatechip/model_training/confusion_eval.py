@@ -142,9 +142,18 @@ def compute_confusion_from_coco(
         prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         rec  = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1   = 2*prec*rec/(prec+rec) if (prec+rec) > 0 else 0.0
+        
+        
+        # NEW: Jaccard / IoU from confusion counts
+        denom = tp + fp + fn
+        jacc = tp / denom if denom > 0 else 0.0
+        # or, equivalently: jacc = f1 / (2 - f1) if denom > 0
+
         per_class.append({
-            "class": name, "TP": tp, "FP": fp, "FN": fn,
+            "class": name,
+            "TP": tp, "FP": fp, "FN": fn,
             "precision": prec, "recall": rec, "f1": f1,
+            "jaccard": jacc,
             "GT_total": GT_total[i],
         })
 
@@ -154,11 +163,17 @@ def compute_confusion_from_coco(
 
     micro_prec = _safe(TP_sum, TP_sum + FP_sum)
     micro_rec  = _safe(TP_sum, TP_sum + FN_sum)
-    micro_f1   = (2 * micro_prec * micro_rec / (micro_prec + micro_rec)) if (micro_prec and micro_rec and (micro_prec + micro_rec)) else None
+    micro_f1   = (2 * micro_prec * micro_rec / (micro_prec + micro_rec)) \
+                 if (micro_prec and micro_rec and (micro_prec + micro_rec)) else None
+
+    # NEW: micro Jaccard
+    micro_jacc = _safe(TP_sum, TP_sum + FP_sum + FN_sum)
 
     macro_prec = mean([c["precision"] for c in per_class]) if per_class else None
     macro_rec  = mean([c["recall"]    for c in per_class]) if per_class else None
     macro_f1   = mean([c["f1"]        for c in per_class]) if per_class else None
+    # NEW: macro Jaccard
+    macro_jacc = mean([c["jaccard"]   for c in per_class]) if per_class else None
 
     # CSV columns (dataset-agnostic by default)
     csv_cols: Dict[str, Any] = {}
@@ -192,11 +207,21 @@ def compute_confusion_from_coco(
     payload = {
         "params": {"iou_thresh": iou_thresh, "conf_thresh": conf_thresh},
         "classes": class_names,
-        "matrix": matrix,                 # [pred, gt] integer counts
-        "per_class": per_class,           # list of dicts
+        "matrix": matrix,
+        "per_class": per_class,
         "totals": {"TP": TP_sum, "FP": FP_sum, "FN": FN_sum},
-        "micro": {"precision": micro_prec, "recall": micro_rec, "f1": micro_f1},
-        "macro": {"precision": macro_prec, "recall": macro_rec, "f1": macro_f1},
+        "micro": {
+            "precision": micro_prec,
+            "recall": micro_rec,
+            "f1": micro_f1,
+            "jaccard": micro_jacc,
+        },
+        "macro": {
+            "precision": macro_prec,
+            "recall": macro_rec,
+            "f1": macro_f1,
+            "jaccard": macro_jacc,
+        },
         "csv_cols": csv_cols,
     }
 
