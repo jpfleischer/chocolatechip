@@ -12,7 +12,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from plot_common import get_ordered_yolos, git_repo_root, iter_benchmark_csvs, normalize_dataset_name
+from plot_common import (
+    get_ordered_yolos,
+    git_repo_root,
+    iter_benchmark_csvs,
+    normalize_dataset_name,
+)
 
 # Map between short labels used on plots and full YOLO names used in plot_common
 SHORT_TO_FULL: Dict[str, str] = {
@@ -34,7 +39,7 @@ def load_json(p: Path) -> dict:
         return json.load(f)
 
 
-def avg_f1(values: List[float]) -> float:
+def avg_jaccard(values: List[float]) -> float:
     return sum(values) / len(values) if values else float("nan")
 
 
@@ -82,15 +87,25 @@ def iter_runs(base_dirs: List[str]):
             yield csv_p, cm_path
 
 
-
+def extract_jaccard(rec: dict) -> float:
+    if "jaccard" in rec and rec["jaccard"] is not None:
+        try:
+            return float(rec["jaccard"])
+        except (TypeError, ValueError):
+            pass
+    else:
+        raise NotImplementedError("No jaccard field in record")
+    
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "base",
         nargs="*",
-        help="Base directory/directories to search. "
-             "If omitted, defaults to <git_root>/artifacts/outputs.",
+        help=(
+            "Base directory/directories to search. "
+            "If omitted, defaults to <git_root>/artifacts/outputs."
+        ),
     )
     args = parser.parse_args()
 
@@ -102,14 +117,11 @@ def main() -> None:
         repo_root = git_repo_root()
         base_dirs = [str(repo_root)]
 
-
-
-    # key: (dataset, class_name, "short_yolo / val_frac") -> list of f1 values
+    # key: (dataset, class_name, "short_yolo / val_frac") -> list of jaccard values
     scores: Dict[Tuple[str, str, str], List[float]] = defaultdict(list)
 
     for csv_path, cm_path in iter_runs(base_dirs):
         df_csv = pd.read_csv(csv_path, dtype=str)
-
 
         # Require at least these columns to avoid legacy runs with different schema
         if "YOLO Template" not in df_csv.columns or "Backend" not in df_csv.columns:
@@ -130,9 +142,9 @@ def main() -> None:
         data = load_json(cm_path)
         for rec in data.get("per_class", []):
             cls = rec["class"]
-            f1 = rec.get("f1", float("nan"))
+            j = extract_jaccard(rec)
             key = (dataset_name, cls, combined_key)
-            scores[key].append(f1)
+            scores[key].append(j)
 
     # Build a DataFrame with dataset info included
     rows = [
@@ -140,14 +152,14 @@ def main() -> None:
             "dataset": k[0],
             "class": k[1],
             "YOLO_Val": k[2],
-            "avg_f1": avg_f1(v),
+            "avg_jaccard": avg_jaccard(v),
             "count": len(v),
         }
         for k, v in scores.items()
     ]
     df = pd.DataFrame(rows)
     print(df)
-    df.to_csv("per_class_yolo_f1.csv", index=False)
+    df.to_csv("per_class_yolo_jaccard.csv", index=False)
 
     output_dir = Path("heatmaps")
     output_dir.mkdir(exist_ok=True)
@@ -160,8 +172,12 @@ def main() -> None:
         if sub.empty:
             continue
 
-        # Order classes by mean F1 (descending) for this dataset
-        class_means = sub.groupby("class")["avg_f1"].mean().sort_values(ascending=False)
+        # Order classes by mean Jaccard (descending) for this dataset
+        class_means = (
+            sub.groupby("class")["avg_jaccard"]
+            .mean()
+            .sort_values(ascending=False)
+        )
         classes = list(class_means.index)
 
         # Find which YOLO short names are present
@@ -203,12 +219,10 @@ def main() -> None:
 
         num_yolos = len(ordered_short)
 
-        
-        # --- NEW: choose figure size based on grid shape ---
+        # --- figure size based on grid shape ---
         cell_size = 0.6  # inches per cell side; tweak 0.5–0.8 if you like
-        fig_width  = num_yolos * len(val_fracs) * cell_size + 2
+        fig_width = num_yolos * len(val_fracs) * cell_size + 2
         fig_height = len(classes) * cell_size + 2
-
 
         fig, axes = plt.subplots(
             1,
@@ -229,7 +243,7 @@ def main() -> None:
                 for v in val_fracs:
                     key_val = f"{short_y} / {v}"
                     mask = (sub["class"] == cls) & (sub["YOLO_Val"] == key_val)
-                    vals = sub.loc[mask, "avg_f1"]
+                    vals = sub.loc[mask, "avg_jaccard"]
                     if not vals.empty:
                         row_vals.append(float(vals.iloc[0]))
                     else:
@@ -237,7 +251,6 @@ def main() -> None:
                 data_matrix.append(row_vals)
 
             matrix_df = pd.DataFrame(data_matrix, index=classes, columns=val_fracs)
-
 
             sns.heatmap(
                 matrix_df,
@@ -249,7 +262,7 @@ def main() -> None:
                 vmin=0,
                 vmax=1,
                 square=True,
-                annot_kws={"size": 10},  # smaller numbers
+                annot_kws={"size": 10},
             )
 
             ax.set_title(short_y)
@@ -258,12 +271,10 @@ def main() -> None:
 
         # One common x-label for the whole figure
         try:
-            fig.supxlabel("Val Fraction")   # matplotlib ≥ 3.4
+            fig.supxlabel("Val Fraction")  # matplotlib ≥ 3.4
         except AttributeError:
-            # fallback: put label only under the middle axis
             mid = len(axes) // 2
             axes[mid].set_xlabel("Val Fraction")
-
 
         # left-most subplot: keep class names, rotate nicely
         axes[0].set_ylabel("Class")
@@ -274,40 +285,35 @@ def main() -> None:
             ax.set_ylabel("")
             ax.set_yticklabels([])
 
-
-        # fig.suptitle(dataset_name)
         fig.tight_layout()
-        fig.subplots_adjust(wspace=0.15)  # was 0.4, much tighter gaps
+        fig.subplots_adjust(wspace=0.15)
 
         # Lowercase filename
-        pdf_name = f"{dataset_name.lower()}_heatmap.pdf"
+        pdf_name = f"{dataset_name.lower()}_heatmap_jaccard.pdf"
         out_path = output_dir / pdf_name
         fig.savefig(out_path, dpi=300, bbox_inches="tight")
         plt.close(fig)
 
-        print(f"Saved {out_path}")
-
         # -------- LaTeX figure snippet --------
-        # Choose width: small datasets (few classes & few YOLOs) can be narrower
         if len(classes) <= 5 and num_yolos <= 3:
             width = r"0.4\textwidth"
         else:
             width = r"\textwidth"
 
-        # LaTeX-safe dataset label for caption & label
-        caption_dataset = dataset_name  # e.g. "FisheyeTraffic", "Leather", "Cards"
+        caption_dataset = dataset_name
         label_name = dataset_name.lower()
 
-        latex = f"""\\begin{{figure*}}[t]
-            \\centering
-            \\includegraphics[width={width}]{{heatmaps/{pdf_name}}}
-            \\caption{{Average F1 score by YOLO version and validation fraction for {caption_dataset} dataset.}}
-            \\label{{fig:class-heatmap-{label_name}}}
-        \\end{{figure*}}"""
+        latex = f"""
+\\begin{{figure*}}[t]
+    \\centering
+    \\includegraphics[width={width}]{{images/{pdf_name}}}
+    \\caption{{Average Jaccard index (IoU) by YOLO version and validation fraction for {caption_dataset} dataset.}}
+    \\label{{fig:class-heatmap-jaccard-{label_name}}}
+\\end{{figure*}}
+        """
 
         print(latex)
         print()  # blank line between figures
-
 
 
 if __name__ == "__main__":
