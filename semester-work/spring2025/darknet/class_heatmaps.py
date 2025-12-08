@@ -275,15 +275,39 @@ def main() -> None:
             ax.set_yticklabels([])
 
 
-        fig.suptitle(dataset_name)
+        # fig.suptitle(dataset_name)
         fig.tight_layout()
         fig.subplots_adjust(wspace=0.15)  # was 0.4, much tighter gaps
 
         # Lowercase filename
-        out_path = output_dir / f"{dataset_name.lower()}_heatmap.pdf"
+        pdf_name = f"{dataset_name.lower()}_heatmap.pdf"
+        out_path = output_dir / pdf_name
         fig.savefig(out_path, dpi=300, bbox_inches="tight")
-        print(f"Saved {out_path}")
         plt.close(fig)
+
+        print(f"Saved {out_path}")
+
+        # -------- LaTeX figure snippet --------
+        # Choose width: small datasets (few classes & few YOLOs) can be narrower
+        if len(classes) <= 5 and num_yolos <= 3:
+            width = r"0.4\textwidth"
+        else:
+            width = r"\textwidth"
+
+        # LaTeX-safe dataset label for caption & label
+        caption_dataset = dataset_name  # e.g. "FisheyeTraffic", "Leather", "Cards"
+        label_name = dataset_name.lower()
+
+        latex = f"""\\begin{{figure*}}[t]
+            \\centering
+            \\includegraphics[width={width}]{{heatmaps/{pdf_name}}}
+            \\caption{{Average F1 score by YOLO version and validation fraction for {caption_dataset} dataset.}}
+            \\label{{fig:class-heatmap-{label_name}}}
+        \\end{{figure*}}"""
+
+        print(latex)
+        print()  # blank line between figures
+
 
 
 if __name__ == "__main__":
