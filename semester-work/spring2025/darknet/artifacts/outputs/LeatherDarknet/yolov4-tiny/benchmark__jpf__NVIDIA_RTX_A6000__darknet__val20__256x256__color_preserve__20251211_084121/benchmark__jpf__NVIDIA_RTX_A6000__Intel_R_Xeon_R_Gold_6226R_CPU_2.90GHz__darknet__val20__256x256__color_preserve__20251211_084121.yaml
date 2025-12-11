@@ -1,0 +1,70 @@
+Backend: darknet
+Profile: LeatherDarknet
+YOLO Template: yolov4-tiny
+Benchmark Time (s): 780.8
+CPU Name: Intel(R) Xeon(R) Gold 6226R CPU @ 2.90GHz
+CPU Threads: 64
+GPU Name: NVIDIA RTX A6000
+GPU VRAM: 49140 MiB
+Total Memory: 376.5 GiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.10.12
+Disk Capacity: 1.7T
+Disk Model: INTEL SSDSC2KB01
+Write Speed: 400.24 MiB/s
+Read Speed: 319.54 MiB/s
+Working Dir: /data/jpf/deleteme/chocolatechip/semester-work/spring2025/darknet
+CUDA Version: '12.1'
+cuDNN Version: 8.9.0 (8900)
+GPUs Used: 1
+Compute Capability: 8.6, 8.6
+Input Width: 256
+Input Height: 256
+Input Size: 256x256
+Iterations: 7000
+Batch Size: 64
+Subdivisions: 1
+Train Images: 1440
+Valid Images: 360
+Approx Epochs: 311.1111111111111
+Color Preset: preserve
+Split Seed: 9001
+Training Seed: null
+Repeat: null
+Val Fraction: 0.2
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 99.63
+mAP (best %): 99.66
+Best Iteration: 6700
+Conf Thresh (PRF): 0.25
+Precision@Conf: 0.95
+Recall@Conf: 0.98
+F1@Conf: 0.97
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 5
+CM_TotalTP: 121
+CM_TotalFP: 4
+CM_TotalFN: 9
+CM_MicroPrecision: 0.968
+CM_MicroRecall: 0.9307692307692308
+CM_MicroF1: 0.9490196078431372
+CM_MacroPrecision: 0.967304347826087
+CM_MacroRecall: 0.9305318610536002
+CM_MacroF1: 0.947030303030303
+COCO AP50-95 (%): 52.72621260803072
+COCO AP50 (%): 99.63611576626852
+COCO AP75 (%): 53.591867349214596
+COCO AP@50 (%): 98.73989636256151
+COCO AP@55 (%): 94.92037610104019
+COCO AP@60 (%): 91.2274843918914
+COCO AP@65 (%): 74.5761612366685
+COCO AP@70 (%): 60.5354075238461
+COCO AP@75 (%): 49.97512650856375
+COCO AP@80 (%): 29.551879959883355
+COCO AP@85 (%): 7.745974324920741
+COCO AP@89 (%): 0.18972305393804684
+COCO AP@95 (%): 0.0
+mAP50-95 (%): 52.72621260803072
