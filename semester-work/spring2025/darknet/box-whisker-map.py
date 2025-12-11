@@ -470,15 +470,29 @@ def main():
         # -------- LaTeX figure snippet --------
         dataset_label = dataset_name.lower().replace(" ", "-")
 
-        if n_per_group is not None and n_per_group > 0:
-            n_text = f" (n={n_per_group} runs per YOLO$\\times$validation-fraction group)"
+        # n-text: special-case Leather to report per color-preset box
+        if dataset_name == "Leather" and n_per_group is not None and n_per_group > 0:
+            # Leather has two color presets per (YOLO, val_frac) group
+            per_preset = n_per_group // 2
+            n_text = (
+                f" (n={per_preset} runs per "
+                f"YOLO$\\times$validation-fraction$\\times$color-preset group)"
+            )
+        elif n_per_group is not None and n_per_group > 0:
+            n_text = (
+                f" (n={n_per_group} runs per "
+                f"YOLO$\\times$validation-fraction group)"
+            )
         else:
             n_text = ""
 
         res_text = f" at input resolution {input_res}" if input_res else ""
 
         if dataset_name == "Leather":
-            extra = " For each YOLO, the left box is without color preserve and the right box uses color preserve."
+            extra = (
+                " For each YOLO, the left box is without color preserve and "
+                "the right box uses color preserve."
+            )
         else:
             extra = ""
 
@@ -495,8 +509,6 @@ def main():
     \\label{{fig:coco-ap5095-boxplot-{dataset_label}}}
 \\end{{figure}}
         """
-
-
 
         print(latex)
         print()  # blank line between figures
