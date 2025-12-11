@@ -12,7 +12,9 @@ import pandas as pd
 
 # Preferred YOLO ordering for all plots
 PREFERRED_YOLO_ORDER = [
+    "yolov4",      # non-tiny
     "yolov4-tiny",
+    "yolov7",      # non-tiny
     "yolov7-tiny",
     "yolo11n",
     "yolo11s",
@@ -136,6 +138,9 @@ def iter_benchmark_csvs(base_dirs: List[str]) -> Iterable[str]:
                 if not f.endswith(".csv"):
                     continue
                 if "benchmark__" not in f:
+                    continue
+                if 'val80' in f:
+                    # silly patch
                     continue
                 yield os.path.join(root, f)
 
