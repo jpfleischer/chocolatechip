@@ -672,83 +672,23 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
             print("[coco] No valid.txt found; skipping external COCO eval")
             raise RuntimeError("no_valid_list")
 
-        # 2) build COCO GT (auto: DarkMark JSONs if present, else YOLO .txt)
-        #
-        # thihs is really bad and should just look for the presence of a flat dir in the dataspec
-        #
+
+        # 2) build COCO GT deterministically from DatasetSpec
+        from chocolatechip.model_training.coco_gt_dispatch import build_coco_gt_for_dataset
+
         gt_json = os.path.join(output_dir, "val.coco.gt.json")
+
         if not os.path.isfile(gt_json):
-            # Resolve class names from .data -> names=...
-            dd = parse_darknet_data_file(p.data_path) if p.backend == "darknet" else {}
-            names_path = dd.get("names")
+            if not getattr(p, "dataset", None):
+                raise RuntimeError("COCO GT requires p.dataset")
 
-            # If names_path is relative (common in .data), resolve it next to the .data file
-            if names_path and not os.path.isabs(names_path):
-                names_path = str((Path(p.data_path).parent / names_path).resolve())
-
-            class_names: list[str] = []
-            if names_path and os.path.isfile(names_path):
-                class_names = [
-                    ln.strip() for ln in Path(names_path)
-                    .read_text(encoding="utf-8")
-                    .splitlines()
-                    if ln.strip() and not ln.strip().startswith("#")
-                ]
-            else:
-                # Fallback: from DatasetSpec if provided
-                if getattr(p, "dataset", None) and getattr(p.dataset, "names", None):
-                    npth = (Path(p.dataset.root) / p.dataset.names).resolve()
-                    if npth.is_file():
-                        class_names = [
-                            ln.strip() for ln in npth.read_text(encoding="utf-8").splitlines()
-                            if ln.strip() and not ln.strip().startswith("#")
-                        ]
-
-            # Prefer dataset root for annotation root (handles nested sets)
-            ann_root = (
-                Path(p.dataset.root).resolve()
-                if getattr(p, "dataset", None)
-                else Path(p.data_path).parent.resolve()
+            build_coco_gt_for_dataset(
+                dataset=p.dataset,
+                valid_list=Path(output_dir) / "valid.txt",
+                out_json=Path(gt_json),
             )
 
-            # Heuristic: if any of the first ~50 stems has a matching .json under ann_root, use DarkMark builder
-            stems = [
-                Path(s).stem
-                for s in Path(val_list).read_text(encoding="utf-8", errors="ignore").splitlines()
-                if s.strip() and not s.strip().startswith("#")
-            ]
-            have_darkmark = any((ann_root / f"{stem}.json").is_file() for stem in stems[:50])
-
-            if have_darkmark:
-                from chocolatechip.model_training.coco_build_gt import build_coco_gt
-                build_coco_gt(
-                    ann_root=str(ann_root),
-                    out_json=gt_json,
-                    list_file=val_list,
-                    names_path=(names_path if names_path and os.path.isfile(names_path) else None),
-                )
-                print(f"[coco_gt] built from DarkMark JSONs: {gt_json}")
-            else:
-                from chocolatechip.model_training.coco_eval import build_coco_gt_from_yolo
-                if not class_names:
-                    raise RuntimeError("Could not resolve class names for YOLO GT build.")
-                build_coco_gt_from_yolo(val_list, class_names, gt_json)
-                print(f"[coco_gt] built from YOLO .txt labels: {gt_json}")
-
-
-        # pick a base
-        export_thresh = 0.01     # 1%
-
-        # if dataset is "FisheyeTraffic*" or val_count > 2000, be stricter
-        if (getattr(p, "name", "").startswith("FisheyeTraffic")
-            or (valid_count and valid_count > 2000)):
-            # export_thresh = 0.02  # 2% to kill multi-class edge speckle
-            # nvm lol
-            export_thresh = 0.01
-
-        #
-        # thihs is really bad and should just look for the presence of a flat dir in the dataspec / end
-        #
+        export_thresh = 0.01  # fixed policy: 1% conf threshold for COCO export
 
         # 3) export detections to COCO results JSON
         det_json = os.path.join(output_dir, f"dets_{p.backend}.coco.json")
