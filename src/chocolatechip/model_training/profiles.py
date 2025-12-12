@@ -294,6 +294,32 @@ PROFILES = {
         ),
     ),
 
+    "FisheyeTrafficDarknetLocalJPG": TrainProfile(
+        name="FisheyeTrafficDarknetLocalJPG",
+        backend="darknet",
+        data_path="/host_workspace/combined.data",      # <- write here
+        cfg_out="/host_workspace/combined.cfg",         # <- write here
+        width=960, height=736,
+        batch_size=64, subdivisions=16,
+        iterations=8000, learning_rate=0.00261,
+        templates=("yolov4", "yolov7"),
+        val_fracs=(0.10,),
+        sweep_keys=("templates",),
+        sweep_values={},
+        dataset=DatasetSpec(
+            root="/blue/ranka/ibraheem.qureshi/images",
+            sets=tuple(),                 # flat mode → no sets
+            classes=5,
+            names="/blue/ranka/j.fleischer/annotation_data/obj.names",
+            prefix="combined_ibraheem",  # controls output prefix for splits
+            split_seed=9001,
+            exts=(".jpg", ".png"),
+            require_existing=True,       # keep this
+            flat_dir=".",                # use the root dir itself as the flat dir
+        ),
+    ),
+
+
     "FisheyeTrafficUltralyticsLocal": TrainProfile(
         name="FisheyeTrafficUltralyticsLocal",
         backend="ultralytics",
