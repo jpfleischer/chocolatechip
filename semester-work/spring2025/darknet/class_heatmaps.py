@@ -21,7 +21,9 @@ from plot_common import (
 
 # Map between short labels used on plots and full YOLO names used in plot_common
 SHORT_TO_FULL: Dict[str, str] = {
+    "v4": "yolov4",
     "v4-tiny": "yolov4-tiny",
+    "v7": "yolov7",
     "v7-tiny": "yolov7-tiny",
     "11n": "yolo11n",
     "11s": "yolo11s",
