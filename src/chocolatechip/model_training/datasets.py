@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import os, sys, time, json, shutil, hashlib, tempfile, tarfile, zipfile, subprocess
+import os, sys, time, json, shutil, hashlib, tempfile, tarfile, zipfile, subprocess, ssl
 from dataclasses import asdict
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -9,6 +9,9 @@ from urllib.error import HTTPError, URLError
 from .profiles import DatasetSpec
 
 MARKER_NAME = ".download_complete.json"
+
+# Clusters sometimes lack CA bundles; reuse an unverified context for downloads.
+UNVERIFIED_SSL_CONTEXT = ssl._create_unverified_context()
 
 def _eprint(*a, **k): print(*a, file=sys.stderr, **k)
 
@@ -91,7 +94,7 @@ def _download(url: str, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     _eprint(f"[download] {url} -> {dest}")
     req = Request(url, headers={"User-Agent": "chocolatechip-datasets/1.0"})
-    with urlopen(req) as r, open(dest, "wb") as f:
+    with urlopen(req, context=UNVERIFIED_SSL_CONTEXT) as r, open(dest, "wb") as f:
         total = r.length if hasattr(r, "length") else None
         copied = 0
         while True:
