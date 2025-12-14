@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #SBATCH --job-name=lego_train
 #SBATCH --output=%u_%x_%j.out
 #SBATCH --error=%u_%x_%j.out
