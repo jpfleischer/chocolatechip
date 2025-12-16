@@ -12,10 +12,18 @@ import pandas as pd
 
 # Preferred YOLO ordering for all plots
 PREFERRED_YOLO_ORDER = [
-    "yolov4",      # non-tiny
+    "yolov3-tiny",
+    "yolov3-tiny-3l",
+    "yolov3",
+ 
     "yolov4-tiny",
-    "yolov7",      # non-tiny
+    "yolov4-tiny-3l",
+    "yolov4",
+    
     "yolov7-tiny",
+    "yolov7",
+
+    # YOLO11 family (size ordering)
     "yolo11n",
     "yolo11s",
     "yolo11m",
