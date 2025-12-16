@@ -1,0 +1,72 @@
+Backend: darknet
+Profile: FisheyeTrafficDarknetLocal
+YOLO Template: yolov7
+Benchmark Time (s): 17029.896
+CPU Name: INTEL(R) XEON(R) PLATINUM 8570
+CPU Threads: 112
+GPU Name: NVIDIA B200
+GPU VRAM: 183359 MiB
+Total Memory: 2.0 TiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.12.3
+Disk Capacity: 1G, 1.7T, 1.7T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T
+Disk Model: Virtual SD0, Micron_7450_MTFDKBG1T9TFR, Micron_7450_MTFDKBG1T9TFR, KIOXIA
+  KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA
+  KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84
+Write Speed: 414.23 MiB/s
+Read Speed: 503.60 MiB/s
+Working Dir: N/A
+CUDA Version: '12.8'
+cuDNN Version: 90.7.0 (90700)
+GPUs Used: 1
+Compute Capability: '10.0'
+Input Width: 960
+Input Height: 736
+Input Size: 960x736
+Iterations: 8000
+Batch Size: 64
+Subdivisions: 16
+Train Images: 25984
+Valid Images: 2887
+Approx Epochs: 19.704433497536947
+Color Preset: 'off'
+Split Seed: 9001
+Training Seed: null
+Repeat: '2'
+Val Fraction: 0.1
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 93.94
+mAP (best %): 94.54
+Best Iteration: 7090
+Conf Thresh (PRF): 0.25
+Precision@Conf: 0.89
+Recall@Conf: 0.91
+F1@Conf: 0.9
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 5
+CM_TotalTP: 53703
+CM_TotalFP: 1540
+CM_TotalFN: 3561
+CM_MicroPrecision: 0.9721231649258729
+CM_MicroRecall: 0.937814333612741
+CM_MicroF1: 0.9546605988960687
+CM_MacroPrecision: 0.9570557034353838
+CM_MacroRecall: 0.8952747528670335
+CM_MacroF1: 0.9237695821936186
+COCO AP50-95 (%): 75.18583854343933
+COCO AP50 (%): 93.81985260315548
+COCO AP75 (%): 86.49041330647763
+COCO AP@50 (%): 73.94273592453088
+COCO AP@55 (%): 73.77242640091202
+COCO AP@60 (%): 73.42980520366037
+COCO AP@65 (%): 72.89591621249544
+COCO AP@70 (%): 71.6298415951249
+COCO AP@75 (%): 68.34474598894722
+COCO AP@80 (%): 63.48657678947549
+COCO AP@85 (%): 52.4791266084609
+COCO AP@89 (%): 35.91227685892915
+COCO AP@95 (%): 11.773980608791412
+mAP50-95 (%): 75.18583854343933
