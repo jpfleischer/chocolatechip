@@ -35,6 +35,10 @@ FAIR_KEYS = [
     # "Iterations",
 ]
 
+EXCLUDE_MODELS_FOR_DATASET: dict[str, set[str]] = {
+    "LegoGears": {"yolov3", "yolov3-tiny", "yolov3-tiny-3l", "yolov4-tiny-3l", "yolov4"},
+}
+
 
 # ----------------------------
 # Helpers: parsing / formatting
@@ -544,6 +548,10 @@ def main() -> None:
                 continue
 
             for model_id in get_ordered_yolos(model_map.keys()):
+                # Exclude specific models for specific datasets (final tables)
+                if model_id in EXCLUDE_MODELS_FOR_DATASET.get(dataset, set()):
+                    continue
+
                 key_to_time_samples = model_map.get(model_id, {})
                 if not key_to_time_samples:
                     continue
