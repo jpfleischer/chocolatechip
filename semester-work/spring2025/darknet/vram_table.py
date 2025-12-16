@@ -15,6 +15,7 @@ from plot_common import (
     git_repo_root,
     iter_benchmark_csvs,
     infer_dataset_name_from_csv,
+    get_ordered_yolos,
 )
 
 # -----------------------------------------------------------------------------
@@ -210,8 +211,17 @@ def strip_cpu_frequency(cpu: str) -> str:
     if not cpu:
         return cpu
     s = str(cpu)
+
+    # Remove trailing frequency like "@ 3.20GHz"
     s = re.sub(r"\s*@\s*\d+(?:\.\d+)?\s*GHz\b", "", s, flags=re.IGNORECASE)
+
+    # Remove common suffixes
     s = re.sub(r"\s+Processor\s*$", "", s, flags=re.IGNORECASE)
+
+    # Remove standalone "CPU" anywhere
+    s = re.sub(r"\bCPU\b", "", s, flags=re.IGNORECASE)
+
+    # Normalize spaces
     s = re.sub(r"\s{2,}", " ", s).strip()
     return s
 
@@ -224,11 +234,15 @@ def normalize_cpu_name(cpu: str) -> str:
         return "N/A"
 
     s = strip_cpu_frequency(s)
+
+    # If it already contains lowercase letters, assume it's human-formatted enough
     if re.search(r"[a-z]", s):
         return s
 
     tokens = s.split()
-    preserve_upper = {"AMD", "EPYC", "CPU", "APU", "GPU", "INTEL", "XEON", "GOLD", "SILVER", "PLATINUM"}
+
+    # NOTE: intentionally NOT preserving "PLATINUM" in all-caps; will become "Platinum"
+    preserve_upper = {"AMD", "EPYC", "APU", "GPU", "INTEL", "XEON", "GOLD", "SILVER"}
 
     out: list[str] = []
     for t in tokens:
@@ -297,14 +311,39 @@ def escape_latex(s: str) -> str:
     )
 
 
+def infer_model_id(row: pd.Series, csv_path: Path) -> str:
+    """
+    Model identifier for grouping rows.
+    Primary source: CSV column 'YOLO Template' (your ground truth).
+    Fallback: infer from path tokens if missing.
+    """
+    v = row.get("YOLO Template")
+    if v is not None and not (isinstance(v, float) and pd.isna(v)):
+        s = str(v).strip()
+        if s:
+            # Remove the '.pt' suffix from the model name if present
+            s = s.replace(".pt", "")
+            return s
+
+    # Fallback: infer from path tokens if YOLO Template is missing
+    p = str(csv_path).lower()
+    m = re.search(r"(yolov4(?:-tiny)?|yolov7(?:-tiny)?|yolo11[nsmp])", p)
+    if m:
+        return m.group(1)
+
+    return "UnknownModel"
+
+
+
 # ----------------------------
 # LaTeX table rendering
 # ----------------------------
 
 def df_to_latex_table(df: pd.DataFrame, *, caption: str, label: str) -> str:
+    # Backend column removed per request
     cols = [
         ("dataset", "Dataset"),
-        ("backend", "Backend"),
+        ("model", "Model"),
         ("runs", "Runs"),
         ("cpu", "CPU"),
         ("gpu", "GPU"),
@@ -327,17 +366,25 @@ def df_to_latex_table(df: pd.DataFrame, *, caption: str, label: str) -> str:
     lines.append(" & ".join(h for _, h in cols) + r" \\")
     lines.append(r"\hline")
 
+    prev_dataset: Optional[str] = None
     for _, row in df.iterrows():
+        cur_dataset = str(row.get("dataset", ""))
+
+        # Horizontal line between datasets
+        if prev_dataset is not None and cur_dataset != prev_dataset:
+            lines.append(r"\hline")
+
         cells: list[str] = []
         for key, _hdr in cols:
             v = row.get(key, "")
             if pd.isna(v):
                 v = ""
-            if key in ("dataset", "backend", "cpu", "gpu"):
+            if key in ("dataset", "model", "cpu", "gpu"):
                 cells.append(escape_latex(str(v)))
             else:
                 cells.append(str(v))
         lines.append(" & ".join(cells) + r" \\")
+        prev_dataset = cur_dataset
 
     lines.append(r"\hline")
     lines.append(r"\end{tabular}")
@@ -364,10 +411,12 @@ def main() -> None:
     parser.add_argument("--out-csv", default="dataset_summary.csv", help="Where to save the summary CSV.")
     parser.add_argument(
         "--caption",
-        default="Dataset summary: Darknet and Ultralytics runs reported as separate rows (apples-to-apples subsets by CPU/GPU/config).",
+        default=(
+            "Dataset training summary: Rows per Model, apples-to-apples by CPU/GPU/config"
+        ),
         help="LaTeX caption.",
     )
-    parser.add_argument("--label", default="tab:dataset-summary-by-backend", help="LaTeX label.")
+    parser.add_argument("--label", default="tab:dataset-summary-by-model", help="LaTeX label.")
     args = parser.parse_args()
 
     if args.base:
@@ -375,13 +424,13 @@ def main() -> None:
     else:
         base_dirs = [str(git_repo_root())]
 
-    # dataset -> backend -> key_tuple -> list[(time_seconds, run_dir)]
-    ds_backend_key_times: Dict[str, Dict[str, Dict[tuple, List[Tuple[float, str]]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(list))
+    # dataset -> backend -> model -> key_tuple -> list[(time_seconds, run_dir)]
+    ds_backend_model_key_times: Dict[str, Dict[str, Dict[str, Dict[tuple, List[Tuple[float, str]]]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     )
-    # dataset -> backend -> key_tuple -> list[(vram_mib, run_dir)]
-    ds_backend_key_vram: Dict[str, Dict[str, Dict[tuple, List[Tuple[float, str]]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(list))
+    # dataset -> backend -> model -> key_tuple -> list[(vram_mib, run_dir)]
+    ds_backend_model_key_vram: Dict[str, Dict[str, Dict[str, Dict[tuple, List[Tuple[float, str]]]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     )
 
     # ---------- ingest ----------
@@ -414,6 +463,7 @@ def main() -> None:
 
         keys_in_this_csv: set[tuple] = set()
         key_to_gpu_idxs: Dict[tuple, Optional[Tuple[int, ...]]] = {}
+        key_to_model_id: Dict[tuple, str] = {}
         key_counts_in_this_csv: Dict[tuple, int] = defaultdict(int)
 
         for _, row in df_csv.iterrows():
@@ -446,7 +496,11 @@ def main() -> None:
             key = tuple(key_parts)
             keys_in_this_csv.add(key)
 
-            ds_backend_key_times[dataset][backend][key].append((t, run_dir))
+            model_id = infer_model_id(row, csv_path)
+            if key not in key_to_model_id:
+                key_to_model_id[key] = model_id
+
+            ds_backend_model_key_times[dataset][backend][model_id][key].append((t, run_dir))
             key_counts_in_this_csv[key] += 1
 
             if key not in key_to_gpu_idxs:
@@ -458,6 +512,7 @@ def main() -> None:
             cache: Dict[Optional[Tuple[int, ...]], Optional[float]] = {}
 
             for key in keys_in_this_csv:
+                model_id = key_to_model_id.get(key, "UnknownModel")
                 idxs_tup = key_to_gpu_idxs.get(key)
 
                 if idxs_tup is None:
@@ -471,73 +526,85 @@ def main() -> None:
                 max_vram = cache[idxs_tup]
                 if max_vram is not None:
                     n = key_counts_in_this_csv.get(key, 1)
-                    ds_backend_key_vram[dataset][backend][key].extend([(max_vram, run_dir)] * n)
+                    ds_backend_model_key_vram[dataset][backend][model_id][key].extend([(max_vram, run_dir)] * n)
 
     # ---------- summarize ----------
     rows: list[dict] = []
     any_outliers = False
 
-    for dataset in sorted(ds_backend_key_times.keys()):
+    for dataset in sorted(ds_backend_model_key_times.keys()):
         if re.search(r"cards", dataset, flags=re.IGNORECASE):
             continue
         if dataset.strip().lower() == "artifacts":
             continue
 
         for backend in ("darknet", "ultralytics"):
-            key_to_time_samples = ds_backend_key_times.get(dataset, {}).get(backend, {})
-            if not key_to_time_samples:
+            model_map = ds_backend_model_key_times.get(dataset, {}).get(backend, {})
+            if not model_map:
                 continue
 
-            # Choose the largest matching subset (most runs) for apples-to-apples
-            best_key, time_samples = max(key_to_time_samples.items(), key=lambda kv: len(kv[1]))
-            runs = len(time_samples)
+            for model_id in get_ordered_yolos(model_map.keys()):
+                key_to_time_samples = model_map.get(model_id, {})
+                if not key_to_time_samples:
+                    continue
 
-            times = [v for (v, _d) in time_samples]
-            avg_t = float(np.mean(times)) if times else None
-            std_t = float(np.std(times)) if times else None
+                # Choose the largest matching subset (most runs) for apples-to-apples within this model
+                best_key, time_samples = max(key_to_time_samples.items(), key=lambda kv: len(kv[1]))
+                runs = len(time_samples)
 
-            vram_samples = ds_backend_key_vram.get(dataset, {}).get(backend, {}).get(best_key, [])
-            vrams = [v for (v, _d) in vram_samples]
-            avg_v = float(np.mean(vrams)) if vrams else None
-            std_v = float(np.std(vrams)) if vrams else None
+                times = [v for (v, _d) in time_samples]
+                avg_t = float(np.mean(times)) if times else None
+                std_t = float(np.std(times)) if times else None
 
-            # Sanity check: outliers (IQR)
-            time_out_idx = iqr_outlier_indices(times)
-            vram_out_idx = iqr_outlier_indices(vrams)
-
-            for i in time_out_idx:
-                any_outliers = True
-                v, d = time_samples[i]
-                print(
-                    f"[OUTLIER runtime] dataset={dataset} backend={backend} "
-                    f"value={v:.3f}s avg={avg_t:.3f}s dir={d}"
+                vram_samples = (
+                    ds_backend_model_key_vram.get(dataset, {})
+                    .get(backend, {})
+                    .get(model_id, {})
+                    .get(best_key, [])
                 )
+                vrams = [v for (v, _d) in vram_samples]
+                avg_v = float(np.mean(vrams)) if vrams else None
+                std_v = float(np.std(vrams)) if vrams else None
 
-            for i in vram_out_idx:
-                any_outliers = True
-                v, d = vram_samples[i]
-                print(
-                    f"[OUTLIER vram]    dataset={dataset} backend={backend} "
-                    f"value={v:.1f}MiB avg={avg_v:.1f}MiB dir={d}"
+                # Sanity check: outliers (IQR)
+                time_out_idx = iqr_outlier_indices(times)
+                vram_out_idx = iqr_outlier_indices(vrams)
+
+                for i in time_out_idx:
+                    any_outliers = True
+                    v, d = time_samples[i]
+                    print(
+                        f"[OUTLIER runtime] dataset={dataset} backend={backend} model={model_id} "
+                        f"value={v:.3f}s avg={avg_t:.3f}s dir={d}"
+                    )
+
+                for i in vram_out_idx:
+                    any_outliers = True
+                    v, d = vram_samples[i]
+                    print(
+                        f"[OUTLIER vram]    dataset={dataset} backend={backend} model={model_id} "
+                        f"value={v:.1f}MiB avg={avg_v:.1f}MiB dir={d}"
+                    )
+
+                key_map = dict(zip(FAIR_KEYS, best_key))
+                cpu = normalize_cpu_name(key_map.get("CPU Name", "N/A") or "N/A")
+                gpu = key_map.get("GPU Name", "N/A") or "N/A"
+
+                rows.append(
+                    {
+                        "dataset": dataset,
+                        "model": model_id,
+                        "runs": runs,
+                        "cpu": cpu,
+                        "gpu": gpu,
+                        "avg_time": format_duration(avg_t),
+                        "std_time": format_duration(std_t),
+                        "avg_vram": mib_to_gb(avg_v),
+                        "std_vram": mib_to_gb(std_v),
+                        # keep backend for internal sorting/debug even though it's not output
+                        "_backend": backend,
+                    }
                 )
-
-            key_map = dict(zip(FAIR_KEYS, best_key))
-            cpu = normalize_cpu_name(key_map.get("CPU Name", "N/A") or "N/A")
-            gpu = key_map.get("GPU Name", "N/A") or "N/A"
-
-            rows.append(
-                {
-                    "dataset": dataset,
-                    "backend": backend,
-                    "runs": runs,
-                    "cpu": cpu,
-                    "gpu": gpu,
-                    "avg_time": format_duration(avg_t),
-                    "std_time": format_duration(std_t),
-                    "avg_vram": mib_to_gb(avg_v),
-                    "std_vram": mib_to_gb(std_v),
-                }
-            )
 
     if not any_outliers:
         print("No outliers found.")
@@ -547,19 +614,28 @@ def main() -> None:
         print("No data found!")
         return
 
-    df = df.sort_values(["dataset", "backend"]).reset_index(drop=True)
+    # Sort using plot_common's preferred YOLO order (otherwise lexicographic sort breaks 11n/11s/11m)
+    all_models = list(df["model"].dropna().astype(str).unique())
+    ordered_models = get_ordered_yolos(all_models)
+    rank = {m: i for i, m in enumerate(ordered_models)}
+
+    df["_model_rank"] = df["model"].map(lambda m: rank.get(str(m), 10_000))
+
+    df = df.sort_values(["dataset", "_backend", "_model_rank", "model"]).reset_index(drop=True)
+    df_out = df.drop(columns=["_backend", "_model_rank"], errors="ignore")
+
 
     print("\n" + "=" * 120)
-    print("Dataset Summary: Separate Rows per Backend (Darknet vs Ultralytics)")
+    print("Dataset training summary: Rows per Model, apples-to-apples by CPU/GPU/config")
     print("Fair subsets enforced by matching on: " + ", ".join(FAIR_KEYS))
     print("=" * 120)
-    print(df.to_string(index=False))
+    print(df_out.to_string(index=False))
     print()
 
-    df.to_csv(args.out_csv, index=False)
+    df_out.to_csv(args.out_csv, index=False)
     print(f"Saved to {args.out_csv}")
 
-    latex = df_to_latex_table(df, caption=args.caption, label=args.label)
+    latex = df_to_latex_table(df_out, caption=args.caption, label=args.label)
     print(latex)
 
 
