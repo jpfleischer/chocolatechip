@@ -1,87 +1,355 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import json
+
 import argparse
-import re
 import csv
+import re
 from pathlib import Path
-from collections import Counter, defaultdict
-from typing import Dict, List, Tuple, Optional
+from collections import defaultdict
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+
 from plot_common import (
-    get_ordered_yolos,
     git_repo_root,
     iter_benchmark_csvs,
-    normalize_dataset_name,
     infer_dataset_name_from_csv,
 )
 
+# -----------------------------------------------------------------------------
+# Fair apples-to-apples comparison keys.
+# We ONLY average timing/VRAM over runs that match on all of these.
+# If a key is missing in a CSV row, that row is skipped.
+# -----------------------------------------------------------------------------
+FAIR_KEYS = [
+    "CPU Name",
+    "GPU Name",
+    "Input Width",
+    "Input Height",
+    "Batch Size",
+    "Subdivisions",
+    # If you want stricter matching, uncomment:
+    # "Input Size",
+    # "Iterations",
+]
 
-def normalize_profile_name(profile: str) -> str:
+
+# ----------------------------
+# Helpers: parsing / formatting
+# ----------------------------
+
+def parse_gpu_indices_from_value(raw: str) -> Optional[List[int]]:
     """
-    Normalize profile name to group darknet and ultralytics variants together.
-    Examples:
-      - 'FisheyeTraffic-darknet' -> 'FisheyeTraffic'
-      - 'FisheyeTraffic-ultralytics' -> 'FisheyeTraffic'
-      - 'LegoGears-darknet' -> 'LegoGears'
+    Parse CSV field like:
+      "0", "3", "0,1", "0 1", "[0,1]"
+    into [0], [3], [0,1], ...
+    Returns None if cannot parse.
     """
-    profile_lower = profile.lower()
-    # Remove common suffixes
-    for suffix in ['-darknet', '-ultralytics', '_darknet', '_ultralytics']:
-        if profile_lower.endswith(suffix):
-            return profile[:-(len(suffix))]
-    return profile
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+
+    s = s.strip("[]()")
+    parts = re.split(r"[,\s]+", s)
+
+    out: List[int] = []
+    for p in parts:
+        if not p:
+            continue
+        if re.fullmatch(r"\d+", p):
+            out.append(int(p))
+
+    return out or None
 
 
-def parse_max_vram_from_log(log_path: Path) -> Optional[float]:
+def parse_gpu_indices_from_csv_row(row: pd.Series) -> Optional[List[int]]:
+    """
+    Try to infer which GPU indices were used for the run.
+
+    Priority:
+      1) Explicit columns if you ever add them (best)
+      2) Otherwise, only treat 'GPUs Used' as indices if it *looks like a list* ("0,1", "[0 1]", etc.)
+         because many logs store it as a COUNT ("1", "4") not an index.
+    """
+    for col in ("GPU Indices", "GPU Index", "CUDA_VISIBLE_DEVICES"):
+        v = row.get(col)
+        idxs = parse_gpu_indices_from_value(v) if v is not None else None
+        if idxs:
+            return idxs
+
+    v = row.get("GPUs Used")
+    if v is None:
+        return None
+
+    s = str(v).strip()
+    if not s:
+        return None
+
+    if re.search(r"[,\s\[\]\(\)]", s):
+        return parse_gpu_indices_from_value(s)
+
+    return None
+
+
+def parse_max_vram_from_log(log_path: Path, *, gpu_indices: Optional[List[int]] = None) -> Optional[float]:
     """
     Parse mylogfile.log (CSV format) to find the maximum vram_mem_used value in MiB.
-    Returns the highest VRAM usage found across all GPUs, or None if not found.
+
+    If gpu_indices is provided (e.g., [3]), ONLY consider columns like:
+      "3 vram_mem_used MiB"
+    If None, falls back to considering all "vram_mem_used MiB" columns.
     """
     if not log_path.exists():
         return None
-    
+
     try:
-        with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
             reader = csv.DictReader(f)
-            
-            # Find columns that contain "vram_mem_used MiB"
-            vram_columns = [col for col in reader.fieldnames if 'vram_mem_used MiB' in col]
-            
+            if not reader.fieldnames:
+                return None
+
+            if gpu_indices:
+                wanted = [f"{i} vram_mem_used MiB" for i in gpu_indices]
+                vram_columns = [c for c in wanted if c in reader.fieldnames]
+            else:
+                vram_columns = [c for c in reader.fieldnames if "vram_mem_used MiB" in c]
+
             if not vram_columns:
                 return None
-            
+
             max_vram = 0.0
-            
             for row in reader:
                 for col in vram_columns:
-                    vram_str = row.get(col, '').strip()
-                    if vram_str:
-                        # Remove "MiB" suffix and convert to float
-                        vram_match = re.match(r'(\d+(?:\.\d+)?)', vram_str)
-                        if vram_match:
-                            vram_val = float(vram_match.group(1))
-                            max_vram = max(max_vram, vram_val)
-            
+                    vram_str = (row.get(col, "") or "").strip()
+                    if not vram_str:
+                        continue
+                    m = re.match(r"(\d+(?:\.\d+)?)", vram_str)
+                    if m:
+                        max_vram = max(max_vram, float(m.group(1)))
+
             return max_vram if max_vram > 0 else None
-            
     except Exception as e:
         print(f"Error reading {log_path}: {e}")
         return None
 
 
-def iter_runs(base_dirs: List[str]):
+def infer_gpu_indices_from_log_by_peak_vram(log_path: Path) -> Optional[List[int]]:
     """
-    Yield csv_path for each benchmark CSV found.
-    Use plot_common.iter_benchmark_csvs to find benchmark__*.csv files
-    anywhere under the given base dirs.
+    Fallback inference: choose the GPU index with the highest peak VRAM usage.
+    Useful when the benchmark CSV does not reliably store GPU indices.
     """
-    for csv_path in iter_benchmark_csvs(base_dirs):
-        yield Path(csv_path)
+    if not log_path.exists():
+        return None
 
+    with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+        reader = csv.DictReader(f)
+        if not reader.fieldnames:
+            return None
+
+        cols: list[tuple[int, str]] = []
+        for name in reader.fieldnames:
+            m = re.match(r"^(\d+)\s+vram_mem_used\s+MiB$", name)
+            if m:
+                cols.append((int(m.group(1)), name))
+
+        if not cols:
+            return None
+
+        max_by_idx = {idx: 0.0 for idx, _ in cols}
+        for row in reader:
+            for idx, col in cols:
+                s = (row.get(col, "") or "").strip()
+                m = re.match(r"(\d+(?:\.\d+)?)", s)
+                if m:
+                    max_by_idx[idx] = max(max_by_idx[idx], float(m.group(1)))
+
+        best_idx, best_val = max(max_by_idx.items(), key=lambda kv: kv[1])
+        return [best_idx] if best_val > 0 else None
+
+
+def iqr_outlier_indices(xs: List[float], *, k: float = 1.5) -> List[int]:
+    """
+    Return indices of points outside [Q1 - k*IQR, Q3 + k*IQR].
+    If too few points or IQR=0, returns [].
+    """
+    if xs is None or len(xs) < 4:
+        return []
+    arr = np.array(xs, dtype=float)
+    q1 = np.percentile(arr, 25)
+    q3 = np.percentile(arr, 75)
+    iqr = q3 - q1
+    if iqr <= 0:
+        return []
+    lo = q1 - k * iqr
+    hi = q3 + k * iqr
+    return [i for i, v in enumerate(arr) if v < lo or v > hi]
+
+
+def format_duration(seconds: Optional[float]) -> str:
+    if seconds is None or pd.isna(seconds):
+        return "N/A"
+    s = float(seconds)
+    if s >= 3600:
+        return f"{s / 3600.0:.2f} hr"
+    if s >= 60:
+        return f"{s / 60.0:.2f} min"
+    return f"{s:.2f} s"
+
+
+def mib_to_gb(mib: Optional[float]) -> str:
+    # MiB -> GiB (binary) but labeled as "GB" for readability.
+    if mib is None or pd.isna(mib):
+        return "N/A"
+    return f"{float(mib) / 1024.0:.2f} GB"
+
+
+def strip_cpu_frequency(cpu: str) -> str:
+    if not cpu:
+        return cpu
+    s = str(cpu)
+    s = re.sub(r"\s*@\s*\d+(?:\.\d+)?\s*GHz\b", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s+Processor\s*$", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s{2,}", " ", s).strip()
+    return s
+
+
+def normalize_cpu_name(cpu: str) -> str:
+    if cpu is None:
+        return "N/A"
+    s = str(cpu).strip()
+    if not s:
+        return "N/A"
+
+    s = strip_cpu_frequency(s)
+    if re.search(r"[a-z]", s):
+        return s
+
+    tokens = s.split()
+    preserve_upper = {"AMD", "EPYC", "CPU", "APU", "GPU", "INTEL", "XEON", "GOLD", "SILVER", "PLATINUM"}
+
+    out: list[str] = []
+    for t in tokens:
+        if re.fullmatch(r"v\d+", t, flags=re.IGNORECASE):
+            out.append(t.lower())
+            continue
+        if re.fullmatch(r"\d+([A-Za-z]+)?", t):
+            out.append(t)
+            continue
+
+        bare = re.sub(r"[^\w()/-]", "", t)
+        if bare.upper() in preserve_upper:
+            out.append(bare.upper())
+            continue
+
+        m = re.match(r"^([A-Z]+)(\([^)]+\))?$", t)
+        if m:
+            base = m.group(1).capitalize()
+            suffix = m.group(2) or ""
+            out.append(base + suffix)
+        else:
+            out.append(t.capitalize())
+
+    return " ".join(out)
+
+
+def infer_backend(df0: pd.DataFrame, csv_path: Path) -> Optional[str]:
+    if "Backend" in df0.columns:
+        v = str(df0.iloc[0].get("Backend", "")).strip().lower()
+        if "darknet" in v:
+            return "darknet"
+        if "ultra" in v or "ultralytics" in v:
+            return "ultralytics"
+
+    p = str(csv_path).lower()
+    if "darknet" in p:
+        return "darknet"
+    if "ultra" in p or "ultralytics" in p:
+        return "ultralytics"
+
+    return None
+
+
+def get_row_value(row: pd.Series, col: str) -> Optional[str]:
+    v = row.get(col)
+    if v is None:
+        return None
+    if isinstance(v, float) and pd.isna(v):
+        return None
+    s = str(v).strip()
+    return s if s != "" else None
+
+
+def escape_latex(s: str) -> str:
+    return (
+        s.replace("\\", r"\textbackslash{}")
+        .replace("&", r"\&")
+        .replace("%", r"\%")
+        .replace("$", r"\$")
+        .replace("#", r"\#")
+        .replace("_", r"\_")
+        .replace("{", r"\{")
+        .replace("}", r"\}")
+        .replace("~", r"\textasciitilde{}")
+        .replace("^", r"\textasciicircum{}")
+    )
+
+
+# ----------------------------
+# LaTeX table rendering
+# ----------------------------
+
+def df_to_latex_table(df: pd.DataFrame, *, caption: str, label: str) -> str:
+    cols = [
+        ("dataset", "Dataset"),
+        ("backend", "Backend"),
+        ("runs", "Runs"),
+        ("cpu", "CPU"),
+        ("gpu", "GPU"),
+        ("avg_time", "Avg Time"),
+        ("std_time", "Std Time"),
+        ("avg_vram", "Avg VRAM"),
+        ("std_vram", "Std VRAM"),
+    ]
+
+    colspec = "|l|l|r|l|l|l|l|r|r|"
+
+    lines: list[str] = []
+    lines.append(r"\begin{table*}[htbp]")
+    lines.append(r"\centering")
+    lines.append(r"\small")
+    lines.append(r"\setlength{\tabcolsep}{5pt}")
+    lines.append(r"\renewcommand{\arraystretch}{1.15}")
+    lines.append(r"\begin{tabular}{" + colspec + r"}")
+    lines.append(r"\hline")
+    lines.append(" & ".join(h for _, h in cols) + r" \\")
+    lines.append(r"\hline")
+
+    for _, row in df.iterrows():
+        cells: list[str] = []
+        for key, _hdr in cols:
+            v = row.get(key, "")
+            if pd.isna(v):
+                v = ""
+            if key in ("dataset", "backend", "cpu", "gpu"):
+                cells.append(escape_latex(str(v)))
+            else:
+                cells.append(str(v))
+        lines.append(" & ".join(cells) + r" \\")
+
+    lines.append(r"\hline")
+    lines.append(r"\end{tabular}")
+    lines.append(r"\caption{" + escape_latex(caption) + r"}")
+    lines.append(r"\label{" + escape_latex(label) + r"}")
+    lines.append(r"\end{table*}")
+    return "\n".join(lines)
+
+
+# ----------------------------
+# Main
+# ----------------------------
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -90,149 +358,209 @@ def main() -> None:
         nargs="*",
         help=(
             "Base directory/directories to search. "
-            "If omitted, defaults to <git_root>/artifacts/outputs."
+            "If omitted, defaults to repo root (then iter_benchmark_csvs finds benchmark__*.csv)."
         ),
     )
+    parser.add_argument("--out-csv", default="dataset_summary.csv", help="Where to save the summary CSV.")
+    parser.add_argument(
+        "--caption",
+        default="Dataset summary: Darknet and Ultralytics runs reported as separate rows (apples-to-apples subsets by CPU/GPU/config).",
+        help="LaTeX caption.",
+    )
+    parser.add_argument("--label", default="tab:dataset-summary-by-backend", help="LaTeX label.")
     args = parser.parse_args()
-    
+
     if args.base:
-        # user-specified roots
         base_dirs = [str(Path(b).resolve()) for b in args.base]
     else:
-        # auto: search from git repo root using plot_common logic
-        repo_root = git_repo_root()
-        base_dirs = [str(repo_root)]
-    
-    # Store data for each profile
-    profile_gpus: Dict[str, List[str]] = defaultdict(list)
-    profile_cpus: Dict[str, List[str]] = defaultdict(list)
-    profile_run_counts: Dict[str, int] = defaultdict(int)
-    # Store times indexed by GPU: profile -> gpu -> list of times
-    profile_gpu_times: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
-    # Store VRAM values indexed by GPU: profile -> gpu -> list of max VRAM values
-    profile_gpu_vram: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
-    
-    for csv_path in iter_runs(base_dirs):
+        base_dirs = [str(git_repo_root())]
+
+    # dataset -> backend -> key_tuple -> list[(time_seconds, run_dir)]
+    ds_backend_key_times: Dict[str, Dict[str, Dict[tuple, List[Tuple[float, str]]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(list))
+    )
+    # dataset -> backend -> key_tuple -> list[(vram_mib, run_dir)]
+    ds_backend_key_vram: Dict[str, Dict[str, Dict[tuple, List[Tuple[float, str]]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(list))
+    )
+
+    # ---------- ingest ----------
+    for csv_path_str in iter_benchmark_csvs(base_dirs):
+        csv_path = Path(csv_path_str)
+        run_dir = str(csv_path.parent.resolve())
+
         try:
             df_csv = pd.read_csv(csv_path, dtype=str)
         except Exception as e:
             print(f"Error reading {csv_path}: {e}")
             continue
-        
-        # Check if required columns exist
+
+        if df_csv.empty:
+            continue
         if "GPU Name" not in df_csv.columns:
-            print(f"Warning: 'GPU Name' column not found in {csv_path}")
             continue
-        
-        # Use plot_common's infer_dataset_name_from_csv function
+
         dataset_name = infer_dataset_name_from_csv(str(csv_path))
-        
-        # Normalize to group darknet/ultralytics together
-        profile = normalize_profile_name(dataset_name)
-        
-        # Skip artifacts profile
-        if profile.lower() == "artifacts":
+        dataset = str(dataset_name).strip() if dataset_name else "UnknownDataset"
+
+        if re.search(r"cards", dataset, flags=re.IGNORECASE):
             continue
-        
-        # Count total runs (rows in CSV)
-        profile_run_counts[profile] += len(df_csv)
-        
-        # Get GPU name for this run
-        gpu_name = df_csv["GPU Name"].dropna().iloc[0] if not df_csv["GPU Name"].dropna().empty else None
-        
-        # Collect GPU names
-        gpu_values = df_csv["GPU Name"].dropna().tolist()
-        profile_gpus[profile].extend(gpu_values)
-        
-        # Collect CPU names if available
-        if "CPU Name" in df_csv.columns:
-            cpu_values = df_csv["CPU Name"].dropna().tolist()
-            profile_cpus[profile].extend(cpu_values)
-        
-        # Parse VRAM from mylogfile.log
+        if dataset.strip().lower() == "artifacts":
+            continue
+
+        backend = infer_backend(df_csv, csv_path)
+        if backend not in ("darknet", "ultralytics"):
+            continue
+
+        keys_in_this_csv: set[tuple] = set()
+        key_to_gpu_idxs: Dict[tuple, Optional[Tuple[int, ...]]] = {}
+        key_counts_in_this_csv: Dict[tuple, int] = defaultdict(int)
+
+        for _, row in df_csv.iterrows():
+            # # Skip runs with missing mAP50-95 (%)
+            # map_str = get_row_value(row, "mAP50-95 (%)")
+            # if map_str is None or str(map_str).strip().lower() in {"na", "n/a", "nan"}:
+            #     print(f"[SKIP missing mAP50-95] dir={run_dir} csv={csv_path}")
+            #     continue
+
+            t_str = get_row_value(row, "Benchmark Time (s)")
+            if t_str is None:
+                continue
+            try:
+                t = float(t_str)
+            except Exception:
+                continue
+
+            key_parts: list[str] = []
+            missing = False
+            for col in FAIR_KEYS:
+                val = get_row_value(row, col)
+                if val is None:
+                    missing = True
+                    break
+                key_parts.append(val)
+
+            if missing:
+                continue
+
+            key = tuple(key_parts)
+            keys_in_this_csv.add(key)
+
+            ds_backend_key_times[dataset][backend][key].append((t, run_dir))
+            key_counts_in_this_csv[key] += 1
+
+            if key not in key_to_gpu_idxs:
+                idxs = parse_gpu_indices_from_csv_row(row)
+                key_to_gpu_idxs[key] = tuple(idxs) if idxs else None
+
         log_path = csv_path.parent / "mylogfile.log"
-        max_vram = parse_max_vram_from_log(log_path)
-        if max_vram is not None and gpu_name is not None:
-            profile_gpu_vram[profile][gpu_name].append(max_vram)
-        
-        # Collect benchmark times paired with GPU
-        if "Benchmark Time (s)" in df_csv.columns and "GPU Name" in df_csv.columns:
-            for idx, row in df_csv.iterrows():
-                gpu = row.get("GPU Name")
-                time_str = row.get("Benchmark Time (s)")
-                
-                if pd.notna(gpu) and pd.notna(time_str):
-                    try:
-                        time_val = float(time_str)
-                        profile_gpu_times[profile][gpu].append(time_val)
-                    except (ValueError, TypeError):
-                        pass
-    
-    # Build DataFrame
-    rows = []
-    for profile in sorted(profile_gpus.keys()):
-        if not profile_gpus[profile]:
+        if keys_in_this_csv and log_path.exists():
+            cache: Dict[Optional[Tuple[int, ...]], Optional[float]] = {}
+
+            for key in keys_in_this_csv:
+                idxs_tup = key_to_gpu_idxs.get(key)
+
+                if idxs_tup is None:
+                    inferred = infer_gpu_indices_from_log_by_peak_vram(log_path)
+                    idxs_tup = tuple(inferred) if inferred else None
+
+                if idxs_tup not in cache:
+                    idxs_list = list(idxs_tup) if idxs_tup else None
+                    cache[idxs_tup] = parse_max_vram_from_log(log_path, gpu_indices=idxs_list)
+
+                max_vram = cache[idxs_tup]
+                if max_vram is not None:
+                    n = key_counts_in_this_csv.get(key, 1)
+                    ds_backend_key_vram[dataset][backend][key].extend([(max_vram, run_dir)] * n)
+
+    # ---------- summarize ----------
+    rows: list[dict] = []
+    any_outliers = False
+
+    for dataset in sorted(ds_backend_key_times.keys()):
+        if re.search(r"cards", dataset, flags=re.IGNORECASE):
             continue
-        
-        # Total runs
-        total_runs = profile_run_counts[profile]
-        
-        # Most common GPU
-        gpu_counter = Counter(profile_gpus[profile])
-        most_common_gpu, _ = gpu_counter.most_common(1)[0]
-        
-        # Most common CPU
-        most_common_cpu = "N/A"
-        if profile in profile_cpus and profile_cpus[profile]:
-            cpu_counter = Counter(profile_cpus[profile])
-            most_common_cpu, _ = cpu_counter.most_common(1)[0]
-        
-        # Average and std dev of benchmark time for the most common GPU only
-        avg_time = "N/A"
-        std_time = "N/A"
-        if profile in profile_gpu_times and most_common_gpu in profile_gpu_times[profile]:
-            times_for_gpu = profile_gpu_times[profile][most_common_gpu]
-            if times_for_gpu:
-                avg_time = f"{np.mean(times_for_gpu):.2f}"
-                std_time = f"{np.std(times_for_gpu):.2f}"
-        
-        # Average and std dev of VRAM for the most common GPU only
-        avg_vram = "N/A"
-        std_vram = "N/A"
-        if profile in profile_gpu_vram and most_common_gpu in profile_gpu_vram[profile]:
-            vram_for_gpu = profile_gpu_vram[profile][most_common_gpu]
-            if vram_for_gpu:
-                avg_vram = f"{np.mean(vram_for_gpu):.2f}"
-                std_vram = f"{np.std(vram_for_gpu):.2f}"
-        
-        rows.append({
-            "dataset": profile,
-            "total_runs": total_runs,
-            "most_common_cpu": most_common_cpu,
-            "most_common_gpu": most_common_gpu,
-            "avg_time_s": avg_time,
-            "std_time_s": std_time,
-            "avg_vram_mib": avg_vram,
-            "std_vram_mib": std_vram,
-        })
-    
-    # Create DataFrame
+        if dataset.strip().lower() == "artifacts":
+            continue
+
+        for backend in ("darknet", "ultralytics"):
+            key_to_time_samples = ds_backend_key_times.get(dataset, {}).get(backend, {})
+            if not key_to_time_samples:
+                continue
+
+            # Choose the largest matching subset (most runs) for apples-to-apples
+            best_key, time_samples = max(key_to_time_samples.items(), key=lambda kv: len(kv[1]))
+            runs = len(time_samples)
+
+            times = [v for (v, _d) in time_samples]
+            avg_t = float(np.mean(times)) if times else None
+            std_t = float(np.std(times)) if times else None
+
+            vram_samples = ds_backend_key_vram.get(dataset, {}).get(backend, {}).get(best_key, [])
+            vrams = [v for (v, _d) in vram_samples]
+            avg_v = float(np.mean(vrams)) if vrams else None
+            std_v = float(np.std(vrams)) if vrams else None
+
+            # Sanity check: outliers (IQR)
+            time_out_idx = iqr_outlier_indices(times)
+            vram_out_idx = iqr_outlier_indices(vrams)
+
+            for i in time_out_idx:
+                any_outliers = True
+                v, d = time_samples[i]
+                print(
+                    f"[OUTLIER runtime] dataset={dataset} backend={backend} "
+                    f"value={v:.3f}s avg={avg_t:.3f}s dir={d}"
+                )
+
+            for i in vram_out_idx:
+                any_outliers = True
+                v, d = vram_samples[i]
+                print(
+                    f"[OUTLIER vram]    dataset={dataset} backend={backend} "
+                    f"value={v:.1f}MiB avg={avg_v:.1f}MiB dir={d}"
+                )
+
+            key_map = dict(zip(FAIR_KEYS, best_key))
+            cpu = normalize_cpu_name(key_map.get("CPU Name", "N/A") or "N/A")
+            gpu = key_map.get("GPU Name", "N/A") or "N/A"
+
+            rows.append(
+                {
+                    "dataset": dataset,
+                    "backend": backend,
+                    "runs": runs,
+                    "cpu": cpu,
+                    "gpu": gpu,
+                    "avg_time": format_duration(avg_t),
+                    "std_time": format_duration(std_t),
+                    "avg_vram": mib_to_gb(avg_v),
+                    "std_vram": mib_to_gb(std_v),
+                }
+            )
+
+    if not any_outliers:
+        print("No outliers found.")
+
     df = pd.DataFrame(rows)
-    
     if df.empty:
         print("No data found!")
         return
-    
+
+    df = df.sort_values(["dataset", "backend"]).reset_index(drop=True)
+
     print("\n" + "=" * 120)
-    print("Dataset Summary: Runs, Hardware, Performance, and VRAM Statistics")
+    print("Dataset Summary: Separate Rows per Backend (Darknet vs Ultralytics)")
+    print("Fair subsets enforced by matching on: " + ", ".join(FAIR_KEYS))
     print("=" * 120)
     print(df.to_string(index=False))
     print()
-    
-    # Save to CSV
-    output_file = "dataset_summary.csv"
-    df.to_csv(output_file, index=False)
-    print(f"Saved to {output_file}")
+
+    df.to_csv(args.out_csv, index=False)
+    print(f"Saved to {args.out_csv}")
+
+    latex = df_to_latex_table(df, caption=args.caption, label=args.label)
+    print(latex)
 
 
 if __name__ == "__main__":
