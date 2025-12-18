@@ -1,0 +1,72 @@
+Backend: darknet
+Profile: FisheyeTrafficDarknetLocal
+YOLO Template: yolov7
+Benchmark Time (s): 18730.489
+CPU Name: INTEL(R) XEON(R) PLATINUM 8570
+CPU Threads: 112
+GPU Name: NVIDIA B200
+GPU VRAM: 183359 MiB
+Total Memory: 2.0 TiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.12.3
+Disk Capacity: 1G, 1.7T, 1.7T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T
+Disk Model: Virtual SD0, Micron_7450_MTFDKBG1T9TFR, Micron_7450_MTFDKBG1T9TFR, KIOXIA
+  KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA
+  KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84
+Write Speed: 381.92 MiB/s
+Read Speed: 474.41 MiB/s
+Working Dir: N/A
+CUDA Version: '12.8'
+cuDNN Version: 90.7.0 (90700)
+GPUs Used: 1
+Compute Capability: '10.0'
+Input Width: 960
+Input Height: 736
+Input Size: 960x736
+Iterations: 8000
+Batch Size: 64
+Subdivisions: 16
+Train Images: 25984
+Valid Images: 2887
+Approx Epochs: 19.704433497536947
+Color Preset: 'off'
+Split Seed: 9001
+Training Seed: null
+Repeat: '3'
+Val Fraction: 0.1
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 94.41
+mAP (best %): 94.59
+Best Iteration: 7902
+Conf Thresh (PRF): 0.25
+Precision@Conf: 0.89
+Recall@Conf: 0.93
+F1@Conf: 0.91
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 5
+CM_TotalTP: 53845
+CM_TotalFP: 1596
+CM_TotalFN: 3419
+CM_MicroPrecision: 0.9712126404646381
+CM_MicroRecall: 0.9402940765576977
+CM_MicroF1: 0.9555033050885053
+CM_MacroPrecision: 0.9724822464088146
+CM_MacroRecall: 0.9027508036466243
+CM_MacroF1: 0.9349914977724667
+COCO AP50-95 (%): 75.62375644758878
+COCO AP50 (%): 94.18677106065813
+COCO AP75 (%): 86.94103746234786
+COCO AP@50 (%): 74.94899937558215
+COCO AP@55 (%): 74.73292150541067
+COCO AP@60 (%): 74.38743470901105
+COCO AP@65 (%): 73.60180790201787
+COCO AP@70 (%): 72.25133554557426
+COCO AP@75 (%): 69.86380043893351
+COCO AP@80 (%): 63.84490266579704
+COCO AP@85 (%): 54.34753221766139
+COCO AP@89 (%): 36.55546632939273
+COCO AP@95 (%): 11.264627209432309
+mAP50-95 (%): 75.62375644758878
