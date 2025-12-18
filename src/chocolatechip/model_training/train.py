@@ -14,7 +14,7 @@ from cloudmesh.common.StopWatch import StopWatch
 from cloudmesh.gpu.gpu import Gpu
 
 from chocolatechip.model_training.hw_info import (
-    summarize_env, resolve_gpu_selection, fio_seq_rw, get_disk_info
+    summarize_env, resolve_gpu_selection, fio_seq_rw, get_disk_info, cpu_threads_used
 )
 from chocolatechip.model_training.cfg_maker import generate_cfg_file
 from chocolatechip.model_training.profiles import TrainProfile, get_profile, equalize_for_split
@@ -797,6 +797,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
         "Benchmark Time (s)": b["time"],
         "CPU Name": sysinfo["cpu"],
         "CPU Threads": sysinfo["cpu_threads"],
+        "CPU Threads Used": cpu_threads_used(),
         "GPU Name": gpu_name,
         "GPU VRAM": vram,
         "Total Memory": sysinfo["mem.total"],
