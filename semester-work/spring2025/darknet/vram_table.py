@@ -25,6 +25,7 @@ from plot_common import (
 # -----------------------------------------------------------------------------
 FAIR_KEYS = [
     "CPU Name",
+    "CPU Threads Used",
     "GPU Name",
     "Input Width",
     "Input Height",
@@ -350,6 +351,7 @@ def df_to_latex_table(df: pd.DataFrame, *, caption: str, label: str) -> str:
         ("model", "Model"),
         ("runs", "Runs"),
         ("cpu", "CPU"),
+        ("cpu_threads_used", r"\shortstack{\rule{0pt}{2.6ex}CPU\\Threads\\Used}"),
         ("gpu", "GPU"),
         ("avg_time", "Avg Time"),
         ("std_time", "Std Time"),
@@ -357,7 +359,7 @@ def df_to_latex_table(df: pd.DataFrame, *, caption: str, label: str) -> str:
         ("std_vram", "Std VRAM"),
     ]
 
-    colspec = "|l|l|r|l|l|l|l|r|r|"
+    colspec = "|l|l|r|l|r|l|l|l|r|r|"
 
     lines: list[str] = []
     lines.append(r"\begin{table*}[htbp]")
@@ -596,6 +598,7 @@ def main() -> None:
 
                 key_map = dict(zip(FAIR_KEYS, best_key))
                 cpu = normalize_cpu_name(key_map.get("CPU Name", "N/A") or "N/A")
+                cpu_threads_used = key_map.get("CPU Threads Used", "N/A") or "N/A"
                 gpu = key_map.get("GPU Name", "N/A") or "N/A"
 
                 rows.append(
@@ -604,6 +607,7 @@ def main() -> None:
                         "model": model_id,
                         "runs": runs,
                         "cpu": cpu,
+                        "cpu_threads_used": cpu_threads_used,
                         "gpu": gpu,
                         "avg_time": format_duration(avg_t),
                         "std_time": format_duration(std_t),
