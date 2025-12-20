@@ -40,6 +40,9 @@ EXCLUDE_MODELS_FOR_DATASET: dict[str, set[str]] = {
     "LegoGears": {"yolov3", "yolov3-tiny", "yolov3-tiny-3l", "yolov4-tiny-3l", "yolov4"},
 }
 
+# Static caption (no CLI override)
+DEFAULT_CAPTION = "Dataset training summary: Rows per Model, apples-to-apples by CPU/GPU/config"
+
 
 # ----------------------------
 # Helpers: parsing / formatting
@@ -339,13 +342,11 @@ def infer_model_id(row: pd.Series, csv_path: Path) -> str:
     return "UnknownModel"
 
 
-
 # ----------------------------
 # LaTeX table rendering
 # ----------------------------
 
 def df_to_latex_table(df: pd.DataFrame, *, caption: str, label: str) -> str:
-    # Backend column removed per request
     cols = [
         ("dataset", "Dataset"),
         ("model", "Model"),
@@ -414,14 +415,8 @@ def main() -> None:
             "If omitted, defaults to repo root (then iter_benchmark_csvs finds benchmark__*.csv)."
         ),
     )
-    parser.add_argument("--out-csv", default="dataset_summary.csv", help="Where to save the summary CSV.")
-    parser.add_argument(
-        "--caption",
-        default=(
-            "Dataset training summary: Rows per Model, apples-to-apples by CPU/GPU/config"
-        ),
-        help="LaTeX caption.",
-    )
+    # Removed: --out-csv
+    # Removed: --caption
     parser.add_argument("--label", default="tab:dataset-summary-by-model", help="LaTeX label.")
     args = parser.parse_args()
 
@@ -636,18 +631,16 @@ def main() -> None:
     df = df.sort_values(["dataset", "_backend", "_model_rank", "model"]).reset_index(drop=True)
     df_out = df.drop(columns=["_backend", "_model_rank"], errors="ignore")
 
-
     print("\n" + "=" * 120)
-    print("Dataset training summary: Rows per Model, apples-to-apples by CPU/GPU/config")
+    print(DEFAULT_CAPTION)
     print("Fair subsets enforced by matching on: " + ", ".join(FAIR_KEYS))
     print("=" * 120)
     print(df_out.to_string(index=False))
     print()
 
-    df_out.to_csv(args.out_csv, index=False)
-    print(f"Saved to {args.out_csv}")
+    # Removed: df_out.to_csv(...)
 
-    latex = df_to_latex_table(df_out, caption=args.caption, label=args.label)
+    latex = df_to_latex_table(df_out, caption=DEFAULT_CAPTION, label=args.label)
     print(latex)
 
 
