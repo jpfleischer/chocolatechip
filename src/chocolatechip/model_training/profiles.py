@@ -112,7 +112,24 @@ def equalize_for_split(profile: TrainProfile, *, data_path: str, mode: str = "it
         return replace(profile, data_path=data_path)
 
     # Establish target epochs on first call for this profile name
-    key = (profile.name, getattr(profile, "template", None), getattr(profile, "color_preset", None))
+    # include val fraction in cache key so each split gets its own baseline
+    vf = None
+    vf_field = getattr(profile, "val_fracs", None)
+    if isinstance(vf_field, (tuple, list)) and vf_field:
+        try:
+            vf = float(vf_field[0])
+        except Exception:
+            vf = None
+    elif isinstance(vf_field, (int, float)):
+        vf = float(vf_field)
+
+    key = (
+        profile.name,
+        getattr(profile, "template", None),
+        getattr(profile, "color_preset", None),
+        vf,
+    )
+    
     if key not in _equalize_cache:
         _equalize_cache[key] = (profile.iterations * profile.batch_size) / max(1, T)
         if _equalize_cache[key] <= 0:
