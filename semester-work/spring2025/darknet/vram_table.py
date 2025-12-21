@@ -16,6 +16,8 @@ from plot_common import (
     iter_benchmark_csvs,
     infer_dataset_name_from_csv,
     get_ordered_yolos,
+    DEFAULT_FAIR_KEYS,
+    make_fair_key,
 )
 
 # -----------------------------------------------------------------------------
@@ -23,18 +25,6 @@ from plot_common import (
 # We ONLY average timing/VRAM over runs that match on all of these.
 # If a key is missing in a CSV row, that row is skipped.
 # -----------------------------------------------------------------------------
-FAIR_KEYS = [
-    "CPU Name",
-    "CPU Threads Used",
-    "GPU Name",
-    "Input Width",
-    "Input Height",
-    "Batch Size",
-    "Subdivisions",
-    # If you want stricter matching, uncomment:
-    # "Input Size",
-    # "Iterations",
-]
 
 EXCLUDE_MODELS_FOR_DATASET: dict[str, set[str]] = {
     "LegoGears": {"yolov3", "yolov3-tiny", "yolov3-tiny-3l", "yolov4-tiny-3l", "yolov4"},
@@ -47,6 +37,9 @@ DEFAULT_CAPTION = "Dataset training summary: Rows per Model, apples-to-apples by
 # ----------------------------
 # Helpers: parsing / formatting
 # ----------------------------
+
+def fair_key_to_map(key: tuple[str, ...]) -> dict[str, str]:
+    return dict(zip(DEFAULT_FAIR_KEYS, key))
 
 def parse_gpu_indices_from_value(raw: str) -> Optional[List[int]]:
     """
@@ -359,8 +352,29 @@ def df_to_latex_table(df: pd.DataFrame, *, caption: str, label: str) -> str:
         ("avg_vram", "Avg VRAM"),
         ("std_vram", "Std VRAM"),
     ]
-
     colspec = "|l|l|r|l|r|l|l|l|r|r|"
+
+    # Ensure strings for stable comparison (and avoid NaNs)
+    df2 = df.copy()
+    for c in ("dataset", "cpu", "cpu_threads_used", "gpu"):
+        if c in df2.columns:
+            df2[c] = df2[c].astype(str).fillna("")
+
+    # For each dataset, determine if cpu/threads/gpu are constant
+    ds_can_merge: dict[str, bool] = {}
+    ds_counts: dict[str, int] = {}
+    for ds, g in df2.groupby("dataset", sort=False):
+        ds_counts[ds] = len(g)
+        if len(g) <= 1:
+            ds_can_merge[ds] = True
+            continue
+        # constant iff each of these has exactly 1 unique value
+        const = (
+            g["cpu"].nunique(dropna=False) == 1
+            and g["cpu_threads_used"].nunique(dropna=False) == 1
+            and g["gpu"].nunique(dropna=False) == 1
+        )
+        ds_can_merge[ds] = bool(const)
 
     lines: list[str] = []
     lines.append(r"\begin{table*}[htbp]")
@@ -374,24 +388,67 @@ def df_to_latex_table(df: pd.DataFrame, *, caption: str, label: str) -> str:
     lines.append(r"\hline")
 
     prev_dataset: Optional[str] = None
-    for _, row in df.iterrows():
-        cur_dataset = str(row.get("dataset", ""))
+    rows_left_in_block = 0
+    use_multirow = False
 
-        # Horizontal line between datasets
-        if prev_dataset is not None and cur_dataset != prev_dataset:
-            lines.append(r"\hline")
+    for _, row in df2.iterrows():
+        dataset = str(row.get("dataset", ""))
 
-        cells: list[str] = []
-        for key, _hdr in cols:
-            v = row.get(key, "")
-            if pd.isna(v):
-                v = ""
-            if key in ("dataset", "model", "cpu", "gpu"):
-                cells.append(escape_latex(str(v)))
+        # new dataset block?
+        if dataset != prev_dataset:
+            if prev_dataset is not None:
+                lines.append(r"\hline")
+
+            prev_dataset = dataset
+            rows_left_in_block = int(ds_counts.get(dataset, 1))
+            use_multirow = bool(ds_can_merge.get(dataset, False))
+
+            # base values (escaped)
+            cpu = escape_latex(str(row.get("cpu", "")))
+            thr = escape_latex(str(row.get("cpu_threads_used", "")))
+            gpu = escape_latex(str(row.get("gpu", "")))
+
+            if use_multirow and rows_left_in_block > 1:
+                ds_cell = rf"\multirow{{{rows_left_in_block}}}{{*}}{{\centering {escape_latex(dataset)}}}"
+                cpu_cell = rf"\multirow{{{rows_left_in_block}}}{{*}}{{\centering {cpu}}}"
+                thr_cell = rf"\multirow{{{rows_left_in_block}}}{{*}}{{\centering {thr}}}"
+                gpu_cell = rf"\multirow{{{rows_left_in_block}}}{{*}}{{\centering {gpu}}}"
             else:
-                cells.append(str(v))
-        lines.append(" & ".join(cells) + r" \\")
-        prev_dataset = cur_dataset
+                # no merging for this dataset (or only 1 row)
+                ds_cell = escape_latex(dataset)
+                cpu_cell = cpu
+                thr_cell = thr
+                gpu_cell = gpu
+        else:
+            # continuing block
+            if use_multirow and rows_left_in_block > 0:
+                ds_cell = ""
+                cpu_cell = ""
+                thr_cell = ""
+                gpu_cell = ""
+            else:
+                # not using multirow: print full row each time
+                ds_cell = escape_latex(dataset)
+                cpu_cell = escape_latex(str(row.get("cpu", "")))
+                thr_cell = escape_latex(str(row.get("cpu_threads_used", "")))
+                gpu_cell = escape_latex(str(row.get("gpu", "")))
+
+        rows_left_in_block -= 1
+
+        # row cells
+        line_cells = [
+            ds_cell,
+            escape_latex(str(row.get("model", ""))),
+            str(row.get("runs", "")),
+            cpu_cell,
+            thr_cell,
+            gpu_cell,
+            str(row.get("avg_time", "")),
+            str(row.get("std_time", "")),
+            str(row.get("avg_vram", "")),
+            str(row.get("std_vram", "")),
+        ]
+        lines.append(" & ".join(line_cells) + r" \\")
 
     lines.append(r"\hline")
     lines.append(r"\end{tabular}")
@@ -482,19 +539,10 @@ def main() -> None:
             except Exception:
                 continue
 
-            key_parts: list[str] = []
-            missing = False
-            for col in FAIR_KEYS:
-                val = get_row_value(row, col)
-                if val is None:
-                    missing = True
-                    break
-                key_parts.append(val)
-
-            if missing:
+            key = make_fair_key(row, fair_keys=DEFAULT_FAIR_KEYS)
+            if key is None:
                 continue
 
-            key = tuple(key_parts)
             keys_in_this_csv.add(key)
 
             model_id = infer_model_id(row, csv_path)
@@ -591,7 +639,7 @@ def main() -> None:
                         f"value={v:.1f}MiB avg={avg_v:.1f}MiB dir={d}"
                     )
 
-                key_map = dict(zip(FAIR_KEYS, best_key))
+                key_map = fair_key_to_map(best_key)
                 cpu = normalize_cpu_name(key_map.get("CPU Name", "N/A") or "N/A")
                 cpu_threads_used = key_map.get("CPU Threads Used", "N/A") or "N/A"
                 gpu = key_map.get("GPU Name", "N/A") or "N/A"
@@ -633,7 +681,7 @@ def main() -> None:
 
     print("\n" + "=" * 120)
     print(DEFAULT_CAPTION)
-    print("Fair subsets enforced by matching on: " + ", ".join(FAIR_KEYS))
+    print("Fair subsets enforced by matching on: " + ", ".join(DEFAULT_FAIR_KEYS))
     print("=" * 120)
     print(df_out.to_string(index=False))
     print()

@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, Optional, Sequence, Tuple, List
 import hashlib
 import re
 
@@ -28,6 +28,108 @@ PREFERRED_YOLO_ORDER = [
     "yolo11s",
     "yolo11m",
 ]
+
+# Default fairness keys (shared across scripts)
+DEFAULT_FAIR_KEYS: tuple[str, ...] = (
+    "CPU Name",
+    "CPU Threads Used",
+    "GPU Name",
+    "Input Width",
+    "Input Height",
+    "Batch Size",
+    "Subdivisions",
+    "Input Size",
+    "Iterations",
+)
+
+
+def get_row_value_str(row: pd.Series, col: str) -> Optional[str]:
+    v = row.get(col)
+    if v is None:
+        return None
+    if isinstance(v, float) and pd.isna(v):
+        return None
+    s = str(v).strip()
+    return s if s else None
+
+
+def make_fair_key(
+    row: pd.Series,
+    *,
+    fair_keys: Sequence[str] = DEFAULT_FAIR_KEYS,
+    drop_keys: Sequence[str] = (),
+) -> Optional[Tuple[str, ...]]:
+    """
+    Build a fairness key tuple from a row.
+    Returns None if any required key is missing/blank.
+
+    drop_keys lets callers exclude dimensions they do NOT want to enforce.
+    (Example: drop_keys=("Val Fraction",) if it were otherwise included.)
+    """
+    drop = set(drop_keys)
+    parts = []
+    for k in fair_keys:
+        if k in drop:
+            continue
+        v = get_row_value_str(row, k)
+        if v is None:
+            return None
+        parts.append(v)
+    return tuple(parts)
+
+
+def keep_largest_fair_subset(
+    df: pd.DataFrame,
+    *,
+    fair_keys: Sequence[str] = DEFAULT_FAIR_KEYS,
+    drop_keys: Sequence[str] = (),
+    group_cols: Sequence[str] = (),
+    key_col: str = "_fair_key",
+) -> pd.DataFrame:
+    """
+    Within each group (group_cols), keep only rows belonging to the most frequent fair-key.
+    - Rows missing any fair key are dropped.
+    - Returns filtered df (copy).
+
+    Example for Program #3:
+      group_cols=("dataset","val_fraction","framework","yolo_type","color_preset")
+      drop_keys=()  # do NOT include val_fraction in fair_keys anyway
+    """
+    d = df.copy()
+
+    d[key_col] = d.apply(lambda r: make_fair_key(r, fair_keys=fair_keys, drop_keys=drop_keys), axis=1)
+    d = d[d[key_col].notna()].copy()
+    if d.empty:
+        return d
+
+    if not group_cols:
+        # choose best key globally
+        best_key = d[key_col].value_counts().idxmax()
+        return d[d[key_col] == best_key].copy()
+
+    # choose best key per group
+    def _pick_block(g: pd.DataFrame) -> pd.DataFrame:
+        vc = g[key_col].value_counts()
+        if vc.empty:
+            return g.iloc[0:0]
+        best = vc.idxmax()
+        return g[g[key_col] == best]
+
+    out = d.groupby(list(group_cols), sort=False, group_keys=False).apply(_pick_block)
+    return out.copy()
+
+
+def filter_equal_cpu_threads_used(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Drop rows where CPU Threads Used is missing; leave all others.
+    Useful if you just want to enforce that the column exists and is usable.
+    (Most people will use keep_largest_fair_subset instead.)
+    """
+    if "CPU Threads Used" not in df.columns:
+        return df.iloc[0:0].copy()
+    d = df.copy()
+    d["CPU Threads Used"] = d["CPU Threads Used"].astype(str).str.strip()
+    return d[d["CPU Threads Used"] != ""].copy()
 
 
 def get_ordered_yolos(present_yolos) -> list[str]:
