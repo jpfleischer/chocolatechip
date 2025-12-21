@@ -1,0 +1,73 @@
+Backend: darknet
+Profile: FisheyeTrafficDarknetLocal
+YOLO Template: yolov7
+Benchmark Time (s): 17917.018
+CPU Name: INTEL(R) XEON(R) PLATINUM 8570
+CPU Threads: 112
+CPU Threads Used: 8
+GPU Name: NVIDIA B200
+GPU VRAM: 183359 MiB
+Total Memory: 2.0 TiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.12.3
+Disk Capacity: 1G, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 1.7T, 1.7T
+Disk Model: Virtual SD0, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84,
+  KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84,
+  KIOXIA KCMYDRUG3T84, SAMSUNG MZ1L21T9HCLS-00A07, SAMSUNG MZ1L21T9HCLS-00A07
+Write Speed: 535.79 MiB/s
+Read Speed: 855.63 MiB/s
+Working Dir: N/A
+CUDA Version: '12.8'
+cuDNN Version: 90.7.0 (90700)
+GPUs Used: 1
+Compute Capability: '10.0'
+Input Width: 960
+Input Height: 736
+Input Size: 960x736
+Iterations: 8000
+Batch Size: 64
+Subdivisions: 16
+Train Images: 25984
+Valid Images: 2887
+Approx Epochs: 19.704433497536947
+Color Preset: 'off'
+Split Seed: 9001
+Training Seed: null
+Repeat: '1'
+Val Fraction: 0.1
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 95.35
+mAP (best %): 95.57
+Best Iteration: 7902
+Conf Thresh (PRF): 0.25
+Precision@Conf: 0.91
+Recall@Conf: 0.93
+F1@Conf: 0.92
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 5
+CM_TotalTP: 53845
+CM_TotalFP: 1480
+CM_TotalFN: 3419
+CM_MicroPrecision: 0.9732489832806146
+CM_MicroRecall: 0.9402940765576977
+CM_MicroF1: 0.9564877563527521
+CM_MacroPrecision: 0.9782105866579163
+CM_MacroRecall: 0.9045240020571806
+CM_MacroF1: 0.9385916798785613
+COCO AP50-95 (%): 76.61356486135408
+COCO AP50 (%): 94.589425904712
+COCO AP75 (%): 87.59102661194994
+COCO AP@50 (%): 75.1957977707
+COCO AP@55 (%): 75.03838820053757
+COCO AP@60 (%): 74.80951577051806
+COCO AP@65 (%): 74.0923782122853
+COCO AP@70 (%): 73.17217217633011
+COCO AP@75 (%): 70.33305956299162
+COCO AP@80 (%): 64.75985118053975
+COCO AP@85 (%): 54.29320169896392
+COCO AP@89 (%): 36.31962035676755
+COCO AP@95 (%): 14.431776221092992
+mAP50-95 (%): 76.61356486135408
