@@ -472,13 +472,14 @@ def main():
             print("\\centering")
 
             # Note: Val Frac is shown as a block header, not a separate column
-            print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|}")
+            print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|c|}")
             print("\\hline")
             print(
                 "\\rowcolor{darkgray!20}"
                 "\\textbf{Framework} & \\textbf{YOLO Type} & \\textbf{Color} & "
                 "\\textbf{Count} & \\textbf{Avg TP} & \\textbf{Avg FP} & "
-                "\\textbf{Avg FN} & \\textbf{Med Jaccard} & \\textbf{Avg Jaccard} \\\\"
+                "\\textbf{Avg FN} & \\textbf{Med Jaccard} & \\textbf{Std Jaccard} & "
+                "\\textbf{Avg Jaccard} \\\\"
             )
             print("\\hline")
 
@@ -486,7 +487,7 @@ def main():
                 # Block header row for this Val Frac (gray band)
                 print(
                     f"\\rowcolor{{gray!20}}"
-                    f"\\multicolumn{{9}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
+                    f"\\multicolumn{{10}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
                 )
                 print("\\hline")
 
@@ -518,6 +519,7 @@ def main():
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     med_j_str = f"{row['median_jaccard']:.3f}"
+                    std_j_str = "-" if (pd.isna(row["std_jaccard"]) or int(row["count"]) < 2) else f"{row['std_jaccard']:.3f}"
 
                     if is_best:
                         j_str = f"\\textbf{{{j_str}}}"
@@ -531,7 +533,7 @@ def main():
                         f"{escape_latex(row['color_preset'])} & "
                         f"{int(row['count'])} & "
                         f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & {row['avg_fn']:.1f} & "
-                        f"{med_j_str} & {j_str} \\\\"
+                        f"{med_j_str} & {std_j_str} & {j_str} \\\\"
                     )
 
                 print("\\hline")
@@ -577,13 +579,13 @@ def main():
             print("\\label{tab:" + dataset.lower() + "_summary}")
             print("\\centering")
 
-            print("\\begin{tabular}{|l|l|c|c|c|c|c|c|}")
+            print("\\begin{tabular}{|l|l|c|c|c|c|c|c|c|}")
             print("\\hline")
             print(
                 "\\rowcolor{darkgray!20}"
                 "\\textbf{Framework} & \\textbf{YOLO Type} & \\textbf{Count} & "
                 "\\textbf{Avg TP} & \\textbf{Avg FP} & \\textbf{Avg FN} & "
-                "\\textbf{Med Jaccard} & \\textbf{Avg Jaccard} \\\\"
+                "\\textbf{Med Jaccard} & \\textbf{Std Jaccard} & \\textbf{Avg Jaccard} \\\\"
             )
             print("\\hline")
 
@@ -594,7 +596,7 @@ def main():
                 # block header row spanning all cols, with gray background
                 print(
                     f"\\rowcolor{{gray!20}}"
-                    f"\\multicolumn{{8}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
+                    f"\\multicolumn{{9}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
                 )
                 print("\\hline")
 
@@ -622,6 +624,7 @@ def main():
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     med_j_str = f"{row['median_jaccard']:.3f}"
+                    std_j_str = "-" if (pd.isna(row["std_jaccard"]) or int(row["count"]) < 2) else f"{row['std_jaccard']:.3f}"
 
                     if is_best:
                         j_str = f"\\textbf{{{j_str}}}"
@@ -634,7 +637,7 @@ def main():
                         f"{escape_latex(row['yolo_type'])} & "
                         f"{int(row['count'])} & "
                         f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & "
-                        f"{row['avg_fn']:.1f} & {med_j_str} & {j_str} \\\\"
+                        f"{row['avg_fn']:.1f} & {med_j_str} & {std_j_str} & {j_str} \\\\"
                     )
                 print("\\hline")
 

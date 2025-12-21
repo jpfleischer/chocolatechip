@@ -38,8 +38,6 @@ DEFAULT_FAIR_KEYS: tuple[str, ...] = (
     "Input Height",
     "Batch Size",
     "Subdivisions",
-    "Input Size",
-    "Iterations",
 )
 
 
