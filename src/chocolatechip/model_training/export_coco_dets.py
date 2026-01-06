@@ -4,7 +4,12 @@ from pathlib import Path
 from typing import Dict, List, Any
 import argparse, json, sys, subprocess, os
 
-from PIL import Image, ImageDraw
+try:
+    from PIL import Image, ImageDraw
+except Exception:
+    Image = None
+    ImageDraw = None
+import time
 
 # Simple class -> color mapping for visualizations (RGB)
 CLASS_COLORS = {
@@ -37,6 +42,10 @@ def _draw_and_save_vis_image(
         - score   (float)
     """
     if not detections:
+        return
+
+    if Image is None:
+        print("[vis] Pillow not available; skipping visualization")
         return
 
     try:
@@ -122,6 +131,7 @@ def export_ultra_detections(
     save_vis: bool = False,
     vis_dir: str | None = None,
     vis_scale: float = 3.0,
+    measure_time: bool = False,
 ) -> None:
     from ultralytics import YOLO
     img_id_by_name, cat_id_by_name = _load_gt_index(ann_json)
@@ -142,7 +152,11 @@ def export_ultra_detections(
         vis_root.mkdir(parents=True, exist_ok=True)
         print(f"[ultra_vis] saving annotated images under: {vis_root}")
 
+    total_infer_time = 0.0
+    infer_count = 0
+
     for img_path in images:
+        t0 = time.perf_counter()
         preds = model.predict(
             source=img_path,
             conf=conf,
@@ -152,6 +166,10 @@ def export_ultra_detections(
             verbose=False,
             save=False,
         )
+        t1 = time.perf_counter()
+        if measure_time:
+            total_infer_time += (t1 - t0)
+            infer_count += 1
         if not preds:
             continue
         r = preds[0]
@@ -212,6 +230,8 @@ def export_ultra_detections(
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(results, f)
     print(f"[ultra] wrote detections: {out_json} ({len(results)} boxes)")
+    if measure_time and infer_count:
+        print(f"[ultra] inference total_time={total_infer_time:.4f}s avg_per_image={total_infer_time/infer_count:.6f}s n_images={infer_count}")
 
 # ---------- Darknet → COCO results JSON ----------
 
@@ -377,9 +397,19 @@ def export_darknet_detections(
     vis_dir: str | None = None,
     vis_scale: float = 3.0,
     vis_conf_thresh: float = 0.5,
+    measure_time: bool = False,
 ) -> None:
     """Run Darknet on each image (from images_txt) and write COCO-format det JSON."""
     raw_json = str(Path(out_json).with_suffix(".raw_darknet.json"))
+    # count images (lines) for timing estimate if requested later via CLI
+    n_images = 0
+    try:
+        with open(images_txt, "r", encoding="utf-8", errors="ignore") as f:
+            n_images = sum(1 for ln in f if ln.strip() and not ln.strip().startswith("#"))
+    except Exception:
+        n_images = 0
+
+    t0 = time.perf_counter()
     _run_darknet_list(
         darknet_bin=darknet_bin,
         data_path=data_path,
@@ -390,6 +420,10 @@ def export_darknet_detections(
         thresh=thresh,
         letter_box=letter_box,
     )
+    t1 = time.perf_counter()
+    if measure_time and n_images and (t1 - t0) > 0.0:
+        total = t1 - t0
+        print(f"[darknet] inference total_time={total:.4f}s avg_per_image={total/max(1,n_images):.6f}s n_images={n_images}")
     _convert_darknet_json_to_coco(
         dk_json_path=raw_json,
         ann_json=ann_json,
@@ -420,6 +454,8 @@ def main():
                     help="If set, save PNG/JPGs with predicted boxes during export")  # NEW
     ap.add_argument("--vis_dir",
                     help="Optional root dir for Ultralytics visualizations (default: next to out_json)")  # NEW
+    ap.add_argument("--measure_time", action="store_true",
+                    help="If set, measure and print inference time/avg per image")
     # darknet (hank-ai/AB-style)
     ap.add_argument("--darknet_bin", default="darknet")
     ap.add_argument("--data", help="darknet .data")
@@ -444,6 +480,7 @@ def main():
             batch=args.batch,
             save_vis=args.save_vis,
             vis_dir=args.vis_dir,
+            measure_time=args.measure_time,
         )
     else:
         for req in ("data", "cfg", "dk_weights"):
@@ -463,6 +500,7 @@ def main():
             letter_box=args.letter_box,
             save_vis=args.save_vis,
             vis_dir=args.vis_dir,
+            measure_time=args.measure_time,
             # optional: could also expose vis_scale / vis_conf_thresh as CLI flags later
         )
 
