@@ -29,6 +29,9 @@ TEMPLATE_URLS = {
 
     "yolov4": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov4.cfg",
     "yolov7": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov7.cfg",
+    "yolov3": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov3.cfg",
+    "yolov3-tiny": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov3-tiny.cfg",
+    "yolov3-tiny-3l": "https://raw.githubusercontent.com/hank-ai/darknet/master/cfg/yolov3-tiny_3l.cfg",
 }
 
 
