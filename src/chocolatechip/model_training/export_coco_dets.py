@@ -2,9 +2,11 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Any
-import argparse, json, sys, subprocess, os
+import argparse, json, subprocess, os
 
 from PIL import Image, ImageDraw
+from cloudmesh.common.StopWatch import StopWatch
+import time
 
 # Simple class -> color mapping for visualizations (RGB)
 CLASS_COLORS = {
@@ -39,12 +41,7 @@ def _draw_and_save_vis_image(
     if not detections:
         return
 
-    try:
-        img = Image.open(image_path).convert("RGB")
-    except Exception as e:
-        print(f"[vis] failed to open {image_path}: {e}")
-        return
-
+    img = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(img)
 
     for det in detections:
@@ -81,10 +78,7 @@ def _draw_and_save_vis_image(
         img = img.resize(new_size, Image.NEAREST)
 
     out_img = vis_root / f"{Path(image_path).stem}_pred.png"
-    try:
-        img.save(out_img)
-    except Exception as e:
-        print(f"[vis] failed to save {out_img}: {e}")
+    img.save(out_img)
 
 # ---------- Common helpers ----------
 
@@ -142,7 +136,14 @@ def export_ultra_detections(
         vis_root.mkdir(parents=True, exist_ok=True)
         print(f"[ultra_vis] saving annotated images under: {vis_root}")
 
+    # --- timing state (always on) ---
+    total_infer_time = 0.0
+    infer_count = 0
+    sw_timer_name = f"ultra_inference_loop::{Path(weights).stem}"
+    StopWatch.start(sw_timer_name)
+
     for img_path in images:
+        t0 = time.perf_counter()
         preds = model.predict(
             source=img_path,
             conf=conf,
@@ -152,6 +153,11 @@ def export_ultra_detections(
             verbose=False,
             save=False,
         )
+        t1 = time.perf_counter()
+
+        total_infer_time += (t1 - t0)
+        infer_count += 1
+
         if not preds:
             continue
         r = preds[0]
@@ -207,11 +213,46 @@ def export_ultra_detections(
                 score_thresh=0.5,
             )
 
+    StopWatch.stop(sw_timer_name)
 
     Path(out_json).parent.mkdir(parents=True, exist_ok=True)
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(results, f)
     print(f"[ultra] wrote detections: {out_json} ({len(results)} boxes)")
+
+    # --- timing summary (aggregate only) ---
+    if infer_count > 0 and total_infer_time > 0.0:
+        mean_s = total_infer_time / infer_count
+        fps = infer_count / total_infer_time
+        print(
+            f"[ultra][timing] n_images={infer_count} total={total_infer_time:.4f}s "
+            f"mean={mean_s:.6f}s fps={fps:.2f}"
+        )
+
+        loop_total = StopWatch.get(sw_timer_name)
+        print(
+            f"[ultra][timing] StopWatch loop='{sw_timer_name}' "
+            f"total={loop_total:.4f}s"
+        )
+
+        timing_json = Path(out_json).with_suffix(".timing.ultra.json")
+        try:
+            with open(timing_json, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "backend": "ultralytics",
+                        "weights": weights,
+                        "n_images": infer_count,
+                        "total_s": total_infer_time,
+                        "mean_s": mean_s,
+                        "fps": fps,
+                    },
+                    f,
+                    indent=2,
+                )
+            print(f"[ultra][timing] wrote timing stats: {timing_json}")
+        except Exception as e:
+            print(f"[ultra][timing] failed to write timing JSON: {e}")
 
 # ---------- Darknet → COCO results JSON ----------
 
@@ -230,22 +271,21 @@ def _run_darknet_list(
     Use hank-ai/AB-compatible JSON output: `-out result.json` reading an image list from stdin.
     This produces a per-image JSON we will convert to COCO results.
     """
-    #
-    # jp is unsure about this
-    #
     flags = ["-dont_show", "-thresh", f"{thresh:.3f}", "-out", out_json_raw]
     if letter_box:
         flags.append("-letter_box")
     cmd = [darknet_bin, "detector", "test", data_path, cfg_path, weights_path, *flags]
 
     with open(images_txt, "r", encoding="utf-8", errors="ignore") as fin, \
-        open("darknet_export.log", "w", encoding="utf-8") as log:
-        subprocess.run(cmd, stdin=fin, check=True, text=True,
-                    stdout=log, stderr=log)   # or DEVNULL if you don’t want a log
-    #
-    #
-    #
-
+         open("darknet_export.log", "w", encoding="utf-8") as log:
+        subprocess.run(
+            cmd,
+            stdin=fin,
+            check=True,
+            text=True,
+            stdout=log,
+            stderr=log,
+        )
 
 def _convert_darknet_json_to_coco(
     *,
@@ -380,6 +420,19 @@ def export_darknet_detections(
 ) -> None:
     """Run Darknet on each image (from images_txt) and write COCO-format det JSON."""
     raw_json = str(Path(out_json).with_suffix(".raw_darknet.json"))
+
+    # count images (lines) for timing estimate
+    n_images = 0
+    try:
+        with open(images_txt, "r", encoding="utf-8", errors="ignore") as f:
+            n_images = sum(1 for ln in f if ln.strip() and not ln.strip().startswith("#"))
+    except Exception:
+        n_images = 0
+
+    sw_timer_name = f"darknet_inference_loop::{Path(weights_path).stem}"
+    StopWatch.start(sw_timer_name)
+
+    t0 = time.perf_counter()
     _run_darknet_list(
         darknet_bin=darknet_bin,
         data_path=data_path,
@@ -390,6 +443,44 @@ def export_darknet_detections(
         thresh=thresh,
         letter_box=letter_box,
     )
+    t1 = time.perf_counter()
+
+    StopWatch.stop(sw_timer_name)
+
+    total = t1 - t0
+    if n_images > 0 and total > 0.0:
+        mean_s = total / n_images
+        fps = n_images / total
+        print(
+            f"[darknet][timing] total_time={total:.4f}s "
+            f"avg_per_image={mean_s:.6f}s n_images={n_images} fps={fps:.2f}"
+        )
+
+        loop_total = StopWatch.get(sw_timer_name)
+        print(
+            f"[darknet][timing] StopWatch loop='{sw_timer_name}' "
+            f"total={loop_total:.4f}s"
+        )
+
+        timing_json = Path(out_json).with_suffix(".timing.darknet.json")
+        try:
+            with open(timing_json, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "backend": "darknet",
+                        "weights": weights_path,
+                        "n_images": n_images,
+                        "total_s": total,
+                        "mean_s": mean_s,
+                        "fps": fps,
+                    },
+                    f,
+                    indent=2,
+                )
+            print(f"[darknet][timing] wrote timing stats: {timing_json}")
+        except Exception as e:
+            print(f"[darknet][timing] failed to write timing JSON: {e}")
+
     _convert_darknet_json_to_coco(
         dk_json_path=raw_json,
         ann_json=ann_json,
