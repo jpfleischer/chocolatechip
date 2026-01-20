@@ -1,0 +1,57 @@
+Backend: darknet
+Profile: LeatherDarknet
+YOLO Template: yolov4-tiny
+Benchmark Time (s): 730.662
+CPU Name: Intel(R) Xeon(R) Gold 6226R CPU @ 2.90GHz
+CPU Threads: 64
+GPU Name: NVIDIA RTX A6000
+GPU VRAM: 49140 MiB
+Total Memory: 376.5 GiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.10.12
+Disk Capacity: 1.7T
+Disk Model: INTEL SSDSC2KB01
+Write Speed: 411.12 MiB/s
+Read Speed: 327.54 MiB/s
+Working Dir: /data/jpf/deleteme/chocolatechip/semester-work/spring2025/darknet
+CUDA Version: '12.1'
+cuDNN Version: 8.9.0 (8900)
+GPUs Used: 1
+Compute Capability: 8.6, 8.6
+Input Width: 256
+Input Height: 256
+Input Size: 256x256
+Iterations: 7000
+Batch Size: 64
+Subdivisions: 1
+Train Images: 1440
+Valid Images: 360
+Approx Epochs: 311.1111111111111
+Color Preset: preserve
+Split Seed: 9001
+Training Seed: null
+Repeat: null
+Val Fraction: 0.2
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 96.11
+mAP (best %): 96.87
+Best Iteration: 6000
+Conf Thresh (PRF): 0.25
+Precision@Conf: 0.95
+Recall@Conf: 0.93
+F1@Conf: 0.94
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 5
+CM_TotalTP: 0
+CM_TotalFP: 0
+CM_TotalFN: 0
+CM_MicroPrecision: null
+CM_MicroRecall: null
+CM_MicroF1: null
+CM_MacroPrecision: 0.0
+CM_MacroRecall: 0.0
+CM_MacroF1: 0.0
+CPU Threads Used: 64
