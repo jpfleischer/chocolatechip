@@ -35,6 +35,18 @@ from chocolatechip.model_training.datasets import ensure_download_once
 
 WRITABLE_BASE = Path(os.environ.get("WRITABLE_BASE", "/workspace/.cache/splits"))
 
+# near the top of the file
+_FIO_CACHE: tuple[float, float] | None = None
+
+def get_fio_cached() -> tuple[float, float]:
+    global _FIO_CACHE
+    if _FIO_CACHE is None:
+        print("[disk] fio (first time)…")
+        _FIO_CACHE = fio_seq_rw()
+    else:
+        print("[disk] using cached fio results")
+    return _FIO_CACHE
+
 # ---------- small utils ----------
 def slugify(text: str, allowed: str = "-_.") -> str:
     s = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode("ascii")
@@ -578,8 +590,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
 
     print("[disk] probing…")
     disk_info = get_disk_info()
-    print("[disk] fio…")
-    dd_w, dd_r = fio_seq_rw()
+    dd_w, dd_r = get_fio_cached()
     print(f"[disk] write={dd_w} read={dd_r}")
 
     env = summarize_env(indices=indices, training_log_path=os.path.join(output_dir, "training_output.log"))
