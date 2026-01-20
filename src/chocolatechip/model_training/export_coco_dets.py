@@ -139,10 +139,11 @@ def export_ultra_detections(
     # --- timing state (always on) ---
     total_infer_time = 0.0
     infer_count = 0
+    warmup_first = None
     sw_timer_name = f"ultra_inference_loop::{Path(weights).stem}"
     StopWatch.start(sw_timer_name)
 
-    for img_path in images:
+    for img_idx, img_path in enumerate(images, start=1):
         t0 = time.perf_counter()
         preds = model.predict(
             source=img_path,
@@ -154,9 +155,13 @@ def export_ultra_detections(
             save=False,
         )
         t1 = time.perf_counter()
+        dt = t1 - t0
 
-        total_infer_time += (t1 - t0)
-        infer_count += 1
+        if img_idx == 1:
+            warmup_first = dt
+        else:
+            total_infer_time += dt
+            infer_count += 1
 
         if not preds:
             continue
@@ -224,6 +229,8 @@ def export_ultra_detections(
     if infer_count > 0 and total_infer_time > 0.0:
         mean_s = total_infer_time / infer_count
         fps = infer_count / total_infer_time
+        warmup_s = float(warmup_first) if warmup_first is not None else 0.0
+
         print(
             f"[ultra][timing] n_images={infer_count} total={total_infer_time:.4f}s "
             f"mean={mean_s:.6f}s fps={fps:.2f}"
@@ -238,18 +245,20 @@ def export_ultra_detections(
         timing_json = Path(out_json).with_suffix(".timing.ultra.json")
         try:
             with open(timing_json, "w", encoding="utf-8") as f:
-                json.dump(
-                    {
-                        "backend": "ultralytics",
-                        "weights": weights,
-                        "n_images": infer_count,
-                        "total_s": total_infer_time,
-                        "mean_s": mean_s,
-                        "fps": fps,
-                    },
-                    f,
-                    indent=2,
-                )
+                    json.dump(
+                        {
+                            "backend": "ultralytics",
+                            "weights": weights,
+                            "n_images": infer_count,         # steady-state count (N-1)
+                            "total_s": total_infer_time,
+                            "mean_s": mean_s,
+                            "fps": fps,
+                            "warmup_first_infer_s": warmup_s,
+                            "warmup_images_ignored": 1 if warmup_first is not None else 0,
+                        },
+                        f,
+                        indent=2,
+                    )
             print(f"[ultra][timing] wrote timing stats: {timing_json}")
         except Exception as e:
             print(f"[ultra][timing] failed to write timing JSON: {e}")
@@ -266,6 +275,7 @@ def _run_darknet_list(
     out_json_raw: str,
     thresh: float = 0.001,
     letter_box: bool = True,
+    timing_json: str | None = None,
 ) -> None:
     """
     Use hank-ai/AB-compatible JSON output: `-out result.json` reading an image list from stdin.
@@ -274,7 +284,10 @@ def _run_darknet_list(
     flags = ["-dont_show", "-thresh", f"{thresh:.3f}", "-out", out_json_raw]
     if letter_box:
         flags.append("-letter_box")
+    if timing_json:
+        flags += ["-timing_json", timing_json]
     cmd = [darknet_bin, "detector", "test", data_path, cfg_path, weights_path, *flags]
+
 
     with open(images_txt, "r", encoding="utf-8", errors="ignore") as fin, \
          open("darknet_export.log", "w", encoding="utf-8") as log:
@@ -432,6 +445,8 @@ def export_darknet_detections(
     sw_timer_name = f"darknet_inference_loop::{Path(weights_path).stem}"
     StopWatch.start(sw_timer_name)
 
+    timing_json_path = str(Path(out_json).with_suffix(".timing.darknet.json"))
+
     t0 = time.perf_counter()
     _run_darknet_list(
         darknet_bin=darknet_bin,
@@ -442,44 +457,32 @@ def export_darknet_detections(
         out_json_raw=raw_json,
         thresh=thresh,
         letter_box=letter_box,
+        timing_json=timing_json_path,
     )
     t1 = time.perf_counter()
 
     StopWatch.stop(sw_timer_name)
 
+
     total = t1 - t0
     if n_images > 0 and total > 0.0:
-        mean_s = total / n_images
-        fps = n_images / total
+        # This is full-process timing (includes startup). Keep it only as a host-side diagnostic.
+        mean_s_incl_warmup = total / n_images
+        fps_incl_warmup = n_images / total
         print(
-            f"[darknet][timing] total_time={total:.4f}s "
-            f"avg_per_image={mean_s:.6f}s n_images={n_images} fps={fps:.2f}"
+            f"[darknet][timing-host] total_time={total:.4f}s "
+            f"avg_per_image_including_warmup={mean_s_incl_warmup:.6f}s "
+            f"n_images={n_images} fps={fps_incl_warmup:.2f}"
         )
 
         loop_total = StopWatch.get(sw_timer_name)
         print(
-            f"[darknet][timing] StopWatch loop='{sw_timer_name}' "
+            f"[darknet][timing-host] StopWatch loop='{sw_timer_name}' "
             f"total={loop_total:.4f}s"
         )
 
-        timing_json = Path(out_json).with_suffix(".timing.darknet.json")
-        try:
-            with open(timing_json, "w", encoding="utf-8") as f:
-                json.dump(
-                    {
-                        "backend": "darknet",
-                        "weights": weights_path,
-                        "n_images": n_images,
-                        "total_s": total,
-                        "mean_s": mean_s,
-                        "fps": fps,
-                    },
-                    f,
-                    indent=2,
-                )
-            print(f"[darknet][timing] wrote timing stats: {timing_json}")
-        except Exception as e:
-            print(f"[darknet][timing] failed to write timing JSON: {e}")
+    # Steady-state stats now come from detector.cpp in `timing_json_path`
+    print(f"[darknet][timing] steady-state timing JSON expected at: {timing_json_path}")
 
     _convert_darknet_json_to_coco(
         dk_json_path=raw_json,
