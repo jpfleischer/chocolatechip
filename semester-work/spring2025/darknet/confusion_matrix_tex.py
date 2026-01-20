@@ -16,8 +16,9 @@ from plot_common import (
     valid_basename_signature,
     normalize_dataset_name,
     iter_benchmark_csvs,
+    DEFAULT_FAIR_KEYS,
+    keep_largest_fair_subset,
 )
-
 
 from scipy import stats
 
@@ -26,6 +27,9 @@ def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
     """
     Walk one or more base_dirs, read benchmark__*.csv, and collect confusion totals
     plus yolo version, dataset, validation fraction, color preset, etc.
+
+    Also collects DEFAULT_FAIR_KEYS columns so we can apply fairness filtering
+    (largest apples-to-apples subset) before analysis.
     """
     records = []
 
@@ -77,9 +81,9 @@ def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
                 color_preset = str(row["Color Preset"]).strip()
             else:
                 # fallback: try to parse from profile or path
-                m = re.search(r'color_(off|on|preserve|auto)', profile, re.IGNORECASE)
+                m = re.search(r"color_(off|on|preserve|auto)", profile, re.IGNORECASE)
                 if not m:
-                    m = re.search(r'color_(off|on|preserve|auto)', csv_path, re.IGNORECASE)
+                    m = re.search(r"color_(off|on|preserve|auto)", csv_path, re.IGNORECASE)
                 if m:
                     color_preset = m.group(1).lower()
 
@@ -95,29 +99,33 @@ def collect_confusion_records(base_dirs: List[str]) -> pd.DataFrame:
             denom_j = tp + fp + fn
             jaccard = float(tp / denom_j) if denom_j > 0 else 0.0
 
-            # --- Find valid split file and hash it ---
+            # --- Find valid split file and signature it ---
             valid_path = find_valid_file(root, max_up=5)
             valid_sig = valid_basename_signature(valid_path) if valid_path else None
 
-            records.append(
-                {
-                    "framework": str(framework),
-                    "yolo_type": str(yolo),
-                    "dataset": str(dataset),
-                    "profile": str(profile),
-                    "val_fraction": str(val_fraction),
-                    "color_preset": str(color_preset),
-                    "tp": float(tp),
-                    "fp": float(fp),
-                    "fn": float(fn),
-                    "total": float(total),
-                    "jaccard": jaccard,
-                    "valid_path": valid_path or "missing",
-                    "valid_sig": valid_sig,
-                    "source_csv": csv_path,
-                    "source_dir": root,
-                }
-            )
+            rec = {
+                "framework": str(framework),
+                "yolo_type": str(yolo),
+                "dataset": str(dataset),
+                "profile": str(profile),
+                "val_fraction": str(val_fraction),
+                "color_preset": str(color_preset),
+                "tp": float(tp),
+                "fp": float(fp),
+                "fn": float(fn),
+                "total": float(total),
+                "jaccard": jaccard,
+                "valid_path": valid_path or "missing",
+                "valid_sig": valid_sig,
+                "source_csv": csv_path,
+                "source_dir": root,
+            }
+
+            # Include fairness columns (exact names) so keep_largest_fair_subset can key on them.
+            for k in DEFAULT_FAIR_KEYS:
+                rec[k] = row.get(k, None)
+
+            records.append(rec)
 
     return pd.DataFrame.from_records(records)
 
@@ -145,8 +153,6 @@ def _find_significant_rows(g: pd.DataFrame, id_cols, alpha: float = 0.05):
       1. Are best in their val-fraction block up to 3 decimals, AND
       2. Are significantly better than all models in the *other* framework(s)
          using Welch t-tests with Holm–Bonferroni correction.
-
-    If SciPy is unavailable or no rows qualify, return (empty_set, False).
     """
     if stats is None:
         return set(), False
@@ -261,11 +267,30 @@ def main():
     if df.empty:
         raise SystemExit("No benchmark CSVs found with CM_Total* columns.")
 
+    # -------------------------------------------------------------------------
+    # FAIRNESS FILTER:
+    # Within each (dataset, val_fraction, framework, yolo_type, profile, color_preset),
+    # keep only the most frequent fair-key subset (DEFAULT_FAIR_KEYS).
+    #
+    # This preserves your intent:
+    #   - val_fraction stays distinguished (it's in group_cols)
+    #   - CPU Threads Used (and other fairness keys) are enforced to match within the chosen subset
+    # -------------------------------------------------------------------------
+    df = keep_largest_fair_subset(
+        df,
+        fair_keys=DEFAULT_FAIR_KEYS,
+        group_cols=("dataset", "val_fraction", "framework", "yolo_type", "profile", "color_preset"),
+        key_col="_fair_key",
+    )
+
+    if df.empty:
+        raise SystemExit("No rows left after fairness filtering (missing fair-key columns?).")
+
     # --- CONSISTENCY CHECKS PER DATASET + VAL_FRACTION ---
     combo_cols = ["dataset", "val_fraction"]
     combos = df[combo_cols].drop_duplicates()
 
-    print("Consistency checks by dataset + validation fraction:")
+    print("Consistency checks by dataset + validation fraction (after fairness filtering):")
     valid_outliers = []
     total_outliers = []
 
@@ -395,9 +420,6 @@ def main():
 
     datasets = sorted(df["dataset"].unique())
 
-    def wavg(g, col):
-        return (g[col] * g["count"]).sum() / g["count"].sum()
-
     for dataset in datasets:
         dataset_summary = summary[summary["dataset"] == dataset].copy()
         if dataset_summary.empty:
@@ -431,23 +453,16 @@ def main():
                 )
             )
 
-            # Ensure ultralytics rows are ordered: yolo11n, yolo11s, yolo11m
-            yolo_order = {
-                "yolo11n": 1,
-                "yolo11s": 2,
-                "yolo11m": 3,
-            }
+            yolo_order = {"yolo11n": 1, "yolo11s": 2, "yolo11m": 3}
             leather_latex["yolo_sort"] = leather_latex["yolo_type"].map(yolo_order).fillna(0)
 
             leather_latex = leather_latex.sort_values(
                 ["val_fraction", "framework", "yolo_sort", "yolo_type", "color_preset"]
             )
 
-            print(f"\n% LaTeX Table: {dataset} Dataset Summary Statistics")
-
             cap = (
                 f"Average confusion matrix values for {dataset} by framework, YOLO type, "
-                f"color preset, and validation fraction."
+                f"color preset, and validation fraction (fairness-filtered)."
             )
 
             # Table* with caption + label ABOVE the tabular
@@ -457,13 +472,14 @@ def main():
             print("\\centering")
 
             # Note: Val Frac is shown as a block header, not a separate column
-            print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|}")
+            print("\\begin{tabular}{|l|l|l|c|c|c|c|c|c|c|}")
             print("\\hline")
             print(
                 "\\rowcolor{darkgray!20}"
                 "\\textbf{Framework} & \\textbf{YOLO Type} & \\textbf{Color} & "
                 "\\textbf{Count} & \\textbf{Avg TP} & \\textbf{Avg FP} & "
-                "\\textbf{Avg FN} & \\textbf{Med Jaccard} & \\textbf{Avg Jaccard} \\\\"
+                "\\textbf{Avg FN} & \\textbf{Med Jaccard} & \\textbf{Std Jaccard} & "
+                "\\textbf{Avg Jaccard} \\\\"
             )
             print("\\hline")
 
@@ -471,7 +487,7 @@ def main():
                 # Block header row for this Val Frac (gray band)
                 print(
                     f"\\rowcolor{{gray!20}}"
-                    f"\\multicolumn{{9}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
+                    f"\\multicolumn{{10}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
                 )
                 print("\\hline")
 
@@ -503,8 +519,7 @@ def main():
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     med_j_str = f"{row['median_jaccard']:.3f}"
-                    if (dataset, row["val_fraction"]) in unequal_totals:
-                        j_str += "*"
+                    std_j_str = "-" if (pd.isna(row["std_jaccard"]) or int(row["count"]) < 2) else f"{row['std_jaccard']:.3f}"
 
                     if is_best:
                         j_str = f"\\textbf{{{j_str}}}"
@@ -518,7 +533,7 @@ def main():
                         f"{escape_latex(row['color_preset'])} & "
                         f"{int(row['count'])} & "
                         f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & {row['avg_fn']:.1f} & "
-                        f"{med_j_str} & {j_str} \\\\"
+                        f"{med_j_str} & {std_j_str} & {j_str} \\\\"
                     )
 
                 print("\\hline")
@@ -545,12 +560,7 @@ def main():
                 )
             )
 
-            # Ensure ultralytics rows are ordered: yolo11n, yolo11s, yolo11m
-            yolo_order = {
-                "yolo11n": 1,
-                "yolo11s": 2,
-                "yolo11m": 3,
-            }
+            yolo_order = {"yolo11n": 1, "yolo11s": 2, "yolo11m": 3}
             other_latex["yolo_sort"] = other_latex["yolo_type"].map(yolo_order).fillna(0)
 
             other_latex = other_latex.sort_values(
@@ -560,7 +570,7 @@ def main():
             # Caption text (used above the table)
             cap = (
                 f"Average confusion matrix values for {dataset} grouped by validation "
-                f"fraction, framework, and YOLO type."
+                f"fraction, framework, and YOLO type (fairness-filtered)."
             )
 
             # Table environment + caption/label ABOVE the tabular
@@ -569,13 +579,13 @@ def main():
             print("\\label{tab:" + dataset.lower() + "_summary}")
             print("\\centering")
 
-            print("\\begin{tabular}{|l|l|c|c|c|c|c|c|}")
+            print("\\begin{tabular}{|l|l|c|c|c|c|c|c|c|}")
             print("\\hline")
             print(
                 "\\rowcolor{darkgray!20}"
                 "\\textbf{Framework} & \\textbf{YOLO Type} & \\textbf{Count} & "
                 "\\textbf{Avg TP} & \\textbf{Avg FP} & \\textbf{Avg FN} & "
-                "\\textbf{Med Jaccard} & \\textbf{Avg Jaccard} \\\\"
+                "\\textbf{Med Jaccard} & \\textbf{Std Jaccard} & \\textbf{Avg Jaccard} \\\\"
             )
             print("\\hline")
 
@@ -586,7 +596,7 @@ def main():
                 # block header row spanning all cols, with gray background
                 print(
                     f"\\rowcolor{{gray!20}}"
-                    f"\\multicolumn{{8}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
+                    f"\\multicolumn{{9}}{{|c|}}{{\\textbf{{Val Frac = {escape_latex(vf)}}}}} \\\\"
                 )
                 print("\\hline")
 
@@ -614,8 +624,7 @@ def main():
 
                     j_str = f"{row['avg_jaccard']:.3f}"
                     med_j_str = f"{row['median_jaccard']:.3f}"
-                    if (dataset, vf) in unequal_totals:
-                        j_str += "*"
+                    std_j_str = "-" if (pd.isna(row["std_jaccard"]) or int(row["count"]) < 2) else f"{row['std_jaccard']:.3f}"
 
                     if is_best:
                         j_str = f"\\textbf{{{j_str}}}"
@@ -628,7 +637,7 @@ def main():
                         f"{escape_latex(row['yolo_type'])} & "
                         f"{int(row['count'])} & "
                         f"{row['avg_tp']:.1f} & {row['avg_fp']:.1f} & "
-                        f"{row['avg_fn']:.1f} & {med_j_str} & {j_str} \\\\"
+                        f"{row['avg_fn']:.1f} & {med_j_str} & {std_j_str} & {j_str} \\\\"
                     )
                 print("\\hline")
 

@@ -150,9 +150,164 @@ def _read_list_file(list_path: Optional[str]) -> Optional[List[str]]:
     return items
 
 
+def _read_list_paths(list_path: Optional[str]) -> Optional[List[Path]]:
+    """
+    Read a train/valid .txt list file.
+    Returns a list of Paths (absolute or relative as written).
+    Keeps full paths (does NOT reduce to stem).
+    """
+    if not list_path:
+        return None
+    p = Path(list_path)
+    if not p.is_file():
+        raise FileNotFoundError(f"list file not found: {list_path}")
+
+    items: List[Path] = []
+    for ln in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+        s = ln.strip()
+        if not s or s.startswith("#"):
+            continue
+        items.append(Path(s))
+    return items
+
+
+def _yolo_txt_to_coco_bbox(line: str, w: int, h: int) -> Optional[Tuple[int, float, float, float, float]]:
+    """
+    YOLO line: <cls> <xc> <yc> <bw> <bh>  (normalized floats)
+    Returns (class_id0, x_min, y_min, bw_px, bh_px) in pixels.
+    """
+    parts = line.strip().split()
+    if len(parts) < 5:
+        return None
+
+    try:
+        cls0 = int(float(parts[0]))
+        xc = float(parts[1]) * w
+        yc = float(parts[2]) * h
+        bw = float(parts[3]) * w
+        bh = float(parts[4]) * h
+    except Exception:
+        return None
+
+    # Convert center->top-left
+    x = xc - bw / 2.0
+    y = yc - bh / 2.0
+
+    # Clamp to image bounds
+    x = max(0.0, min(float(w), x))
+    y = max(0.0, min(float(h), y))
+    bw = max(0.0, min(float(w) - x, bw))
+    bh = max(0.0, min(float(h) - y, bh))
+
+    if bw <= 0.0 or bh <= 0.0:
+        return None
+
+    return (cls0, float(x), float(y), float(bw), float(bh))
+
+
+def build_coco_gt_from_yolo_lists(
+    *,
+    list_file: str,
+    out_json: Optional[str] = None,
+    names_path: Optional[str] = None,
+) -> dict:
+    """
+    Build COCO GT from a train/valid list file where images have YOLO .txt labels
+    next to them (same stem).
+    """
+    img_paths = _read_list_paths(list_file) or []
+    if not img_paths:
+        raise ValueError(f"empty list_file: {list_file}")
+
+    names_list = _read_names_file(names_path)  # may be None
+
+    # Categories: prefer names.txt ordering; else infer max class id later
+    categories: List[dict] = []
+    if names_list:
+        categories = [{"id": i, "name": n} for i, n in enumerate(names_list)]
+
+
+    images: List[dict] = []
+    annotations: List[dict] = []
+    image_id = 1
+    ann_id = 1
+    max_cls0_seen = -1
+
+    for raw_img in img_paths:
+        img = raw_img
+        if not img.is_absolute():
+            # interpret relative paths relative to the list_file directory
+            img = Path(list_file).parent / img
+
+        if not img.is_file():
+            # Robustness: skip missing images
+            continue
+
+        try:
+            with Image.open(img) as im:
+                w, h = im.size
+        except Exception:
+            continue
+
+        images.append({
+            "id": image_id,
+            "file_name": img.name,   # basename is fine for eval if your det export uses basenames too
+            "width": int(w),
+            "height": int(h),
+        })
+
+        label = img.with_suffix(".txt")
+        if label.is_file():
+            for ln in label.read_text(encoding="utf-8", errors="ignore").splitlines():
+                ln = ln.strip()
+                if not ln:
+                    continue
+                parsed = _yolo_txt_to_coco_bbox(ln, w, h)
+                if not parsed:
+                    continue
+                cls0, x, y, bw, bh = parsed
+                max_cls0_seen = max(max_cls0_seen, cls0)
+
+                cat_id = cls0
+
+
+                annotations.append({
+                    "id": ann_id,
+                    "image_id": image_id,
+                    "category_id": cat_id,
+                    "bbox": [x, y, bw, bh],
+                    "area": float(bw * bh),
+                    "iscrowd": 0,
+                })
+                ann_id += 1
+
+        image_id += 1
+
+    # If no names.txt, infer categories from observed max class id
+    if not categories:
+        k = max_cls0_seen + 1
+        categories = [{"id": i, "name": f"class_{i}"} for i in range(max(0, k))]
+
+    coco: Dict[str, object] = {
+        "info": {"description": "YOLO txt → COCO GT", "version": "1.0", "year": 2025},
+        "licenses": [],
+        "images": images,
+        "annotations": annotations,
+        "categories": categories,
+    }
+
+    if out_json:
+        outp = Path(out_json)
+        outp.parent.mkdir(parents=True, exist_ok=True)
+        outp.write_text(json.dumps(coco), encoding="utf-8")
+        print(f"[coco_gt] wrote {outp}  (images={len(images)}, anns={len(annotations)}, classes={len(categories)})")
+
+    return coco
+
+
 def _infer_categories(used_obj_names: Iterable[str], names_list: Optional[List[str]]) -> Tuple[List[dict], Dict[str, int]]:
     """
-    Build COCO categories and a mapping from object name -> category_id (1-based).
+    Build COCO categories and a mapping from object name -> category_id.
     If names_list is provided, category order follows it; else use sorted set.
     """
     if names_list:
@@ -160,7 +315,7 @@ def _infer_categories(used_obj_names: Iterable[str], names_list: Optional[List[s
     else:
         uniq = sorted(set(used_obj_names))
 
-    categories = [{"id": i + 1, "name": name} for i, name in enumerate(uniq)]
+    categories = [{"id": i, "name": name} for i, name in enumerate(uniq)]
     cat_id_by_name = {c["name"]: c["id"] for c in categories}
     return categories, cat_id_by_name
 
@@ -191,7 +346,20 @@ def build_coco_gt(
       }
     """
     json_by_stem = _collect_jsons(ann_root)
+
+    # If we have any per-image JSONs, use the existing JSON-based pipeline.
+    # Otherwise (e.g., Leather), fall back to YOLO .txt labels next to images listed in list_file.
+    if not json_by_stem:
+        if not list_file:
+            raise ValueError("No *.json annotations found and no list_file provided for YOLO-txt fallback.")
+        return build_coco_gt_from_yolo_lists(
+            list_file=list_file,
+            out_json=out_json,
+            names_path=names_path,
+        )
+
     stems = set(json_by_stem.keys())
+
 
     # If a list file is provided, restrict to those stems
     restrict = _read_list_file(list_file)
@@ -243,7 +411,7 @@ def build_coco_gt(
             if not isinstance(name, str) or not name:
                 continue
             cat_id = cat_id_by_name.get(name)
-            if not cat_id:
+            if cat_id is None:
                 # New class unseen in first pass (rare). Add it on the fly.
                 cat_id = max(cat_id_by_name.values(), default=0) + 1
                 cat = {"id": cat_id, "name": name}

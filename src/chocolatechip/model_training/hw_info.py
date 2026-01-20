@@ -678,3 +678,32 @@ def get_disk_info():
         "Disk Capacity": disk_capacities,
         "Disk Model": disk_models,
     }
+
+
+def cpu_threads_used() -> int:
+    """
+    CPU threads effectively available/allocated to this run.
+
+    Priority:
+      1) Slurm allocation (SLURM_CPUS_PER_TASK)
+      2) CPU affinity mask (captures Docker --cpuset-cpus and some schedulers)
+      3) os.cpu_count() fallback
+    """
+    v = os.environ.get("SLURM_CPUS_PER_TASK")
+    if v:
+        try:
+            n = int(v)
+            if n > 0:
+                return n
+        except ValueError:
+            pass
+
+    # affinity (more accurate than cpu_count when constrained)
+    try:
+        n = len(os.sched_getaffinity(0))  # type: ignore[attr-defined]
+        if n > 0:
+            return n
+    except Exception:
+        pass
+
+    return int(os.cpu_count() or 1)
