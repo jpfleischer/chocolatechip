@@ -1,0 +1,73 @@
+Backend: darknet
+Profile: FisheyeTrafficDarknetLocal
+YOLO Template: yolov7
+Benchmark Time (s): 17311.558
+CPU Name: INTEL(R) XEON(R) PLATINUM 8570
+CPU Threads: 112
+CPU Threads Used: 8
+GPU Name: NVIDIA B200
+GPU VRAM: 183359 MiB
+Total Memory: 2.0 TiB
+OS: Linux
+Architecture: x86_64
+Python Version: 3.12.3
+Disk Capacity: 1G, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 3.5T, 1.7T, 1.7T
+Disk Model: Virtual SD0, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84,
+  KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84, KIOXIA KCMYDRUG3T84,
+  KIOXIA KCMYDRUG3T84, SAMSUNG MZ1L21T9HCLS-00A07, SAMSUNG MZ1L21T9HCLS-00A07
+Write Speed: 613.55 MiB/s
+Read Speed: 450.73 MiB/s
+Working Dir: /blue/ranka/akumik/chocolatechip/semester-work/spring2025/darknet
+CUDA Version: '12.8'
+cuDNN Version: 90.7.0 (90700)
+GPUs Used: 1
+Compute Capability: '10.0'
+Input Width: 960
+Input Height: 736
+Input Size: 960x736
+Iterations: 8000
+Batch Size: 64
+Subdivisions: 16
+Train Images: 25984
+Valid Images: 2887
+Approx Epochs: 19.704433497536947
+Color Preset: 'off'
+Split Seed: 9001
+Training Seed: null
+Repeat: null
+Val Fraction: 0.1
+IoU (mAP): 0.5
+mAP Points: 101
+mAP (last %): 95.1
+mAP (best %): 95.22
+Best Iteration: 7902
+Conf Thresh (PRF): 0.25
+Precision@Conf: 0.91
+Recall@Conf: 0.93
+F1@Conf: 0.92
+CM_IoU_Thresh: 0.5
+CM_Conf_Thresh: 0.5
+CM_Classes: 5
+CM_TotalTP: 53860
+CM_TotalFP: 1550
+CM_TotalFN: 3404
+CM_MicroPrecision: 0.972026709980148
+CM_MicroRecall: 0.9405560212349818
+CM_MicroF1: 0.9560324475921685
+CM_MacroPrecision: 0.9742344730476392
+CM_MacroRecall: 0.904182022227922
+CM_MacroF1: 0.9365277472399226
+COCO AP50-95 (%): 76.64187131417629
+COCO AP50 (%): 94.50057154785458
+COCO AP75 (%): 87.62675164242813
+COCO AP@50 (%): 75.39844887127559
+COCO AP@55 (%): 75.2965812471468
+COCO AP@60 (%): 74.92701755537942
+COCO AP@65 (%): 74.05829777283682
+COCO AP@70 (%): 73.10388162424036
+COCO AP@75 (%): 70.80611849749798
+COCO AP@80 (%): 65.81771291685821
+COCO AP@85 (%): 54.5477791026683
+COCO AP@89 (%): 38.23624474394481
+COCO AP@95 (%): 13.443703558702522
+mAP50-95 (%): 76.64187131417629
