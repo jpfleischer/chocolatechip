@@ -717,7 +717,7 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
                     out_json=det_json,
                     images_txt=val_list,
                     thresh=export_thresh,
-                    letter_box=True,
+                    letter_box=False,
                     save_vis=True,
                     vis_dir=output_dir,
                 )
@@ -725,14 +725,16 @@ def run_once(*, p: TrainProfile, template: Optional[str], out_root: str,
         else:
             # best.pt under Ultralytics run dir
             best_pt = str((Path(output_dir) / "train" / "weights" / "best.pt"))
+            if not (hasattr(p, "width") and hasattr(p, "height")):
+                raise RuntimeError("TrainProfile must define width and height for fair export")
             export_ultra_detections(
                 weights=best_pt,
                 ann_json=gt_json,
                 out_json=det_json,
                 images_txt=val_list,
-                conf=0.001,     # match Darknet export threshold for fairness
+                conf=export_thresh,     # match Darknet export threshold for fairness
                 iou=0.45,        # NMS IoU
-                imgsz=p.width if hasattr(p, "width") else None,
+                imgsz=(p.height, p.width),
                 device=indices,
                 batch=2,
                 save_vis=True,

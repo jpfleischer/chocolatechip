@@ -208,7 +208,7 @@ def _ultra_color_args_from_profile(profile) -> str:
 
 def build_ultralytics_cmd(*, profile, device_indices: list[int], run_dir: str) -> str:
     device_str = ",".join(str(i) for i in device_indices) if device_indices else "0"
-    imgsz = max(profile.width, profile.height)
+    imgsz = f"{int(profile.height)},{int(profile.width)}"  # H,W for Ultralytics
 
     epochs = (
         int(profile.epochs)
