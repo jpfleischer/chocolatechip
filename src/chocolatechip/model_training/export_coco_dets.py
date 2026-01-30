@@ -118,6 +118,8 @@ def export_ultra_detections(
     vis_scale: float = 3.0,
 ) -> None:
     from ultralytics import YOLO
+    import torch
+
     img_id_by_name, cat_id_by_name = _load_gt_index(ann_json)
     images = _read_images_list(images_txt, ann_json)
 
@@ -137,8 +139,7 @@ def export_ultra_detections(
         print(f"[ultra_vis] saving annotated images under: {vis_root}")
 
     # --- timing state (always on) ---
-    total_infer_time = 0.0
-    infer_count = 0
+    dts: List[float] = []          # per-image seconds (steady-state)
     warmup_first = None
     sw_timer_name = f"ultra_inference_loop::{Path(weights).stem}"
     StopWatch.start(sw_timer_name)
@@ -154,14 +155,15 @@ def export_ultra_detections(
             verbose=False,
             save=False,
         )
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         t1 = time.perf_counter()
         dt = t1 - t0
 
         if img_idx == 1:
             warmup_first = dt
         else:
-            total_infer_time += dt
-            infer_count += 1
+            dts.append(dt)
 
         if not preds:
             continue
@@ -226,42 +228,57 @@ def export_ultra_detections(
     print(f"[ultra] wrote detections: {out_json} ({len(results)} boxes)")
 
     # --- timing summary (aggregate only) ---
-    if infer_count > 0 and total_infer_time > 0.0:
-        mean_s = total_infer_time / infer_count
-        fps = infer_count / total_infer_time
-        warmup_s = float(warmup_first) if warmup_first is not None else 0.0
+    if dts:
+        dts_sorted = sorted(dts)
+        n = len(dts_sorted)
+        total_s = sum(dts_sorted)
+        mean_s = total_s / n
+        fps = n / total_s if total_s > 0 else 0.0
+
+        # simple percentile helper (no numpy dependency)
+        def pct(p: float) -> float:
+            if n == 1:
+                return dts_sorted[0]
+            k = (n - 1) * (p / 100.0)
+            f = int(k)
+            c = min(f + 1, n - 1)
+            if f == c:
+                return dts_sorted[f]
+            return dts_sorted[f] + (k - f) * (dts_sorted[c] - dts_sorted[f])
+
+        stats = {
+            "min_s": dts_sorted[0],
+            "p25_s": pct(25),
+            "p50_s": pct(50),
+            "p75_s": pct(75),
+            "max_s": dts_sorted[-1],
+        }
 
         print(
-            f"[ultra][timing] n_images={infer_count} total={total_infer_time:.4f}s "
-            f"mean={mean_s:.6f}s fps={fps:.2f}"
-        )
-
-        loop_total = StopWatch.get(sw_timer_name)
-        print(
-            f"[ultra][timing] StopWatch loop='{sw_timer_name}' "
-            f"total={loop_total:.4f}s"
+            f"[ultra][timing] n_images={n} total={total_s:.4f}s "
+            f"mean={mean_s:.6f}s fps={fps:.2f} "
+            f"p50={stats['p50_s']:.6f}s p75={stats['p75_s']:.6f}s"
         )
 
         timing_json = Path(out_json).with_suffix(".timing.ultra.json")
-        try:
-            with open(timing_json, "w", encoding="utf-8") as f:
-                    json.dump(
-                        {
-                            "backend": "ultralytics",
-                            "weights": weights,
-                            "n_images": infer_count,         # steady-state count (N-1)
-                            "total_s": total_infer_time,
-                            "mean_s": mean_s,
-                            "fps": fps,
-                            "warmup_first_infer_s": warmup_s,
-                            "warmup_images_ignored": 1 if warmup_first is not None else 0,
-                        },
-                        f,
-                        indent=2,
-                    )
-            print(f"[ultra][timing] wrote timing stats: {timing_json}")
-        except Exception as e:
-            print(f"[ultra][timing] failed to write timing JSON: {e}")
+        with open(timing_json, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "backend": "ultralytics",
+                    "weights": weights,
+                    "n_images": n,
+                    "total_s": total_s,
+                    "mean_s": mean_s,
+                    "fps": fps,
+                    "warmup_first_infer_s": float(warmup_first or 0.0),
+                    "warmup_images_ignored": 1 if warmup_first is not None else 0,
+
+                    # NEW: distribution
+                    **stats,
+                },
+                f,
+                indent=2,
+            )
 
 # ---------- Darknet → COCO results JSON ----------
 
